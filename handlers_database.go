@@ -65,6 +65,9 @@ func handleDBSample(w http.ResponseWriter, r *http.Request) {
 	if limit <= 0 {
 		limit = 20
 	}
+	if limit > 200 {
+		limit = 200
+	}
 	msg, ok := cmdSampleTable(table, limit)().(msgSample)
 	if !ok {
 		jsonErr(w, fmt.Errorf("internal error"), 500)
@@ -103,6 +106,7 @@ func handleDBSearch(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleDBSQL(w http.ResponseWriter, r *http.Request) {
+	limitBody(w, r, maxJSONBodyBytes)
 	var req struct {
 		SQL string `json:"sql"`
 	}
@@ -112,6 +116,10 @@ func handleDBSQL(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.SQL == "" {
 		jsonErr(w, fmt.Errorf("sql required"), 400)
+		return
+	}
+	if !isReadOnlySQL(req.SQL) {
+		jsonErr(w, fmt.Errorf("only single-statement read-only SQL is allowed"), 400)
 		return
 	}
 	msg, ok := cmdRunSQL(req.SQL)().(msgSQL)
