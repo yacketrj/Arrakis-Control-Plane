@@ -50,7 +50,7 @@ func startServer(addr string) {
 	mux.HandleFunc("GET /api/v1/players/templates", handleGetTemplates)
 	mux.HandleFunc("GET /api/v1/players/{id}/inventory", handleGetInventory)
 	mux.HandleFunc("GET /api/v1/players/{id}/journey", handleGetJourney)
-	mux.HandleFunc("POST /api/v1/players/give-item", handleGiveItem)
+	mux.HandleFunc("POST /api/v1/players/give-item", handleGiveItems)
 	mux.HandleFunc("POST /api/v1/players/give-currency", handleGiveCurrency)
 	mux.HandleFunc("POST /api/v1/players/grant-live", handleGrantLive)
 	mux.HandleFunc("POST /api/v1/players/give-faction-rep", handleGiveFactionRep)
