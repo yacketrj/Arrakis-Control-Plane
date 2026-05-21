@@ -16,6 +16,7 @@ import (
 const maxJSONBodyBytes int64 = 1 << 20 // 1 MiB
 
 var k8sNamePattern = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
+var sqlDangerPattern = regexp.MustCompile(`(?i)\b(insert|update|delete|drop|alter|truncate|create|grant|revoke|copy|call|do|execute|merge|vacuum|analyze)\b`)
 var adminToken string
 var allowedOrigins = "http://localhost:5173,https://dune-admin.layout.tools"
 
@@ -128,7 +129,7 @@ func isReadOnlySQL(sql string) bool {
 	trimmed := strings.TrimSpace(sql)
 	trimmed = strings.TrimLeft(trimmed, "(\n\r\t ")
 	lower := strings.ToLower(trimmed)
-	if strings.Contains(lower, ";") {
+	if strings.Contains(lower, ";") || sqlDangerPattern.MatchString(lower) {
 		return false
 	}
 	allowedPrefixes := []string{"select ", "with ", "show ", "explain "}
