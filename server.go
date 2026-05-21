@@ -28,6 +28,11 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 func startServer(addr string) {
+	if addr == "" || addr == ":8080" {
+		addr = "127.0.0.1:8080"
+	}
+	warnIfExternallyBound(addr)
+
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/v1/status", handleStatus)
