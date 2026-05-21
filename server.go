@@ -5,15 +5,22 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 )
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		origin := r.Header.Get("Origin")
+		if originAllowed(origin) {
+			if origin != "" {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Set("Vary", "Origin")
+			}
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Admin-Token")
+		}
 		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -23,16 +30,13 @@ func corsMiddleware(next http.Handler) http.Handler {
 func startServer(addr string) {
 	mux := http.NewServeMux()
 
-	// ── status ────────────────────────────────────────────────────────────────
 	mux.HandleFunc("GET /api/v1/status", handleStatus)
 	mux.HandleFunc("POST /api/v1/reconnect", handleReconnect)
 
-	// ── battlegroup ───────────────────────────────────────────────────────────
 	mux.HandleFunc("GET /api/v1/battlegroup/status", handleBGStatus)
 	mux.HandleFunc("POST /api/v1/battlegroup/exec", handleBGExec)
 	mux.HandleFunc("GET /api/v1/battlegroup/pods", handleBGPods)
 
-	// ── players ───────────────────────────────────────────────────────────────
 	mux.HandleFunc("GET /api/v1/players", handleGetPlayers)
 	mux.HandleFunc("GET /api/v1/players/online", handleGetOnlineState)
 	mux.HandleFunc("GET /api/v1/players/currency", handleGetCurrency)
@@ -68,36 +72,37 @@ func startServer(addr string) {
 	mux.HandleFunc("GET /api/v1/players/{id}/events", handleGetPlayerEvents)
 	mux.HandleFunc("GET /api/v1/players/{id}/dungeons", handleGetPlayerDungeons)
 
-	// ── database ──────────────────────────────────────────────────────────────
 	mux.HandleFunc("GET /api/v1/database/tables", handleDBTables)
 	mux.HandleFunc("GET /api/v1/database/describe", handleDBDescribe)
 	mux.HandleFunc("GET /api/v1/database/sample", handleDBSample)
 	mux.HandleFunc("GET /api/v1/database/search", handleDBSearch)
 	mux.HandleFunc("POST /api/v1/database/sql", handleDBSQL)
 
-	// ── logs ──────────────────────────────────────────────────────────────────
 	mux.HandleFunc("GET /api/v1/logs/pods", handleLogPods)
 	mux.HandleFunc("GET /api/v1/logs/stream", handleLogStream)
 	mux.HandleFunc("GET /api/v1/logs/cheats", handleGetCheatLog)
 
-	// ── notifications ────────────────────────────────────────────────────────
 	mux.HandleFunc("POST /api/v1/notify", handleNotify)
 
-	// ── storage ───────────────────────────────────────────────────────────────
 	mux.HandleFunc("GET /api/v1/storage", handleListStorage)
 	mux.HandleFunc("GET /api/v1/storage/{id}/items", handleGetStorageItems)
 	mux.HandleFunc("POST /api/v1/storage/{id}/give-item", handleGiveItemToStorage)
 
-	// ── blueprints ────────────────────────────────────────────────────────────
 	mux.HandleFunc("GET /api/v1/blueprints", handleListBlueprints)
 	mux.HandleFunc("GET /api/v1/blueprints/{id}/export", handleExportBlueprint)
 	mux.HandleFunc("POST /api/v1/blueprints/import", handleImportBlueprint)
 
 	log.Printf("dune-admin listening on %s", addr)
-	log.Fatal(http.ListenAndServe(addr, corsMiddleware(mux)))
+	server := &http.Server{
+		Addr:              addr,
+		Handler:           corsMiddleware(authMiddleware(mux)),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+	log.Fatal(server.ListenAndServe())
 }
-
-// ── JSON helpers ──────────────────────────────────────────────────────────────
 
 func jsonOK(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
@@ -114,18 +119,15 @@ func decode(r *http.Request, v any) error {
 	return json.NewDecoder(r.Body).Decode(v)
 }
 
-// handleStatus returns SSH and DB connection state.
 func handleStatus(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, map[string]any{
 		"ssh_connected": globalSSH != nil,
 		"db_connected":  globalDB != nil,
 		"pod_ns":        globalPodNS,
-		"pod_ip":        globalPodIP,
 		"ssh_host":      sshHost,
 	})
 }
 
-// handleReconnect attempts to re-establish SSH+DB connections.
 func handleReconnect(w http.ResponseWriter, r *http.Request) {
 	if globalDB != nil {
 		globalDB.Close()
