@@ -39,7 +39,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: web/package-lock.json
       - name: Install dependencies from package manifest
         working-directory: web
         run: npm install
@@ -95,7 +94,6 @@ jobs:
           scan-ref: .
           severity: HIGH,CRITICAL
           ignore-unfixed: true
-          skip-files: web/package-lock.json
           exit-code: 1
 
   dast-zap:
@@ -114,7 +112,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: web/package-lock.json
       - name: Create CI backend environment
         run: |
           openssl rand -hex 16 > /tmp/dune-admin-ci-token
