@@ -19,12 +19,16 @@ All notable changes to this project will be documented in this file.
 - Updated the gosec gate to exclude the remaining accepted local-admin findings from the blocking high-confidence scan.
 - Removed npm cache key references to the deleted frontend lockfile from security workflow Node setup steps.
 - Restored Trivy DCA to scan the repository without a stale lockfile skip because the stale frontend lockfile was removed.
+- Added `go mod download` bootstrap steps before Go test, gosec, and DAST backend startup so CI refreshes module sums before compiling against updated Go module metadata.
+- Removed npm cache mode from Node setup steps while no committed frontend lockfile is present.
 
 ### Fixed
 
 - Removed the unused frontend auth dependency from `web/package.json` to eliminate the transitive vulnerable `js-cookie` dependency from runtime installs and npm audit.
 - Removed stale `web/package-lock.json` because it still contained vulnerable `js-cookie` metadata after the unused auth dependency was removed from `web/package.json`.
 - Fixed the Go SCA baseline by moving the repository module metadata to Go 1.26.3 and `golang.org/x/crypto` 0.52.0.
+- Fixed Go SCA and gosec failures caused by missing `go.sum` entries after the Go module version update.
+- Fixed SCA npm and DAST setup-node failures caused by enabling npm cache without a committed lockfile.
 - Fixed DAST preview startup validation by checking the actual Vite preview port.
 
 ### Security
