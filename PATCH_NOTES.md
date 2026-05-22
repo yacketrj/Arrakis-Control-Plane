@@ -23,17 +23,19 @@ This remediation keeps the pipeline security-focused while reducing false or sta
 ### Security and operator impact
 
 - Removed the unused frontend auth dependency from `web/package.json`, eliminating the runtime path that pulled in the vulnerable `js-cookie` dependency through the unused auth package.
+- Removed stale `web/package-lock.json` because it still contained vulnerable `js-cookie` dependency metadata after the package manifest no longer referenced the unused auth dependency.
 - Updated Go module metadata to use Go `1.26.3` and `golang.org/x/crypto v0.52.0`, aligning the repository with the fixed Go SCA baseline.
 - Updated the security workflow to run Go `1.26.3` explicitly for Go SCA, gosec, and DAST backend startup.
-- Changed Node security jobs to install from the current package manifest so the scan reflects the unused dependency removal even while the committed lockfile still needs a clean regeneration.
+- Changed Node security jobs to install from the current package manifest so the scan reflects the unused dependency removal without relying on stale lockfile metadata.
 - Changed DAST to validate Vite preview on the actual preview port, `4173`, instead of checking the old development-server port assumption.
 - Replaced the static CI admin token with a per-run generated token for the DAST backend check.
 - Tuned the gosec blocking gate to exclude the remaining accepted local-admin/legacy findings while preserving medium-or-higher, high-confidence scanning for non-accepted categories.
-- Configured Trivy to skip the stale committed frontend lockfile while npm audit remains the authoritative Node SCA gate for the current manifest.
+- Removed npm lockfile cache references from Node workflow setup steps now that the stale lockfile has been removed.
+- Restored Trivy DCA to scan the repository without a `web/package-lock.json` skip because the stale lockfile is no longer present.
 
 ### Required follow-up
 
-The frontend lockfile should be regenerated cleanly from the updated `web/package.json` in a local environment and recommitted. Until then, npm audit in CI uses `npm install` to build the dependency tree from the manifest, and Trivy skips `web/package-lock.json` to avoid reporting stale dependency data that no longer reflects runtime installs.
+The frontend lockfile should be regenerated cleanly from the updated `web/package.json` in a local environment and recommitted once it is confirmed clean. Until then, npm audit in CI uses `npm install` to build the dependency tree from the current manifest.
 
 Recommended local lockfile follow-up:
 
@@ -254,7 +256,7 @@ Secrets - Gitleaks
 - Batch item grants intentionally allow explicit stack sizes up to the configured limit. Operators should use values compatible with game behavior.
 - Some gosec categories are tuned out of the blocking CI gate because they represent known local-admin deployment tradeoffs or low-signal cleanup findings. They should still be reviewed periodically.
 - DAST currently validates the frontend preview server. Production deployments should also validate the final reverse-proxy or hosting layer.
-- `web/package-lock.json` still needs a clean regeneration after the unused frontend auth dependency removal.
+- `web/package-lock.json` needs a clean regeneration from the current `web/package.json`.
 
 ---
 
