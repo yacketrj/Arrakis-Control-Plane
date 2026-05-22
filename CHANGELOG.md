@@ -29,6 +29,7 @@ All notable changes to this project will be documented in this file.
 - Updated `.zap/rules.tsv` to use ZAP baseline's required three-column rule format.
 - Expanded the Vite frontend Content Security Policy with explicit fallback directives required by ZAP baseline.
 - Added the Cross-Origin-Embedder-Policy header for Vite dev and preview responses.
+- Removed inline script execution from the Vite frontend Content Security Policy.
 
 ### Fixed
 
@@ -42,6 +43,7 @@ All notable changes to this project will be documented in this file.
 - Fixed DAST preview startup validation by checking the actual Vite preview port.
 - Fixed DAST ZAP policy parsing failure caused by two-column rule entries in `.zap/rules.tsv`.
 - Fixed DAST ZAP warnings for missing Cross-Origin-Embedder-Policy and incomplete CSP fallback directives.
+- Fixed the remaining DAST ZAP warning for `script-src` inline execution allowance.
 
 ### Security
 
@@ -52,6 +54,7 @@ All notable changes to this project will be documented in this file.
 - Reduced frontend authentication ambiguity by removing optional Clerk code paths and relying on backend-enforced admin-token authorization.
 - Preserved DAST signal by fixing ZAP rule parsing instead of disabling the ZAP baseline job.
 - Strengthened browser isolation and CSP behavior for CI preview and local Vite serving.
+- Tightened frontend script execution policy to disallow inline script execution in Vite dev and preview responses.
 
 ### Operational Notes
 
