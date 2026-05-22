@@ -1,6 +1,77 @@
 # Dune Admin Release Notes
 
-## Current remediation addendum: GitHub Actions security scan follow-up
+## Current update: Linux version support
+
+### Why this update was made
+
+The Windows-oriented workflow is now complemented by a Linux version so operators can install dependencies, run the app locally, build a Linux backend binary, and install the backend as a systemd service without translating Windows steps manually.
+
+### Security and operator impact
+
+- Added Linux helper scripts under `scripts/linux/` for dependency setup, local development, Linux builds, and systemd installation.
+- Added a Linux operating guide at `docs/linux.md` with configuration, build, run, service, validation, and security steps.
+- Updated the README with Linux quick-start instructions and runtime configuration guidance.
+- Updated `.gitignore` so Linux build output, frontend build output, frontend dependencies, and local runtime logs are not committed.
+- The systemd installer creates a dedicated service user and enables service hardening options including no new privileges, private tmp, protected system paths, and constrained write access.
+- Linux guidance continues to require loopback backend binding by default, strong admin tokens, SSH key protection, and TLS/reverse-proxy controls for any remote exposure.
+
+### New Linux workflow
+
+Install and run locally:
+
+```bash
+git pull origin main
+chmod +x scripts/linux/*.sh
+./scripts/linux/install-deps.sh
+cp .env.example .env
+nano .env
+./scripts/linux/run-dev.sh
+```
+
+Build a Linux backend binary:
+
+```bash
+./scripts/linux/build-linux.sh
+```
+
+Install the backend as a systemd service:
+
+```bash
+sudo ./scripts/linux/install-systemd.sh
+sudo nano /opt/dune-admin/.env
+sudo systemctl start dune-admin
+sudo systemctl status dune-admin
+```
+
+### Validation
+
+Expected Linux validation:
+
+```bash
+go mod tidy
+go test ./...
+cd web
+npm install
+npm audit --audit-level=high
+npm run build
+```
+
+### Required follow-up
+
+Regenerate `web/package-lock.json` from the current manifest when working locally:
+
+```bash
+cd web
+npm install
+npm audit --audit-level=high
+npm run build
+```
+
+Then commit the regenerated lockfile with matching updates to `PATCH_NOTES.md` and `CHANGELOG.md`.
+
+---
+
+## Previous remediation addendum: GitHub Actions security scan follow-up
 
 ### Why this remediation was made
 
@@ -14,36 +85,6 @@ This remediation keeps the DAST gate enabled and tightens the frontend policy in
 - Kept `style-src-attr` compatible with the current React UI because the app still uses style attributes extensively.
 - Preserved the earlier self-only script policy, browser isolation headers, ZAP baseline rules, and Vite preview security headers.
 - Continued using the full security pipeline for SCA, SAST, DCA, DAST, and secret scanning.
-
-### Validation
-
-Expected local validation:
-
-```powershell
-git pull origin main
-go mod tidy
-go test ./...
-cd web
-npm install
-npm audit --audit-level=high
-npm run build
-npm run preview -- --host 127.0.0.1
-```
-
-The next push-triggered workflow should rerun the complete security scan suite.
-
-### Required follow-up
-
-Regenerate `web/package-lock.json` from the current manifest when working locally:
-
-```powershell
-cd web
-npm install
-npm audit --audit-level=high
-npm run build
-```
-
-Then commit the regenerated lockfile with matching updates to `PATCH_NOTES.md` and `CHANGELOG.md`.
 
 ---
 
