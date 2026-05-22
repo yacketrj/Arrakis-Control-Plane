@@ -16,6 +16,7 @@ import (
 const maxJSONBodyBytes int64 = 1 << 20 // 1 MiB
 
 var k8sNamePattern = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
+var listenPortPattern = regexp.MustCompile(`^[0-9]{1,5}$`)
 var sqlDangerPattern = regexp.MustCompile(`(?i)\b(insert|update|delete|drop|alter|truncate|create|grant|revoke|copy|call|do|execute|merge|vacuum|analyze)\b`)
 var adminToken string
 var allowedOrigins = "http://localhost:5173,https://dune-admin.layout.tools"
@@ -90,6 +91,20 @@ func originAllowed(origin string) bool {
 		allowedOrigins = v
 	}
 	return parseAllowedOrigins(allowedOrigins)[origin]
+}
+
+func normalizeListenAddr(addr string) string {
+	addr = strings.TrimSpace(addr)
+	if addr == "" {
+		return "127.0.0.1:8080"
+	}
+	if listenPortPattern.MatchString(addr) {
+		return "127.0.0.1:" + addr
+	}
+	if strings.HasPrefix(addr, ":") {
+		return "127.0.0.1" + addr
+	}
+	return addr
 }
 
 func isLoopbackAddr(addr string) bool {
