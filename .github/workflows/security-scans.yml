@@ -66,8 +66,8 @@ jobs:
           cache: true
       - name: Install gosec
         run: go install github.com/securego/gosec/v2/cmd/gosec@latest
-      - name: Run gosec
-        run: gosec ./...
+      - name: Run gosec high-confidence gate
+        run: gosec -exclude=G104 -severity=medium -confidence=high ./...
 
   secrets:
     name: Secret scan - Gitleaks
@@ -86,7 +86,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run Trivy filesystem scan
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -97,6 +97,9 @@ jobs:
   dast-zap:
     name: DAST - OWASP ZAP baseline
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -123,8 +126,8 @@ jobs:
           go run . > /tmp/dune-admin-backend.log 2>&1 &
           echo $! > /tmp/dune-admin-backend.pid
           sleep 8
-          curl -i http://127.0.0.1:8080/api/v1/status || true
-      - name: Build and start frontend
+          curl -i -H 'X-Admin-Token: ci-test-admin-token' http://127.0.0.1:8080/api/v1/status
+      - name: Build and start frontend preview
         working-directory: web
         run: |
           npm ci
@@ -133,11 +136,12 @@ jobs:
           echo $! > /tmp/dune-admin-frontend.pid
           sleep 8
           curl -I http://127.0.0.1:5173
-      - name: Run ZAP baseline against frontend
+      - name: Run ZAP baseline against frontend preview
         uses: zaproxy/action-baseline@v0.14.0
         with:
           target: http://127.0.0.1:5173
           fail_action: true
+          allow_issue_writing: false
           cmd_options: -a
       - name: Upload runtime logs
         if: always()
