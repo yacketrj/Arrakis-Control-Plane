@@ -6,25 +6,6 @@
 
 Security hardening, CI security scanning, reliability fixes, and player administration feature update.
 
-### Audience
-
-Server administrators, operators, maintainers, and anyone running Dune Admin against a live Dune: Awakening environment.
-
-### Documentation standard going forward
-
-Every future code change, configuration change, security remediation, workflow update, behavior change, bug fix, or operator-facing update must include a matching update to `PATCH_NOTES.md` in the same change set.
-
-Patch notes must follow release-note best practices:
-
-- Start with why the change was made and the operator/security impact.
-- Group entries by `Added`, `Changed`, `Fixed`, `Security`, `Testing`, `Operational Notes`, and `Known Limitations` where applicable.
-- Call out breaking changes or required configuration changes explicitly.
-- Include validation steps when behavior, build, test, scan, or runtime operations are affected.
-- Avoid vague entries such as "misc fixes" or "updates".
-- Keep the notes useful for future operators who were not present during the change.
-
----
-
 ## 1. Why this release was made
 
 This release was created to address three high-priority needs:
