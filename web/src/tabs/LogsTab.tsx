@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button, Spinner, toast } from '@heroui/react'
-import { api, getWsBase } from '../api/client'
+import { api, getAdminToken, getWsBase } from '../api/client'
 import type { LogPod, CheatEntry } from '../api/client'
 
 type ActiveView = 'pod' | 'cheats'
@@ -75,7 +75,10 @@ export default function LogsTab() {
     setSelectedPod(pod)
     setActiveView('pod')
 
-    const url = `${getWsBase()}/logs/stream?ns=${encodeURIComponent(pod.namespace)}&pod=${encodeURIComponent(pod.name)}`
+    const token = getAdminToken()
+    const params = new URLSearchParams({ ns: pod.namespace, pod: pod.name })
+    if (token) params.set('ws_token', token)
+      const url = `${getWsBase()}/logs/stream?${params.toString()}`
     const ws = new WebSocket(url)
     wsRef.current = ws
 
