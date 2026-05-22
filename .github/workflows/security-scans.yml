@@ -1,0 +1,149 @@
+name: Security Scans
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  sca-go:
+    name: SCA - Go modules
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Run Go tests and vet
+        run: go test ./...
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - name: Run govulncheck
+        run: govulncheck ./...
+
+  sca-node:
+    name: SCA - npm dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci
+      - name: Run npm audit
+        working-directory: web
+        run: npm audit --audit-level=high
+
+  sast-codeql:
+    name: SAST - CodeQL
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: go,javascript-typescript
+      - uses: github/codeql-action/autobuild@v4
+      - uses: github/codeql-action/analyze@v4
+
+  sast-gosec:
+    name: SAST - gosec
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install gosec
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+      - name: Run gosec
+        run: gosec ./...
+
+  secrets:
+    name: Secret scan - Gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dca-trivy:
+    name: DCA - Trivy filesystem scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.32.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
+
+  dast-zap:
+    name: DAST - OWASP ZAP baseline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Create CI backend environment
+        run: |
+          cat > .env <<'EOF'
+          ADMIN_TOKEN=ci-test-admin-token
+          LISTEN_ADDR=127.0.0.1:8080
+          ALLOWED_ORIGINS=http://127.0.0.1:5173,http://localhost:5173
+          DB_PASS=ci-placeholder
+          DUNE_CAPTURE_USER=dune_cap
+          DUNE_CAPTURE_PASS=ci-placeholder
+          EOF
+      - name: Start backend
+        run: |
+          go run . > /tmp/dune-admin-backend.log 2>&1 &
+          echo $! > /tmp/dune-admin-backend.pid
+          sleep 8
+          curl -i http://127.0.0.1:8080/api/v1/status || true
+      - name: Build and start frontend
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+          npm run dev -- --host 127.0.0.1 > /tmp/dune-admin-frontend.log 2>&1 &
+          echo $! > /tmp/dune-admin-frontend.pid
+          sleep 8
+          curl -I http://127.0.0.1:5173
+      - name: Run ZAP baseline against frontend
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: http://127.0.0.1:5173
+          fail_action: true
+          cmd_options: -a
+      - name: Upload runtime logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dast-runtime-logs
+          path: |
+            /tmp/dune-admin-backend.log
+            /tmp/dune-admin-frontend.log
