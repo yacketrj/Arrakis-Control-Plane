@@ -1,5 +1,52 @@
 # Dune Admin Release Notes
 
+## Current remediation addendum: GitHub Actions security scan follow-up
+
+### Why this remediation was made
+
+GitHub Actions run `26277991316` passed every security job except DAST. The remaining DAST finding was a ZAP CSP warning for inline style allowance in the Vite preview response.
+
+This remediation keeps the DAST gate enabled and tightens the frontend policy instead of suppressing the scan.
+
+### Security and operator impact
+
+- Updated `web/vite.config.ts` so `style-src` and `style-src-elem` load styles from `self` only.
+- Kept `style-src-attr` compatible with the current React UI because the app still uses style attributes extensively.
+- Preserved the earlier self-only script policy, browser isolation headers, ZAP baseline rules, and Vite preview security headers.
+- Continued using the full security pipeline for SCA, SAST, DCA, DAST, and secret scanning.
+
+### Validation
+
+Expected local validation:
+
+```powershell
+git pull origin main
+go mod tidy
+go test ./...
+cd web
+npm install
+npm audit --audit-level=high
+npm run build
+npm run preview -- --host 127.0.0.1
+```
+
+The next push-triggered workflow should rerun the complete security scan suite.
+
+### Required follow-up
+
+Regenerate `web/package-lock.json` from the current manifest when working locally:
+
+```powershell
+cd web
+npm install
+npm audit --audit-level=high
+npm run build
+```
+
+Then commit the regenerated lockfile with matching updates to `PATCH_NOTES.md` and `CHANGELOG.md`.
+
+---
+
 ## Release: Security Hardening, Security Scanning, Multi-Item Administration, and Documentation Standards Update
 
 ### Release type
@@ -12,139 +59,13 @@ Server administrators, operators, maintainers, and anyone running Dune Admin aga
 
 ---
 
-## Current remediation addendum: GitHub Actions security scan follow-up
+## Summary
 
-### Why this remediation was made
-
-Multiple GitHub Actions runs showed that the scan and test framework was running, but several jobs needed follow-up before the pipeline could act as a stable quality gate. The remaining DAST finding in run `26277557070` was a Content Security Policy warning about inline script allowance in the Vite preview response.
-
-This remediation keeps the pipeline security-focused while reducing false or stale failures and fixing actionable browser security findings.
-
-### Security and operator impact
-
-- Removed the unused frontend auth dependency from `web/package.json`, eliminating the runtime path that pulled in the vulnerable `js-cookie` dependency through the unused auth package.
-- Removed stale `web/package-lock.json` because it still contained vulnerable dependency metadata after the package manifest no longer referenced the unused auth dependency.
-- Removed stale frontend auth imports so the frontend build matches the backend-token-only authentication model.
-- Updated Go module metadata to use Go `1.26.3` and `golang.org/x/crypto v0.52.0`.
-- Replaced Go workflow bootstrap steps with `go mod tidy` so CI refreshes package import checksums required by tests, gosec, and DAST backend startup.
-- Corrected `.zap/rules.tsv` to use ZAP baseline's required three-column tab-separated format.
-- Added Cross-Origin-Embedder-Policy to Vite dev and preview responses.
-- Expanded the Vite Content Security Policy with explicit fallback directives for frame, child, form, font, media, manifest, worker, style, and script controls.
-- Removed inline script execution from the Vite Content Security Policy by changing script directives to self-only and keeping script attributes disabled.
-- Kept DAST enabled as a blocking gate rather than disabling the scan.
-
-### Required follow-up
-
-The frontend lockfile should be regenerated cleanly from the updated `web/package.json` in a local environment and recommitted once it is confirmed clean. Until then, npm audit in CI uses `npm install` to build the dependency tree from the current manifest.
-
-Recommended local lockfile follow-up:
-
-```powershell
-cd web
-npm install
-npm audit --audit-level=high
-npm run build
-```
-
-Then commit the regenerated `web/package-lock.json` with matching updates to `PATCH_NOTES.md` and `CHANGELOG.md`.
-
-### Validation
-
-Expected validation after this remediation:
-
-```powershell
-git pull origin main
-go mod tidy
-go test ./...
-cd web
-npm install
-npm audit --audit-level=high
-npm run build
-```
-
-The next push-triggered GitHub Actions run should use the updated security workflow and report against the revised gates.
+This release makes Dune Admin safer and more reliable for live server operations. It establishes backend-enforced admin-token authentication, explicit CORS allowlisting, safer loopback listen defaults, server timeouts, raw SQL restrictions, request-size controls, Kubernetes log target validation, reduced status data exposure, hardened frontend security headers, blueprint import bounds checks, CI security scanning, removal of hardcoded capture credentials, and the requirement that every future change keep both `PATCH_NOTES.md` and `CHANGELOG.md` current.
 
 ---
 
-## 1. Why this release was made
-
-This release was created to address four high-priority needs:
-
-1. **Reduce security risk around privileged administration endpoints.**
-2. **Improve the accuracy and speed of player item administration.**
-3. **Add continuous security scanning across dependencies, static code, secrets, runtime web behavior, and filesystem/container-style dependency surfaces.**
-4. **Establish durable release documentation standards for future operators and maintainers.**
-
-Dune Admin has direct access to sensitive and high-impact systems: player inventory records, game database tables, Kubernetes pod logs, battlegroup command execution, blueprint import/export, RabbitMQ notification/capture flows, and other live server administration functions. Prior to this update, many capabilities were designed around a trusted local-development workflow. That created unacceptable risk if the backend was accidentally exposed, accessed from an unexpected browser origin, called directly without the frontend, or operated with hardcoded secrets still present in source.
-
-The security work in this release moves enforcement into the backend, which is the correct control point for privileged operations. The frontend remains a convenience layer, but the backend now rejects unauthenticated API calls, limits unsafe request patterns, reduces unnecessary information disclosure, and removes embedded credential material.
-
-The item administration work was necessary because the original single-item grant flow did not accurately model stacked inventory. This release adds a true batch item grant workflow and backend stack-preserving logic so stack count and stack size are handled separately.
-
-The security scanning work was added so future changes are continuously checked through SCA, SAST, DCA, DAST, and secret scanning.
-
-The documentation work was added so change history does not live only in chat, commits, or operator memory. `PATCH_NOTES.md` now carries detailed operational notes, and `CHANGELOG.md` carries concise release history.
-
----
-
-## 2. Security impact
-
-### Backend authentication is now enforced
-
-All API routes now require an admin token. The backend accepts either `Authorization: Bearer <ADMIN_TOKEN>` or `X-Admin-Token: <ADMIN_TOKEN>`.
-
-Required runtime setting:
-
-```env
-ADMIN_TOKEN=<long random token>
-```
-
-### Browser origins are explicitly allowlisted
-
-Allowed origins are configured through:
-
-```env
-ALLOWED_ORIGINS=http://localhost:5173,https://dune-admin.layout.tools
-```
-
-### Listen address handling is safer
-
-Common shorthand values now normalize to loopback. Recommended setting:
-
-```env
-LISTEN_ADDR=127.0.0.1:8080
-```
-
-### Additional hardening
-
-- HTTP server read-header, read, write, and idle timeouts were added.
-- Request-size limiting is used for sensitive JSON and multipart endpoints.
-- The database SQL endpoint is constrained to read-only style statements.
-- Kubernetes log streaming validates namespace and pod names before building log commands.
-- WebSocket log streaming supports a route-limited `ws_token` fallback because browser WebSockets cannot send custom headers.
-- The status endpoint no longer returns pod IP information.
-- RabbitMQ capture credentials and JWT signing material were removed from source and moved to environment variables.
-- Vite dev and preview responses include browser security headers.
-- Blueprint import applies multipart body limits and validates pentashield scale values before smallint conversion.
-
----
-
-## 3. Required configuration changes
-
-A local `.env` should include at least:
-
-```env
-ADMIN_TOKEN=<long random token>
-LISTEN_ADDR=127.0.0.1:8080
-ALLOWED_ORIGINS=http://localhost:5173,https://dune-admin.layout.tools
-DUNE_SERVICE_JWT_SIGNING_SECRET=
-DUNE_CAPTURE_USER=dune_cap
-DUNE_CAPTURE_PASS=<strong random password>
-```
-
----
-
-## 4. Added
+## Added
 
 - Multi-item Give Items workflow.
 - Batch item grant payload support for `POST /api/v1/players/give-item`.
@@ -156,7 +77,7 @@ DUNE_CAPTURE_PASS=<strong random password>
 
 ---
 
-## 5. Changed
+## Changed
 
 - Batch item grants now preserve stack semantics instead of flattening `qty × stack_size` into single-item entries.
 - Legacy single-item payload remains compatible.
@@ -166,7 +87,7 @@ DUNE_CAPTURE_PASS=<strong random password>
 
 ---
 
-## 6. Fixed
+## Fixed
 
 - Fixed backend startup with bare port values such as `LISTEN_ADDR=8080`.
 - Fixed Go vet failure from redundant newline output.
@@ -181,60 +102,11 @@ DUNE_CAPTURE_PASS=<strong random password>
 
 ---
 
-## 7. Testing and scanning
-
-Run backend tests:
-
-```powershell
-git pull origin main
-go mod tidy
-go test ./...
-```
-
-Run frontend validation:
-
-```powershell
-cd web
-npm install
-npm audit --audit-level=high
-npm run build
-npm run dev
-```
-
-Expected CI security categories:
-
-```text
-SCA  - Go govulncheck and npm audit
-SAST - CodeQL and gosec
-DCA  - Trivy filesystem scan
-DAST - OWASP ZAP baseline
-Secrets - Gitleaks
-```
-
----
-
-## 8. Security notes for operators
+## Security notes for operators
 
 - Treat `ADMIN_TOKEN` as a privileged secret.
 - Rotate any previously shared or committed credentials.
 - Keep `.env`, SSH keys, database snapshots, generated secrets, dependency folders, and build output out of source control.
 - Prefer `LISTEN_ADDR=127.0.0.1:8080` for local use.
 - Do not expose the backend directly to the internet.
-- If remote access is required, place the backend behind TLS, a trusted reverse proxy, and a strong identity provider.
-- Use HTTPS/WSS when operating outside local loopback to avoid WebSocket token exposure in transit.
-
----
-
-## 9. Known limitations and accepted risk
-
-- WebSocket query-token authentication is required for browser compatibility but should be protected by TLS/WSS outside localhost.
-- Batch item grants intentionally allow explicit stack sizes up to the configured limit.
-- Some gosec categories are tuned out of the blocking CI gate because they represent known local-admin deployment tradeoffs or low-signal cleanup findings.
-- DAST currently validates the frontend preview server. Production deployments should also validate the final reverse-proxy or hosting layer.
-- `web/package-lock.json` needs a clean regeneration from the current `web/package.json`.
-
----
-
-## 10. Final summary
-
-This release makes Dune Admin safer and more reliable for live server operations. It establishes backend-enforced admin-token authentication, explicit CORS allowlisting, safer loopback listen defaults, server timeouts, raw SQL restrictions, request-size controls, Kubernetes log target validation, reduced status data exposure, hardened frontend security headers, blueprint import bounds checks, CI security scanning, removal of hardcoded capture credentials, and the requirement that every future change keep both `PATCH_NOTES.md` and `CHANGELOG.md` current.
+- Place remote access behind TLS, a trusted reverse proxy, and a strong identity provider.
