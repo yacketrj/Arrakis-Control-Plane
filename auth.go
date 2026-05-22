@@ -56,6 +56,9 @@ func authMiddleware(next http.Handler) http.Handler {
 		if provided == "" {
 			provided = r.Header.Get("X-Admin-Token")
 		}
+		if provided == "" && strings.EqualFold(r.Header.Get("Upgrade"), "websocket") && r.URL.Path == "/api/v1/logs/stream" {
+			provided = r.URL.Query().Get("ws_token")
+		}
 		if subtle.ConstantTimeCompare([]byte(provided), []byte(adminToken)) != 1 {
 			jsonErr(w, fmt.Errorf("unauthorized"), http.StatusUnauthorized)
 			return
