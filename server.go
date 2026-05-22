@@ -28,9 +28,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 func startServer(addr string) {
-	if addr == "" || addr == ":8080" {
-		addr = "127.0.0.1:8080"
-	}
+	addr = normalizeListenAddr(addr)
 	warnIfExternallyBound(addr)
 
 	mux := http.NewServeMux()
