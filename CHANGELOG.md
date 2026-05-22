@@ -2,29 +2,6 @@
 
 All notable changes to this project will be documented in this file.
 
-This project follows a Keep a Changelog-style format. Entries are grouped by release and by change type so operators can quickly identify security fixes, behavior changes, operational changes, and validation requirements.
-
-## Documentation policy
-
-Every future code change, configuration change, security remediation, workflow update, behavior change, bug fix, or operator-facing update must update both:
-
-- `PATCH_NOTES.md`
-- `CHANGELOG.md`
-
-`PATCH_NOTES.md` should explain why a change was made, its security/operator impact, operational details, validation steps, and known limitations.
-
-`CHANGELOG.md` should provide concise, release-oriented change tracking under standard categories:
-
-- `Added`
-- `Changed`
-- `Fixed`
-- `Security`
-- `Testing`
-- `Operational Notes`
-- `Known Limitations`
-
----
-
 ## [Unreleased]
 
 ### Added
