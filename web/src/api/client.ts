@@ -55,7 +55,8 @@ export type GameEvent = { actor_id: number; universe_time: string; map: string; 
 export type DungeonRecord = { dungeon_id: string; difficulty: string; duration_ms: number; players_num: number; completion_id: number }
 export type TeleportLocation = { name: string; x: number; y: number; z: number }
 export type OnlineRow = { player_id: number; name: string; map: string; status: string; last_seen: string }
-export type GiveItemRow = { template: string; qty: number; quality: number; stack_size: number }
+export type GiveItemAugment = { name: string; grade: number; roll?: number; rolls?: number[]; roll_count?: number; effect_indices?: number[] }
+export type GiveItemRow = { template: string; qty: number; quality: number; stack_size: number; augments?: GiveItemAugment[] }
 
 export const api = {
   status: () => req<Status>('GET', '/status'), reconnect: () => req<Status>('POST', '/reconnect'),
