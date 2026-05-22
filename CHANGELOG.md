@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 
 - Documentation workflow now separates detailed operator/security patch notes from concise release change history.
 - Updated the security scan workflow to use Go 1.26.3 explicitly for SCA, SAST, and DAST jobs.
+- Updated the standalone Go Test workflow to use Go 1.26.3 explicitly and refresh modules before tests.
 - Updated Node dependency installation in security jobs to install from the current package manifest after removing the unused frontend auth dependency.
 - Updated the ZAP DAST job to scan Vite preview on port 4173 instead of the previous dev-server port assumption.
 - Updated the CI-generated admin token to use a per-run random value instead of a static literal.
@@ -28,6 +29,7 @@ All notable changes to this project will be documented in this file.
 - Removed stale `web/package-lock.json` because it still contained vulnerable `js-cookie` metadata after the unused auth dependency was removed from `web/package.json`.
 - Fixed the Go SCA baseline by moving the repository module metadata to Go 1.26.3 and `golang.org/x/crypto` 0.52.0.
 - Fixed Go SCA and gosec failures caused by missing `go.sum` entries after the Go module version update.
+- Fixed the standalone Go Test workflow failure caused by running `go test ./...` before refreshing Go module sums.
 - Fixed SCA npm and DAST setup-node failures caused by enabling npm cache without a committed lockfile.
 - Fixed DAST preview startup validation by checking the actual Vite preview port.
 
