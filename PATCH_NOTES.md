@@ -1,140 +1,128 @@
-# Dune Admin Patch Notes
+# Dune Admin Release Notes
 
-## Why these changes were made
+## Release: Security Hardening and Multi-Item Administration Update
 
-This update was made to move Dune Admin from a trusted-local development tool toward a safer administrative application for managing a live Dune: Awakening server environment.
+### Release type
 
-Before this patch series, the backend exposed powerful administrative capabilities with very little server-side protection. These capabilities included database access, player inventory changes, battlegroup commands, log streaming, notification publishing, blueprint import/export, and RabbitMQ capture/publish workflows. Because those actions can affect live game state, player inventories, database records, Kubernetes workloads, and internal service credentials, the security model needed to be tightened before continuing feature development.
+Security hardening, reliability fixes, and player administration feature update.
 
-The second major goal was to improve the item grant workflow. The original Give Item flow only supported a single item at a time and treated quantity as a flat item count. That made bulk admin work slow and created incorrect behavior for stacked items. For example, trying to grant 2 stacks of 1000 Heavy Darts was interpreted as 2000 individual inventory entries, which caused inventory-slot errors. This update adds a batch item grant model that preserves explicit stack counts and stack sizes.
+### Audience
 
-Overall, this patch focuses on three priorities:
-
-1. Harden the backend so administrative actions require an explicit admin token.
-2. Reduce accidental or malicious exposure of privileged endpoints.
-3. Improve the player item grant workflow so admins can grant multiple stacked items accurately.
+Server administrators, operators, maintainers, and anyone running Dune Admin against a live Dune: Awakening environment.
 
 ---
 
-## Security changes
+## 1. Why this release was made
 
-### Backend admin-token authentication
+This release was created to address two high-priority needs:
 
-All backend API routes are now protected by an admin-token middleware.
+1. **Reduce security risk around privileged administration endpoints.**
+2. **Improve the accuracy and speed of player item administration.**
 
-The backend accepts either:
+Dune Admin has direct access to sensitive and high-impact systems: player inventory records, game database tables, Kubernetes pod logs, battlegroup command execution, blueprint import/export, RabbitMQ notification/capture flows, and other live server administration functions. Prior to this update, many of those capabilities were designed around a trusted local-development workflow. That created unacceptable risk if the backend was accidentally exposed, accessed from an unexpected browser origin, called directly without the frontend, or operated with hardcoded secrets still present in source.
 
-- `Authorization: Bearer <ADMIN_TOKEN>`
-- `X-Admin-Token: <ADMIN_TOKEN>`
+The security work in this release moves enforcement into the backend, which is the correct control point for privileged operations. The frontend remains a convenience layer, but the backend now rejects unauthenticated API calls, limits unsafe request patterns, reduces unnecessary information disclosure, and removes embedded credential material.
 
-This ensures that the React frontend is no longer the only access-control boundary. Direct calls to backend endpoints now require the configured server-side token.
+The item administration work was also necessary because the original single-item grant flow did not accurately model stacked inventory. In particular, an operator attempting to grant **2 stacks of 1000 Heavy Darts** saw the grant treated as **2000 individual inventory entries**, which incorrectly required 2000 inventory slots. This release adds a true batch item grant workflow and backend stack-preserving logic so stack count and stack size are handled separately.
 
-Required `.env` setting:
+---
+
+## 2. Security impact
+
+### Backend authentication is now enforced
+
+All API routes now require an admin token. The backend accepts either of the following authentication methods:
+
+```http
+Authorization: Bearer <ADMIN_TOKEN>
+X-Admin-Token: <ADMIN_TOKEN>
+```
+
+This prevents unauthenticated direct access to high-risk backend endpoints.
+
+Required runtime setting:
 
 ```env
 ADMIN_TOKEN=<long random token>
 ```
 
-The frontend settings panel stores the matching token in browser `localStorage` and sends it to the backend as `X-Admin-Token`.
+### Browser origins are explicitly allowlisted
 
-### CORS allowlisting
-
-Wildcard CORS behavior was replaced with an explicit origin allowlist.
-
-Required `.env` setting:
+The backend no longer relies on permissive wildcard CORS behavior. Allowed origins are configured through:
 
 ```env
 ALLOWED_ORIGINS=http://localhost:5173,https://dune-admin.layout.tools
 ```
 
-This prevents arbitrary browser origins from freely calling the backend API from a malicious site.
+This reduces the risk of malicious browser origins making credentialed requests into the admin backend.
 
-### Safer backend listen address
+### Listen address handling is safer
 
-The backend now normalizes listen addresses more safely.
+The backend now normalizes local listen-address values so common shorthand values stay bound to loopback.
 
 Examples:
 
 ```text
-LISTEN_ADDR=8080       -> 127.0.0.1:8080
-LISTEN_ADDR=:8080      -> 127.0.0.1:8080
-LISTEN_ADDR=127.0.0.1:8080 -> 127.0.0.1:8080
+LISTEN_ADDR=8080            -> 127.0.0.1:8080
+LISTEN_ADDR=:8080           -> 127.0.0.1:8080
+LISTEN_ADDR=127.0.0.1:8080  -> 127.0.0.1:8080
 ```
 
-This prevents accidental binding to all interfaces when the backend is intended for local use.
-
-Recommended `.env` setting:
+Recommended setting:
 
 ```env
 LISTEN_ADDR=127.0.0.1:8080
 ```
 
-### Server timeout hardening
+### HTTP server timeouts were added
 
-The HTTP server now uses explicit timeouts:
+The backend HTTP server now configures explicit read-header, read, write, and idle timeouts. This lowers exposure to slow-client and connection-resource exhaustion behavior.
 
-- Read header timeout
-- Read timeout
-- Write timeout
-- Idle timeout
+### Request body limits were added
 
-This reduces exposure to slow-client and resource-exhaustion behavior.
+A JSON request-size limiting helper was introduced and applied to the batch item grant path. This protects sensitive mutation endpoints from oversized request bodies.
 
-### Request body limiting helper
+### Raw SQL is restricted
 
-A request body limiting helper was added for JSON endpoints. The batch item grant endpoint uses this limit to prevent oversized JSON request bodies.
+The database SQL endpoint is now constrained to read-only style statements. Allowed prefixes include:
 
-### Raw SQL restrictions
-
-The raw SQL endpoint was restricted to read-only style statements.
-
-Allowed prefixes include:
-
-- `SELECT`
-- `WITH`
-- `SHOW`
-- `EXPLAIN`
+```text
+SELECT
+WITH
+SHOW
+EXPLAIN
+```
 
 The backend rejects semicolon-separated statements and destructive SQL keywords such as:
 
-- `INSERT`
-- `UPDATE`
-- `DELETE`
-- `DROP`
-- `ALTER`
-- `TRUNCATE`
-- `CREATE`
-- `GRANT`
-- `REVOKE`
-- `COPY`
-- `CALL`
-- `DO`
-- `EXECUTE`
-- `MERGE`
-- `VACUUM`
-- `ANALYZE`
+```text
+INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, CREATE, GRANT, REVOKE,
+COPY, CALL, DO, EXECUTE, MERGE, VACUUM, ANALYZE
+```
 
-This reduces the chance that an admin accidentally runs destructive SQL through the database tab.
+This does not replace proper database permissions, but it greatly reduces the chance of destructive SQL being executed through the UI by mistake.
 
-### WebSocket and Kubernetes log stream hardening
+### Kubernetes log streaming was hardened
 
-Log streaming now validates Kubernetes namespace and pod names before using them as log targets.
+Log streaming now validates namespace and pod names before building a `kubectl logs` command. WebSocket origin checks also use the configured origin allowlist.
 
-The WebSocket upgrader also uses the same origin allowlist logic as the normal API CORS middleware.
+### WebSocket authentication was fixed
 
-This reduces the risk of browser-origin abuse and unsafe log target input.
+Browser WebSocket connections cannot set custom request headers like `X-Admin-Token`. The backend now supports a WebSocket-only query-token fallback for the log stream endpoint:
 
-### Status endpoint data reduction
+```text
+/api/v1/logs/stream?...&ws_token=<ADMIN_TOKEN>
+```
 
-The status response no longer exposes pod IP data.
+This fallback is limited to the log stream WebSocket route and is intended to support browser-based log streaming while keeping backend authentication enforced.
 
-The endpoint still reports whether SSH and database connections are active, but it avoids returning unnecessary internal network details.
+### Status data was reduced
 
-### Capture and notification credential cleanup
+The status endpoint no longer returns pod IP information. It still reports basic connectivity state, but avoids returning unnecessary internal network details.
 
-Hardcoded RabbitMQ capture credentials and JWT signing material were removed from the source code.
+### Hardcoded capture credentials were removed
 
-Capture/notification-related settings now come from environment variables:
+RabbitMQ capture credentials and JWT signing material were removed from source and moved to environment variables:
 
 ```env
 DUNE_SERVICE_JWT_SIGNING_SECRET=
@@ -142,25 +130,70 @@ DUNE_CAPTURE_USER=dune_cap
 DUNE_CAPTURE_PASS=<strong random password>
 ```
 
-Notes:
-
-- `DUNE_CAPTURE_PASS` should be generated fresh and treated as secret.
-- `DUNE_SERVICE_JWT_SIGNING_SECRET` should only be set if you know the actual game service signing secret.
-- If the signing secret is blank, capture mode falls back to the configured capture user/password path.
-
-### Frontend admin-token support
-
-The frontend settings gear now includes an Admin Token field.
-
-The frontend stores the token locally and sends it to the backend with API requests, including blueprint imports.
-
-This keeps local development convenient while still requiring the backend to enforce authentication.
+Operators should rotate any previously committed or shared credential values.
 
 ---
 
-## Player item grant changes
+## 3. Required configuration changes
 
-### Batch item grant endpoint
+A local `.env` should include at least:
+
+```env
+ADMIN_TOKEN=<long random token>
+LISTEN_ADDR=127.0.0.1:8080
+ALLOWED_ORIGINS=http://localhost:5173,https://dune-admin.layout.tools
+DUNE_SERVICE_JWT_SIGNING_SECRET=
+DUNE_CAPTURE_USER=dune_cap
+DUNE_CAPTURE_PASS=<strong random password>
+```
+
+Frontend settings should match:
+
+```text
+Backend URL: http://localhost:8080
+Admin Token: same value as ADMIN_TOKEN
+```
+
+For local development, run the backend and frontend separately:
+
+```powershell
+# Terminal 1
+cd "Z:\Unreal Projects\Icarus\dune-admin-fork"
+go run .
+```
+
+```powershell
+# Terminal 2
+cd "Z:\Unreal Projects\Icarus\dune-admin-fork\web"
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:5173
+```
+
+---
+
+## 4. Added
+
+### Multi-item Give Items workflow
+
+The player Give Item workflow now supports multiple item rows in one operation. Each row can specify:
+
+- Item template
+- Stack count
+- Grade / quality
+- Stack size
+
+The frontend submits batch grants through:
+
+```text
+api.players.giveItems(playerID, items)
+```
+
+### Batch item grant payload
 
 The existing endpoint remains:
 
@@ -168,20 +201,7 @@ The existing endpoint remains:
 POST /api/v1/players/give-item
 ```
 
-It now supports both the old single-item payload and the new batch payload.
-
-Legacy payload still works:
-
-```json
-{
-  "player_id": 123,
-  "template": "ItemTemplateHeavyDarts",
-  "qty": 10,
-  "quality": 1
-}
-```
-
-New batch payload:
+It now supports a batch payload:
 
 ```json
 {
@@ -192,12 +212,6 @@ New batch payload:
       "qty": 2,
       "quality": 1,
       "stack_size": 1000
-    },
-    {
-      "template": "ItemTemplateOtherResource",
-      "qty": 5,
-      "quality": 3,
-      "stack_size": 250
     }
   ]
 }
@@ -205,111 +219,43 @@ New batch payload:
 
 In the batch payload:
 
-- `qty` means number of stacks.
-- `stack_size` means how many items are in each stack.
-- Total granted items equals `qty × stack_size`.
-- Inventory slots required equals `qty`, not `qty × stack_size`.
+```text
+qty        = number of stacks
+stack_size = number of items per stack
+```
 
-### Explicit stack creation
+Example:
 
-A new backend command was added to preserve stack intent:
+```text
+qty=2, stack_size=1000 -> 2 inventory slots, 2000 total items
+```
+
+### Explicit stack grant backend command
+
+A new backend command was added for stack-preserving item grants:
 
 ```text
 cmdGiveItemStacks(playerID, template, stacks, stackSize, quality)
 ```
 
-This fixes the issue where granting 2 stacks of 1000 Heavy Darts was incorrectly interpreted as 2000 separate inventory slots.
+This command creates the requested number of item rows and assigns the requested `stack_size` to each row.
 
-Expected behavior now:
+### Backend batch validation
 
-```text
-2 stacks × 1000 Heavy Darts = 2 inventory slots, 2000 total darts
-```
-
-### Batch validation
-
-The batch item grant handler validates each row before making changes.
-
-Current limits:
+Batch grants now validate:
 
 ```text
-max item rows per request: 100
-max stack count per row: 9999
-max stack size per row: 9999
+maximum rows per request: 100
+maximum stack count per row: 9999
+maximum stack size per row: 9999
 quality range: 0 through 5
 ```
 
-The backend rejects:
+The backend rejects blank templates, empty item lists, non-positive quantities, out-of-range quality values, excessive stack counts, excessive stack sizes, and total quantity overflow risks.
 
-- Empty item lists.
-- Blank item templates.
-- Zero or negative stack counts.
-- Stack counts above the configured maximum.
-- Stack sizes above the configured maximum.
-- Quality below 0 or above 5.
-- Requests that could overflow total quantity math.
+### Go unit tests for batch normalization
 
-### Inventory capacity behavior
-
-The explicit stack grant path checks inventory capacity using stack count.
-
-For example:
-
-```text
-qty = 2
-stack_size = 1000
-```
-
-requires 2 free slots, not 2000 free slots.
-
-The command still respects inventory volume/weight checks by calculating total item count as:
-
-```text
-qty × stack_size
-```
-
-This means the inventory slot count and item volume behavior are both handled correctly.
-
-### Frontend multi-item UI
-
-The Give Item modal now supports multiple rows.
-
-Each row includes:
-
-- Item template selection/search.
-- Quantity / stack count.
-- Grade / quality.
-- Stack size.
-- Total item count display.
-
-The modal submits all valid rows in one request through:
-
-```text
-api.players.giveItems(playerID, items)
-```
-
----
-
-## Testing changes
-
-### Backend unit tests
-
-New unit tests were added for batch item request normalization.
-
-Coverage includes:
-
-- Legacy single-item payload compatibility.
-- New batch payload parsing.
-- Template trimming.
-- Stack size defaulting.
-- Empty payload rejection.
-- Blank template rejection.
-- Zero and negative quantity rejection.
-- Quantity upper-bound rejection.
-- Stack-size upper-bound rejection.
-- Quality range rejection.
-- More-than-100-row rejection.
-- Maximum allowed quantity and stack-size acceptance.
+Unit tests were added for the batch item request normalizer, including legacy payload compatibility, batch payload parsing, stack-size defaulting, validation failures, and boundary limits.
 
 ### Go test workflow
 
@@ -321,17 +267,127 @@ go test ./...
 
 on pushes to `main`.
 
-### Local validation commands
+---
 
-Recommended backend validation:
+## 5. Changed
+
+### Give Item semantics for batch payloads
+
+Batch item grants now preserve stack semantics instead of flattening `qty × stack_size` into a single quantity.
+
+Before:
+
+```text
+2 stacks × 1000 Heavy Darts -> 2000 inventory slots requested
+```
+
+After:
+
+```text
+2 stacks × 1000 Heavy Darts -> 2 inventory slots requested
+```
+
+Volume / weight checks still use total item count, so stack grants continue to respect inventory capacity rules beyond slot count.
+
+### Legacy single-item payload remains compatible
+
+The old single-item payload still works:
+
+```json
+{
+  "player_id": 123,
+  "template": "ItemTemplateHeavyDarts",
+  "qty": 10,
+  "quality": 1
+}
+```
+
+Legacy behavior remains flat quantity-based for compatibility with existing callers.
+
+### Notification and capture credential usage
+
+Notification publishing now uses configured capture credentials instead of removed hardcoded constants.
+
+### Frontend settings panel
+
+The settings panel now supports both backend URL and admin token configuration for local operation.
+
+---
+
+## 6. Fixed
+
+### Fixed backend startup with bare port values
+
+`LISTEN_ADDR=8080` previously caused:
+
+```text
+listen tcp: address 8080: missing port in address
+```
+
+The backend now normalizes bare ports to loopback host-port form.
+
+### Fixed Go vet failure in capture output
+
+A redundant newline in a `fmt.Println` call caused `go test ./...` to fail during vet checks. The output was cleaned up.
+
+### Fixed notification compile error after credential cleanup
+
+After removing hardcoded capture constants, notification publishing still referenced the old names. It now uses the configured capture credential helpers.
+
+### Fixed WebSocket log streaming authentication
+
+Log streaming previously failed after backend authentication was introduced because browser WebSockets could not send the admin token header. The backend now supports the route-limited `ws_token` fallback.
+
+### Fixed cheats log SQL error
+
+The cheats log query previously joined against a non-existent column:
+
+```sql
+ps.fls_id
+```
+
+This caused:
+
+```text
+ERROR: column ps.fls_id does not exist (SQLSTATE 42703)
+```
+
+The query now joins through `dune.encrypted_accounts` using `encrypted_funcom_id`, then resolves player names through `player_state.account_id`.
+
+### Fixed stack-size behavior for batch grants
+
+Batch item grants no longer require one inventory slot per item when the operator specifies stack size. They now create the requested number of stacks with the requested stack size.
+
+---
+
+## 7. Security notes for operators
+
+- Treat `ADMIN_TOKEN` as a privileged secret.
+- Rotate any previously shared or committed credentials.
+- Keep `.env`, SSH keys, database snapshots, and generated secrets out of source control.
+- Prefer `LISTEN_ADDR=127.0.0.1:8080` for local use.
+- Do not expose the backend directly to the internet.
+- If remote access is required, place the backend behind TLS, a trusted reverse proxy, and a strong identity provider.
+- The WebSocket `ws_token` is placed in the URL because browsers cannot send custom WebSocket headers. Use HTTPS/WSS when operating outside local loopback to avoid token exposure in transit.
+
+---
+
+## 8. Validation
+
+Run backend tests:
 
 ```powershell
 git pull origin main
 go test ./...
+```
+
+Run backend locally:
+
+```powershell
 go run .
 ```
 
-Recommended frontend validation:
+Run frontend locally:
 
 ```powershell
 cd web
@@ -340,65 +396,33 @@ npm run build
 npm run dev
 ```
 
----
+Recommended manual validation:
 
-## Operational notes
-
-### Required local backend `.env`
-
-A minimal local development `.env` should include:
-
-```env
-ADMIN_TOKEN=<long random token>
-LISTEN_ADDR=127.0.0.1:8080
-ALLOWED_ORIGINS=http://localhost:5173,https://dune-admin.layout.tools
-DUNE_CAPTURE_USER=dune_cap
-DUNE_CAPTURE_PASS=<strong random password>
-DUNE_SERVICE_JWT_SIGNING_SECRET=
-```
-
-### Running locally
-
-Use two terminals.
-
-Backend:
-
-```powershell
-cd "Z:\Unreal Projects\Icarus\dune-admin-fork"
-go run .
-```
-
-Frontend:
-
-```powershell
-cd "Z:\Unreal Projects\Icarus\dune-admin-fork\web"
-npm run dev
-```
-
-Open:
-
-```text
-http://localhost:5173
-```
-
-Use the frontend gear icon to configure:
-
-```text
-Backend URL: http://localhost:8080
-Admin Token: same value as ADMIN_TOKEN in .env
-```
+1. Confirm backend starts on `127.0.0.1:8080`.
+2. Confirm unauthenticated API requests are rejected.
+3. Confirm the frontend works after saving `ADMIN_TOKEN` in the settings panel.
+4. Confirm Logs -> Cheats (7d) loads without the `ps.fls_id` SQL error.
+5. Confirm pod log streaming connects without WebSocket auth errors.
+6. Confirm granting 2 stacks of 1000 Heavy Darts creates 2 inventory slots, not 2000.
+7. Confirm invalid batch item rows are rejected with clear validation errors.
 
 ---
 
-## Final summary
+## 9. Known limitations
 
-This patch series significantly improves the safety and usability of Dune Admin.
+- The frontend build workflow was not added through the connector because the workflow file write was blocked during this patch series. Local validation with `npm run build` is still recommended.
+- WebSocket query-token authentication is a practical browser compatibility solution, but deployments outside localhost should use TLS/WSS and avoid logging full URLs.
+- Batch item grants intentionally allow explicit stack sizes up to the configured limit. Operators should use reasonable values that are compatible with game behavior.
 
-The backend now enforces authentication, restricts browser origins, normalizes local listen addresses, applies server timeouts, limits request bodies, reduces status-data exposure, restricts raw SQL, validates log-stream targets, and removes hardcoded capture secrets.
+---
 
-The player item grant workflow now supports true multi-item batch grants. Admins can grant several item types at once, set the number of stacks, set per-stack size, and set quality/grade per row. The backend now preserves explicit stack sizing instead of flattening stack grants into thousands of individual inventory entries.
+## 10. Final summary
 
-The most important functional fix is that granting something like:
+This release makes Dune Admin safer and more reliable for live server operations.
+
+The most important security improvements are backend-enforced admin-token authentication, explicit CORS allowlisting, safer loopback listen defaults, server timeouts, raw SQL restrictions, request-size controls, Kubernetes log target validation, reduced status data exposure, and removal of hardcoded capture credentials.
+
+The most important operator workflow improvement is the new batch item grant model. Admins can now grant multiple items in one operation while preserving stack count and stack size. A request such as:
 
 ```text
 2 stacks of 1000 Heavy Darts
@@ -407,9 +431,9 @@ The most important functional fix is that granting something like:
 now creates:
 
 ```text
-2 inventory slots, each with stack_size = 1000
+2 inventory entries with stack_size=1000
 ```
 
-rather than requiring 2000 inventory slots.
+instead of attempting to create 2000 separate inventory entries.
 
-The result is a safer admin tool with a faster and more accurate item-grant workflow for live server administration.
+This update establishes a stronger security baseline and a more accurate administration workflow for player inventory management, log review, and local operator use.
