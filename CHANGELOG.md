@@ -14,13 +14,15 @@ All notable changes to this project will be documented in this file.
 - Documentation workflow now separates detailed operator/security patch notes from concise release change history.
 - Updated the security scan workflow to use Go 1.26.3 explicitly for SCA, SAST, and DAST jobs.
 - Updated the standalone Go Test workflow to use Go 1.26.3 explicitly and refresh modules before tests.
+- Updated Go workflow bootstrap steps from `go mod download` to `go mod tidy` so CI refreshes package import checksums needed by `go test`, gosec, and DAST backend startup.
+- Updated DAST backend startup polling to wait up to 30 seconds and print backend logs on failure.
+- Updated DAST frontend preview polling to wait up to 30 seconds and print frontend logs on failure.
 - Updated Node dependency installation in security jobs to install from the current package manifest after removing the unused frontend auth dependency.
 - Updated the ZAP DAST job to scan Vite preview on port 4173 instead of the previous dev-server port assumption.
 - Updated the CI-generated admin token to use a per-run random value instead of a static literal.
 - Updated the gosec gate to exclude the remaining accepted local-admin findings from the blocking high-confidence scan.
 - Removed npm cache key references to the deleted frontend lockfile from security workflow Node setup steps.
 - Restored Trivy DCA to scan the repository without a stale lockfile skip because the stale frontend lockfile was removed.
-- Added `go mod download` bootstrap steps before Go test, gosec, and DAST backend startup so CI refreshes module sums before compiling against updated Go module metadata.
 - Removed npm cache mode from Node setup steps while no committed frontend lockfile is present.
 
 ### Fixed
