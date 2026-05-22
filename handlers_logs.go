@@ -84,7 +84,7 @@ func splitLines(s string) []string {
 }
 
 func handleGetCheatLog(w http.ResponseWriter, r *http.Request) {
-	msg, ok := cmdFetchCheatLog()().(msgCheatLog)
+	msg, ok := cmdFetchCheatLogFixed()().(msgCheatLog)
 	if !ok {
 		jsonErr(w, fmt.Errorf("internal error"), 500)
 		return
