@@ -16,7 +16,7 @@ Server administrators, operators, maintainers, and anyone running Dune Admin aga
 
 ### Why this remediation was made
 
-GitHub Actions runs `26269112272`, `26270753734`, and `26271305102` showed that the scan and test framework was running, but several jobs still needed follow-up before the pipeline could be useful as a stable quality gate. The failures were not all product-code vulnerabilities; several were CI drift issues caused by stale lockfile metadata, missing refreshed Go module sums after a module version update, npm cache configuration without a committed lockfile, a standalone Go Test workflow that ran tests before refreshing modules, a static CI token, Vite preview port assumptions, and gosec findings that represent accepted local-admin deployment tradeoffs rather than current blocking defects.
+GitHub Actions runs `26269112272`, `26270753734`, `26271305102`, and `26272022052` showed that the scan and test framework was running, but several jobs still needed follow-up before the pipeline could be useful as a stable quality gate. The failures were not all product-code vulnerabilities; several were CI drift issues caused by stale lockfile metadata, missing refreshed Go module sums after a module version update, npm cache configuration without a committed lockfile, a standalone Go Test workflow that ran tests before refreshing modules, DAST backend startup checks with short fixed sleeps, a static CI token, Vite preview port assumptions, and gosec findings that represent accepted local-admin deployment tradeoffs rather than current blocking defects.
 
 This remediation keeps the pipeline security-focused while reducing false or stale failures that prevent operators from seeing actionable findings.
 
@@ -25,12 +25,13 @@ This remediation keeps the pipeline security-focused while reducing false or sta
 - Removed the unused frontend auth dependency from `web/package.json`, eliminating the runtime path that pulled in the vulnerable `js-cookie` dependency through the unused auth package.
 - Removed stale `web/package-lock.json` because it still contained vulnerable `js-cookie` dependency metadata after the package manifest no longer referenced the unused auth dependency.
 - Updated Go module metadata to use Go `1.26.3` and `golang.org/x/crypto v0.52.0`, aligning the repository with the fixed Go SCA baseline.
-- Added Go module download bootstrap steps before Go test, gosec, and DAST backend startup so CI refreshes module sums before compiling with updated module metadata.
-- Updated the standalone Go Test workflow to use Go `1.26.3` explicitly and run `go mod download` before `go test ./...`.
+- Replaced Go workflow bootstrap steps from `go mod download` to `go mod tidy` so CI refreshes package import checksums required by `go test`, gosec, and DAST backend startup.
+- Updated the standalone Go Test workflow to use Go `1.26.3` explicitly and run `go mod tidy` before `go test ./...`.
 - Updated the security workflow to run Go `1.26.3` explicitly for Go SCA, gosec, and DAST backend startup.
 - Changed Node security jobs to install from the current package manifest so the scan reflects the unused dependency removal without relying on stale lockfile metadata.
 - Removed npm cache mode from Node setup steps while no committed frontend lockfile is present.
 - Changed DAST to validate Vite preview on the actual preview port, `4173`, instead of checking the old development-server port assumption.
+- Changed DAST backend and frontend startup checks from fixed sleeps to 30-second polling loops that print runtime logs on failure.
 - Replaced the static CI admin token with a per-run generated token for the DAST backend check.
 - Tuned the gosec blocking gate to exclude the remaining accepted local-admin/legacy findings while preserving medium-or-higher, high-confidence scanning for non-accepted categories.
 - Removed npm lockfile cache references from Node workflow setup steps now that the stale lockfile has been removed.
@@ -57,7 +58,7 @@ Expected validation after this remediation:
 
 ```powershell
 git pull origin main
-go mod download
+go mod tidy
 go test ./...
 cd web
 npm install
@@ -207,7 +208,7 @@ Run backend tests:
 
 ```powershell
 git pull origin main
-go mod download
+go mod tidy
 go test ./...
 ```
 
