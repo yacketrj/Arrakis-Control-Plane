@@ -16,31 +16,22 @@ Server administrators, operators, maintainers, and anyone running Dune Admin aga
 
 ### Why this remediation was made
 
-GitHub Actions runs `26269112272`, `26270753734`, `26271305102`, `26272022052`, `26273587909`, `26275328222`, and `26276303297` showed that the scan and test framework was running, but several jobs still needed follow-up before the pipeline could be useful as a stable quality gate. The failures were not all product-code vulnerabilities; several were CI drift issues caused by stale lockfile metadata, stale frontend auth imports after dependency removal, missing refreshed Go module sums after a module version update, npm cache configuration without a committed lockfile, a standalone Go Test workflow that ran tests before refreshing modules, DAST backend startup checks with short fixed sleeps, a malformed ZAP baseline policy file, missing preview security headers, incomplete CSP fallback directives, a static CI token, Vite preview port assumptions, and gosec findings that represent accepted local-admin deployment tradeoffs rather than current blocking defects.
+Multiple GitHub Actions runs showed that the scan and test framework was running, but several jobs needed follow-up before the pipeline could act as a stable quality gate. The remaining DAST finding in run `26277557070` was a Content Security Policy warning about inline script allowance in the Vite preview response.
 
-This remediation keeps the pipeline security-focused while reducing false or stale failures that prevent operators from seeing actionable findings.
+This remediation keeps the pipeline security-focused while reducing false or stale failures and fixing actionable browser security findings.
 
 ### Security and operator impact
 
 - Removed the unused frontend auth dependency from `web/package.json`, eliminating the runtime path that pulled in the vulnerable `js-cookie` dependency through the unused auth package.
-- Removed stale `web/package-lock.json` because it still contained vulnerable `js-cookie` dependency metadata after the package manifest no longer referenced the unused auth dependency.
-- Removed stale `@clerk/react` imports from `web/src/App.tsx` and `web/src/main.tsx` so the frontend build matches the backend-token-only authentication model.
-- Removed the optional Clerk-authenticated UI path and made the Blueprints tab consistently available through the backend-token protected app.
-- Updated Go module metadata to use Go `1.26.3` and `golang.org/x/crypto v0.52.0`, aligning the repository with the fixed Go SCA baseline.
-- Replaced Go workflow bootstrap steps from `go mod download` to `go mod tidy` so CI refreshes package import checksums required by `go test`, gosec, and DAST backend startup.
-- Updated the standalone Go Test workflow to use Go `1.26.3` explicitly and run `go mod tidy` before `go test ./...`.
-- Updated the security workflow to run Go `1.26.3` explicitly for Go SCA, gosec, and DAST backend startup.
-- Changed Node security jobs to install from the current package manifest so the scan reflects the unused dependency removal without relying on stale lockfile metadata.
-- Removed npm cache mode from Node setup steps while no committed frontend lockfile is present.
-- Changed DAST to validate Vite preview on the actual preview port, `4173`, instead of checking the old development-server port assumption.
-- Changed DAST backend and frontend startup checks from fixed sleeps to 30-second polling loops that print runtime logs on failure.
+- Removed stale `web/package-lock.json` because it still contained vulnerable dependency metadata after the package manifest no longer referenced the unused auth dependency.
+- Removed stale frontend auth imports so the frontend build matches the backend-token-only authentication model.
+- Updated Go module metadata to use Go `1.26.3` and `golang.org/x/crypto v0.52.0`.
+- Replaced Go workflow bootstrap steps with `go mod tidy` so CI refreshes package import checksums required by tests, gosec, and DAST backend startup.
 - Corrected `.zap/rules.tsv` to use ZAP baseline's required three-column tab-separated format.
-- Added `Cross-Origin-Embedder-Policy: require-corp` to Vite dev and preview responses.
-- Expanded the Vite Content Security Policy with explicit fallback directives for frame, child, form, font, media, manifest, worker, style element, style attribute, script element, and script attribute controls.
-- Replaced the static CI admin token with a per-run generated token for the DAST backend check.
-- Tuned the gosec blocking gate to exclude the remaining accepted local-admin/legacy findings while preserving medium-or-higher, high-confidence scanning for non-accepted categories.
-- Removed npm lockfile cache references from Node workflow setup steps now that the stale lockfile has been removed.
-- Restored Trivy DCA to scan the repository without a `web/package-lock.json` skip because the stale lockfile is no longer present.
+- Added Cross-Origin-Embedder-Policy to Vite dev and preview responses.
+- Expanded the Vite Content Security Policy with explicit fallback directives for frame, child, form, font, media, manifest, worker, style, and script controls.
+- Removed inline script execution from the Vite Content Security Policy by changing script directives to self-only and keeping script attributes disabled.
+- Kept DAST enabled as a blocking gate rather than disabling the scan.
 
 ### Required follow-up
 
@@ -71,7 +62,7 @@ npm audit --audit-level=high
 npm run build
 ```
 
-The next push-triggered GitHub Actions run should use the updated security workflow and standalone Go Test workflow, then report against the revised gates.
+The next push-triggered GitHub Actions run should use the updated security workflow and report against the revised gates.
 
 ---
 
@@ -88,9 +79,9 @@ Dune Admin has direct access to sensitive and high-impact systems: player invent
 
 The security work in this release moves enforcement into the backend, which is the correct control point for privileged operations. The frontend remains a convenience layer, but the backend now rejects unauthenticated API calls, limits unsafe request patterns, reduces unnecessary information disclosure, and removes embedded credential material.
 
-The item administration work was necessary because the original single-item grant flow did not accurately model stacked inventory. In particular, an operator attempting to grant **2 stacks of 1000 Heavy Darts** saw the grant treated as **2000 individual inventory entries**, which incorrectly required 2000 inventory slots. This release adds a true batch item grant workflow and backend stack-preserving logic so stack count and stack size are handled separately.
+The item administration work was necessary because the original single-item grant flow did not accurately model stacked inventory. This release adds a true batch item grant workflow and backend stack-preserving logic so stack count and stack size are handled separately.
 
-The security scanning work was added so future changes are continuously checked through SCA, SAST, DCA, DAST, and secret scanning. The initial scan results identified workflow issues, web security header gaps, blueprint import bounds issues, and high-noise SAST findings that needed to be addressed or tuned.
+The security scanning work was added so future changes are continuously checked through SCA, SAST, DCA, DAST, and secret scanning.
 
 The documentation work was added so change history does not live only in chat, commits, or operator memory. `PATCH_NOTES.md` now carries detailed operational notes, and `CHANGELOG.md` carries concise release history.
 
@@ -100,7 +91,7 @@ The documentation work was added so change history does not live only in chat, c
 
 ### Backend authentication is now enforced
 
-All API routes now require an admin token. The backend accepts either `Authorization: Bearer <ADMIN_TOKEN>` or `X-Admin-Token: <ADMIN_TOKEN>`. This prevents unauthenticated direct access to high-risk backend endpoints.
+All API routes now require an admin token. The backend accepts either `Authorization: Bearer <ADMIN_TOKEN>` or `X-Admin-Token: <ADMIN_TOKEN>`.
 
 Required runtime setting:
 
@@ -116,19 +107,9 @@ Allowed origins are configured through:
 ALLOWED_ORIGINS=http://localhost:5173,https://dune-admin.layout.tools
 ```
 
-This reduces the risk of malicious browser origins making credentialed requests into the admin backend.
-
 ### Listen address handling is safer
 
-Common shorthand values now normalize to loopback:
-
-```text
-LISTEN_ADDR=8080            -> 127.0.0.1:8080
-LISTEN_ADDR=:8080           -> 127.0.0.1:8080
-LISTEN_ADDR=127.0.0.1:8080  -> 127.0.0.1:8080
-```
-
-Recommended setting:
+Common shorthand values now normalize to loopback. Recommended setting:
 
 ```env
 LISTEN_ADDR=127.0.0.1:8080
@@ -159,13 +140,6 @@ ALLOWED_ORIGINS=http://localhost:5173,https://dune-admin.layout.tools
 DUNE_SERVICE_JWT_SIGNING_SECRET=
 DUNE_CAPTURE_USER=dune_cap
 DUNE_CAPTURE_PASS=<strong random password>
-```
-
-Frontend settings should match:
-
-```text
-Backend URL: http://localhost:8080
-Admin Token: same value as ADMIN_TOKEN
 ```
 
 ---
@@ -199,7 +173,7 @@ Admin Token: same value as ADMIN_TOKEN
 - Fixed notification compile errors after credential cleanup.
 - Fixed WebSocket log streaming auth behavior.
 - Fixed cheats log SQL lookup by joining through `dune.encrypted_accounts` and `player_state.account_id`.
-- Fixed stack-size behavior so `2 stacks × 1000 Heavy Darts` creates 2 inventory entries instead of 2000 entries.
+- Fixed stack-size behavior so stacked item grants use the correct number of inventory entries.
 - Fixed Trivy action resolution.
 - Fixed ZAP issue-creation permission failure.
 - Fixed DAST security-header warnings.
@@ -227,14 +201,6 @@ npm run build
 npm run dev
 ```
 
-Run frontend production-style preview:
-
-```powershell
-cd web
-npm run build
-npm run preview -- --host 127.0.0.1
-```
-
 Expected CI security categories:
 
 ```text
@@ -256,16 +222,14 @@ Secrets - Gitleaks
 - Do not expose the backend directly to the internet.
 - If remote access is required, place the backend behind TLS, a trusted reverse proxy, and a strong identity provider.
 - Use HTTPS/WSS when operating outside local loopback to avoid WebSocket token exposure in transit.
-- The local-admin SSH trust model still requires an operator decision before replacing `ssh.InsecureIgnoreHostKey()` with strict host-key pinning.
-- RabbitMQ TLS currently operates through an internal SSH tunnel and still needs an operator-supported certificate trust model before enforcing certificate verification.
 
 ---
 
 ## 9. Known limitations and accepted risk
 
 - WebSocket query-token authentication is required for browser compatibility but should be protected by TLS/WSS outside localhost.
-- Batch item grants intentionally allow explicit stack sizes up to the configured limit. Operators should use values compatible with game behavior.
-- Some gosec categories are tuned out of the blocking CI gate because they represent known local-admin deployment tradeoffs or low-signal cleanup findings. They should still be reviewed periodically.
+- Batch item grants intentionally allow explicit stack sizes up to the configured limit.
+- Some gosec categories are tuned out of the blocking CI gate because they represent known local-admin deployment tradeoffs or low-signal cleanup findings.
 - DAST currently validates the frontend preview server. Production deployments should also validate the final reverse-proxy or hosting layer.
 - `web/package-lock.json` needs a clean regeneration from the current `web/package.json`.
 
@@ -273,10 +237,4 @@ Secrets - Gitleaks
 
 ## 10. Final summary
 
-This release makes Dune Admin safer and more reliable for live server operations.
-
-The most important security improvements are backend-enforced admin-token authentication, explicit CORS allowlisting, safer loopback listen defaults, server timeouts, raw SQL restrictions, request-size controls, Kubernetes log target validation, reduced status data exposure, frontend security headers, blueprint import bounds checks, CI security scanning, and removal of hardcoded capture credentials.
-
-The most important operator workflow improvement is the new batch item grant model. Admins can now grant multiple items in one operation while preserving stack count and stack size. A request such as `2 stacks of 1000 Heavy Darts` now creates `2 inventory entries with stack_size=1000` instead of attempting to create 2000 separate inventory entries.
-
-This update establishes a stronger security baseline, a more accurate administration workflow for player inventory management, and a documented expectation that every future change must keep both `PATCH_NOTES.md` and `CHANGELOG.md` current.
+This release makes Dune Admin safer and more reliable for live server operations. It establishes backend-enforced admin-token authentication, explicit CORS allowlisting, safer loopback listen defaults, server timeouts, raw SQL restrictions, request-size controls, Kubernetes log target validation, reduced status data exposure, hardened frontend security headers, blueprint import bounds checks, CI security scanning, removal of hardcoded capture credentials, and the requirement that every future change keep both `PATCH_NOTES.md` and `CHANGELOG.md` current.
