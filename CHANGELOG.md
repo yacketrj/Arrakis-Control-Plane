@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
 - Added Linux development launcher at `scripts/linux/run-dev.sh`.
 - Added Linux production-style build helper at `scripts/linux/build-linux.sh`.
 - Added Linux systemd backend installer at `scripts/linux/install-systemd.sh`.
+- Added Linux helper functional test suite at `scripts/linux/test-linux.sh`.
+- Added Linux helper GitHub Actions workflow at `.github/workflows/linux-helper-tests.yml`.
 - Added Linux operating guide at `docs/linux.md`.
 - Added README Linux quick start, build, validation, and systemd service instructions.
 
@@ -35,6 +37,7 @@ All notable changes to this project will be documented in this file.
 - Reduced frontend style injection surface by removing inline allowance from style elements.
 - Preserved style-attribute compatibility required by the current UI while retaining DAST visibility.
 - Added Linux systemd hardening defaults including `NoNewPrivileges`, `PrivateTmp`, `ProtectSystem`, and constrained write paths.
+- Added automated Linux helper tests for shell syntax, documentation coverage, build helper behavior, run-dev first-run bootstrap, and run-dev process-launch behavior.
 - Documented Linux operational controls for loopback binding, admin token handling, SSH key protection, and reverse-proxy/TLS requirements.
 
 ### Operational Notes
