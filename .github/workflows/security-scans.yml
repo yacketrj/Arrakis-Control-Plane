@@ -23,6 +23,8 @@ jobs:
         with:
           go-version: '1.26.3'
           cache: true
+      - name: Refresh Go module sums
+        run: go mod download
       - name: Run Go tests and vet
         run: go test ./...
       - name: Install govulncheck
@@ -38,7 +40,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
       - name: Install dependencies from package manifest
         working-directory: web
         run: npm install
@@ -66,6 +67,8 @@ jobs:
         with:
           go-version: '1.26.3'
           cache: true
+      - name: Refresh Go module sums
+        run: go mod download
       - name: Install gosec
         run: go install github.com/securego/gosec/v2/cmd/gosec@latest
       - name: Run gosec high-confidence gate
@@ -111,7 +114,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
       - name: Create CI backend environment
         run: |
           openssl rand -hex 16 > /tmp/dune-admin-ci-token
@@ -121,6 +123,8 @@ jobs:
           printf 'DB_PASS=ci-placeholder\n' >> .env
           printf 'DUNE_CAPTURE_USER=dune_cap\n' >> .env
           printf 'DUNE_CAPTURE_PASS=ci-placeholder\n' >> .env
+      - name: Refresh Go module sums
+        run: go mod download
       - name: Start backend
         run: |
           go run . > /tmp/dune-admin-backend.log 2>&1 &
