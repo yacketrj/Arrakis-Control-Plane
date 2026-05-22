@@ -11,6 +11,17 @@ sshKey.pub
 # Browser fetch script — local dev tool, not for sharing
 fetch-item-data.js
 
+# Local logs
+*.log
+.dune-admin-*.log
+
+# Build output
+/dist/
+web/dist/
+
+# Frontend dependencies
+web/node_modules/
+
 # Compiled binaries
 dune-admin
 dune-admin-linux
