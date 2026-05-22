@@ -17,11 +17,13 @@ All notable changes to this project will be documented in this file.
 - Updated the ZAP DAST job to scan Vite preview on port 4173 instead of the previous dev-server port assumption.
 - Updated the CI-generated admin token to use a per-run random value instead of a static literal.
 - Updated the gosec gate to exclude the remaining accepted local-admin findings from the blocking high-confidence scan.
-- Updated Trivy DCA to skip the stale committed frontend lockfile while npm audit remains the authoritative Node SCA gate.
+- Removed npm cache key references to the deleted frontend lockfile from security workflow Node setup steps.
+- Restored Trivy DCA to scan the repository without a stale lockfile skip because the stale frontend lockfile was removed.
 
 ### Fixed
 
 - Removed the unused frontend auth dependency from `web/package.json` to eliminate the transitive vulnerable `js-cookie` dependency from runtime installs and npm audit.
+- Removed stale `web/package-lock.json` because it still contained vulnerable `js-cookie` metadata after the unused auth dependency was removed from `web/package.json`.
 - Fixed the Go SCA baseline by moving the repository module metadata to Go 1.26.3 and `golang.org/x/crypto` 0.52.0.
 - Fixed DAST preview startup validation by checking the actual Vite preview port.
 
@@ -29,7 +31,12 @@ All notable changes to this project will be documented in this file.
 
 - Reduced dependency risk by removing unused frontend auth package exposure.
 - Reduced CI secret exposure by generating the DAST admin token at runtime.
-- Kept Node vulnerability detection in npm audit while excluding the stale lockfile from Trivy DCA until it can be regenerated in a clean package-lock-only update.
+- Prevented Trivy DCA from reporting stale dependency metadata by removing the outdated lockfile rather than suppressing the file in the scan.
+- Kept Node vulnerability detection in npm audit against the current manifest-derived dependency tree.
+
+### Operational Notes
+
+- Regenerate `web/package-lock.json` locally from the current `web/package.json` with `npm install` and recommit it once confirmed clean with `npm audit --audit-level=high` and `npm run build`.
 
 ---
 
