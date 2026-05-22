@@ -16,7 +16,7 @@ Server administrators, operators, maintainers, and anyone running Dune Admin aga
 
 ### Why this remediation was made
 
-GitHub Actions runs `26269112272`, `26270753734`, `26271305102`, and `26272022052` showed that the scan and test framework was running, but several jobs still needed follow-up before the pipeline could be useful as a stable quality gate. The failures were not all product-code vulnerabilities; several were CI drift issues caused by stale lockfile metadata, missing refreshed Go module sums after a module version update, npm cache configuration without a committed lockfile, a standalone Go Test workflow that ran tests before refreshing modules, DAST backend startup checks with short fixed sleeps, a static CI token, Vite preview port assumptions, and gosec findings that represent accepted local-admin deployment tradeoffs rather than current blocking defects.
+GitHub Actions runs `26269112272`, `26270753734`, `26271305102`, `26272022052`, and `26273587909` showed that the scan and test framework was running, but several jobs still needed follow-up before the pipeline could be useful as a stable quality gate. The failures were not all product-code vulnerabilities; several were CI drift issues caused by stale lockfile metadata, stale frontend auth imports after dependency removal, missing refreshed Go module sums after a module version update, npm cache configuration without a committed lockfile, a standalone Go Test workflow that ran tests before refreshing modules, DAST backend startup checks with short fixed sleeps, a static CI token, Vite preview port assumptions, and gosec findings that represent accepted local-admin deployment tradeoffs rather than current blocking defects.
 
 This remediation keeps the pipeline security-focused while reducing false or stale failures that prevent operators from seeing actionable findings.
 
@@ -24,6 +24,8 @@ This remediation keeps the pipeline security-focused while reducing false or sta
 
 - Removed the unused frontend auth dependency from `web/package.json`, eliminating the runtime path that pulled in the vulnerable `js-cookie` dependency through the unused auth package.
 - Removed stale `web/package-lock.json` because it still contained vulnerable `js-cookie` dependency metadata after the package manifest no longer referenced the unused auth dependency.
+- Removed stale `@clerk/react` imports from `web/src/App.tsx` and `web/src/main.tsx` so the frontend build matches the backend-token-only authentication model.
+- Removed the optional Clerk-authenticated UI path and made the Blueprints tab consistently available through the backend-token protected app.
 - Updated Go module metadata to use Go `1.26.3` and `golang.org/x/crypto v0.52.0`, aligning the repository with the fixed Go SCA baseline.
 - Replaced Go workflow bootstrap steps from `go mod download` to `go mod tidy` so CI refreshes package import checksums required by `go test`, gosec, and DAST backend startup.
 - Updated the standalone Go Test workflow to use Go `1.26.3` explicitly and run `go mod tidy` before `go test ./...`.
