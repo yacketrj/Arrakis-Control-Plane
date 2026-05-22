@@ -1,7 +1,7 @@
 # ZAP baseline rule policy for local Vite preview scans.
-# Format: rule-id<TAB>threshold
-# Security header findings should remain enabled; static/dev-server noise below is accepted for local preview scans.
-10049	IGNORE
-10094	IGNORE
-10109	IGNORE
-90005	IGNORE
+# Format: rule-id<TAB>threshold<TAB>description
+# Security header findings should remain enabled; local-preview noise below is accepted for CI baseline scans.
+10049	IGNORE	Ignore stale-cache-control noise for local Vite preview responses.
+10094	IGNORE	Ignore local-preview modern application warning noise.
+10109	IGNORE	Ignore local-preview modern browser header warning noise.
+90005	IGNORE	Ignore local-preview passive scanner noise that is not actionable in CI.
