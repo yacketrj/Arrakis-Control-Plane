@@ -1,0 +1,7 @@
+# ZAP baseline rule policy for local Vite preview scans.
+# Format: rule-id<TAB>threshold
+# Security header findings should remain enabled; static/dev-server noise below is accepted for local preview scans.
+10049	IGNORE
+10094	IGNORE
+10109	IGNORE
+90005	IGNORE
