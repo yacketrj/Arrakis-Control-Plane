@@ -157,9 +157,9 @@ func cmdGiveItemStacks(playerID int64, template string, stacks, stackSize, quali
 	}
 }
 
-func buildAugmentedItemStatsJSON(augments []giveItemAugmentEntry) ([]byte, error) {
+func buildAugmentedItemStatsJSON(augments []giveItemAugmentEntry) (string, error) {
 	if len(augments) == 0 {
-		return []byte(`{}`), nil
+		return `{}`, nil
 	}
 
 	type augmentName struct {
@@ -206,5 +206,9 @@ func buildAugmentedItemStatsJSON(augments []giveItemAugmentEntry) ([]byte, error
 	stats := map[string]any{
 		"FAugmentedItemStats": []any{[]any{}, payload},
 	}
-	return json.Marshal(stats)
+	data, err := json.Marshal(stats)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
