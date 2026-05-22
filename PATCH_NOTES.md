@@ -16,7 +16,7 @@ Server administrators, operators, maintainers, and anyone running Dune Admin aga
 
 ### Why this remediation was made
 
-GitHub Actions runs `26269112272`, `26270753734`, `26271305102`, `26272022052`, and `26273587909` showed that the scan and test framework was running, but several jobs still needed follow-up before the pipeline could be useful as a stable quality gate. The failures were not all product-code vulnerabilities; several were CI drift issues caused by stale lockfile metadata, stale frontend auth imports after dependency removal, missing refreshed Go module sums after a module version update, npm cache configuration without a committed lockfile, a standalone Go Test workflow that ran tests before refreshing modules, DAST backend startup checks with short fixed sleeps, a static CI token, Vite preview port assumptions, and gosec findings that represent accepted local-admin deployment tradeoffs rather than current blocking defects.
+GitHub Actions runs `26269112272`, `26270753734`, `26271305102`, `26272022052`, `26273587909`, and `26275328222` showed that the scan and test framework was running, but several jobs still needed follow-up before the pipeline could be useful as a stable quality gate. The failures were not all product-code vulnerabilities; several were CI drift issues caused by stale lockfile metadata, stale frontend auth imports after dependency removal, missing refreshed Go module sums after a module version update, npm cache configuration without a committed lockfile, a standalone Go Test workflow that ran tests before refreshing modules, DAST backend startup checks with short fixed sleeps, a malformed ZAP baseline policy file, a static CI token, Vite preview port assumptions, and gosec findings that represent accepted local-admin deployment tradeoffs rather than current blocking defects.
 
 This remediation keeps the pipeline security-focused while reducing false or stale failures that prevent operators from seeing actionable findings.
 
@@ -34,6 +34,7 @@ This remediation keeps the pipeline security-focused while reducing false or sta
 - Removed npm cache mode from Node setup steps while no committed frontend lockfile is present.
 - Changed DAST to validate Vite preview on the actual preview port, `4173`, instead of checking the old development-server port assumption.
 - Changed DAST backend and frontend startup checks from fixed sleeps to 30-second polling loops that print runtime logs on failure.
+- Corrected `.zap/rules.tsv` to use ZAP baseline's required three-column tab-separated format.
 - Replaced the static CI admin token with a per-run generated token for the DAST backend check.
 - Tuned the gosec blocking gate to exclude the remaining accepted local-admin/legacy findings while preserving medium-or-higher, high-confidence scanning for non-accepted categories.
 - Removed npm lockfile cache references from Node workflow setup steps now that the stale lockfile has been removed.
