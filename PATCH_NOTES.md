@@ -1,18 +1,46 @@
 # Dune Admin Release Notes
 
-## Release: Security Hardening, Security Scanning, and Multi-Item Administration Update
+## Release: Security Hardening, Security Scanning, Multi-Item Administration, and Documentation Standards Update
 
 ### Release type
 
-Security hardening, CI security scanning, reliability fixes, and player administration feature update.
+Security hardening, CI security scanning, reliability fixes, player administration feature update, and documentation process update.
+
+### Audience
+
+Server administrators, operators, maintainers, and anyone running Dune Admin against a live Dune: Awakening environment.
+
+### Documentation standard going forward
+
+Every future code change, configuration change, security remediation, workflow update, behavior change, bug fix, or operator-facing update must include matching updates to both:
+
+- `PATCH_NOTES.md`
+- `CHANGELOG.md`
+
+`PATCH_NOTES.md` must explain why the change was made, the security/operator impact, required configuration changes, validation steps, and known limitations or accepted risk.
+
+`CHANGELOG.md` must provide concise release-oriented change tracking using standard categories such as:
+
+- `Added`
+- `Changed`
+- `Fixed`
+- `Security`
+- `Testing`
+- `Operational Notes`
+- `Known Limitations`
+
+This release adds `CHANGELOG.md` so future updates have both detailed patch notes and concise historical release tracking.
+
+---
 
 ## 1. Why this release was made
 
-This release was created to address three high-priority needs:
+This release was created to address four high-priority needs:
 
 1. **Reduce security risk around privileged administration endpoints.**
 2. **Improve the accuracy and speed of player item administration.**
 3. **Add continuous security scanning across dependencies, static code, secrets, runtime web behavior, and filesystem/container-style dependency surfaces.**
+4. **Establish durable release documentation standards for future operators and maintainers.**
 
 Dune Admin has direct access to sensitive and high-impact systems: player inventory records, game database tables, Kubernetes pod logs, battlegroup command execution, blueprint import/export, RabbitMQ notification/capture flows, and other live server administration functions. Prior to this update, many capabilities were designed around a trusted local-development workflow. That created unacceptable risk if the backend was accidentally exposed, accessed from an unexpected browser origin, called directly without the frontend, or operated with hardcoded secrets still present in source.
 
@@ -21,6 +49,8 @@ The security work in this release moves enforcement into the backend, which is t
 The item administration work was necessary because the original single-item grant flow did not accurately model stacked inventory. In particular, an operator attempting to grant **2 stacks of 1000 Heavy Darts** saw the grant treated as **2000 individual inventory entries**, which incorrectly required 2000 inventory slots. This release adds a true batch item grant workflow and backend stack-preserving logic so stack count and stack size are handled separately.
 
 The security scanning work was added so future changes are continuously checked through SCA, SAST, DCA, DAST, and secret scanning. The initial scan results identified workflow issues, web security header gaps, blueprint import bounds issues, and high-noise SAST findings that needed to be addressed or tuned.
+
+The documentation work was added so change history does not live only in chat, commits, or operator memory. `PATCH_NOTES.md` now carries detailed operational notes, and `CHANGELOG.md` carries concise release history.
 
 ---
 
@@ -196,18 +226,7 @@ http://localhost:5173
 
 ### Multi-item Give Items workflow
 
-The player Give Item workflow now supports multiple item rows in one operation. Each row can specify:
-
-- Item template
-- Stack count
-- Grade / quality
-- Stack size
-
-The frontend submits batch grants through:
-
-```text
-api.players.giveItems(playerID, items)
-```
+The player Give Item workflow now supports multiple item rows in one operation. Each row can specify item template, stack count, grade/quality, and stack size.
 
 ### Batch item grant payload
 
@@ -254,20 +273,9 @@ A backend command was added for stack-preserving item grants:
 cmdGiveItemStacks(playerID, template, stacks, stackSize, quality)
 ```
 
-This command creates the requested number of item rows and assigns the requested `stack_size` to each row.
-
 ### Backend batch validation
 
-Batch grants now validate:
-
-```text
-maximum rows per request: 100
-maximum stack count per row: 9999
-maximum stack size per row: 9999
-quality range: 0 through 5
-```
-
-The backend rejects blank templates, empty item lists, non-positive quantities, out-of-range quality values, excessive stack counts, excessive stack sizes, and total quantity overflow risks.
+Batch grants now validate maximum row count, maximum stack count, maximum stack size, quality range, blank templates, empty item lists, non-positive quantities, and total quantity overflow risks.
 
 ### Security scanning workflow
 
@@ -297,9 +305,9 @@ A ZAP rule policy file was added:
 
 The policy suppresses known local-preview noise while keeping meaningful browser security-header checks active.
 
-### Go unit tests for batch normalization
+### Changelog
 
-Unit tests were added for the batch item request normalizer, including legacy payload compatibility, batch payload parsing, stack-size defaulting, validation failures, and boundary limits.
+A new `CHANGELOG.md` was added to provide concise release-oriented historical tracking alongside detailed patch notes.
 
 ---
 
@@ -325,26 +333,7 @@ Volume / weight checks still use total item count, so stack grants continue to r
 
 ### Legacy single-item payload remains compatible
 
-The old single-item payload still works:
-
-```json
-{
-  "player_id": 123,
-  "template": "ItemTemplateHeavyDarts",
-  "qty": 10,
-  "quality": 1
-}
-```
-
-Legacy behavior remains flat quantity-based for compatibility with existing callers.
-
-### Notification and capture credential usage
-
-Notification publishing now uses configured capture credentials instead of removed hardcoded constants.
-
-### Frontend settings panel
-
-The settings panel now supports both backend URL and admin token configuration for local operation.
+The old single-item payload still works and remains flat quantity-based for compatibility with existing callers.
 
 ### DAST now scans frontend preview instead of dev server
 
@@ -358,7 +347,11 @@ This better represents production build output than scanning the Vite developmen
 
 ### Gosec gate tuned for high-signal findings
 
-The gosec job now focuses on medium-and-higher severity, high-confidence findings and excludes accepted legacy/local-admin noise categories from the blocking gate. This keeps the pipeline useful while avoiding failure on known patterns that require larger architectural decisions, such as SSH trust model changes.
+The gosec job now focuses on medium-and-higher severity, high-confidence findings and excludes accepted legacy/local-admin noise categories from the blocking gate.
+
+### Documentation workflow
+
+Future changes must update both `PATCH_NOTES.md` and `CHANGELOG.md`. Patch notes remain detailed and operator-focused; the changelog is concise and release-history-focused.
 
 ---
 
@@ -408,17 +401,15 @@ Batch item grants no longer require one inventory slot per item when the operato
 
 ### Fixed Trivy action resolution
 
-The Trivy action reference was corrected from an invalid tag form to:
+The Trivy action reference was corrected to:
 
 ```yaml
 uses: aquasecurity/trivy-action@v0.36.0
 ```
 
-This allows the DCA job to resolve the action and run.
-
 ### Fixed ZAP issue-creation permission failure
 
-The ZAP action no longer attempts to create GitHub issues during CI. This avoids `Resource not accessible by integration` failures in the workflow while still preserving scan output and failure behavior.
+The ZAP action no longer attempts to create GitHub issues during CI. This avoids `Resource not accessible by integration` failures while preserving scan output and failure behavior.
 
 ### Fixed DAST security-header warnings
 
@@ -431,8 +422,6 @@ Blueprint import now limits request bodies before multipart parsing and validate
 ---
 
 ## 7. Testing and scanning
-
-### Local validation
 
 Run backend tests:
 
@@ -464,11 +453,7 @@ npm run build
 npm run preview -- --host 127.0.0.1
 ```
 
-### CI security validation
-
-The security workflow runs on pushes to `main` and can also be started manually with `workflow_dispatch`.
-
-Expected security categories:
+Expected CI security categories:
 
 ```text
 SCA  - Go govulncheck and npm audit
@@ -490,6 +475,7 @@ Recommended manual validation:
 8. Confirm invalid batch item rows are rejected with clear validation errors.
 9. Confirm blueprint import rejects oversized uploads and out-of-range pentashield scale values.
 10. Confirm GitHub Actions security workflow resolves all actions and starts all scan jobs.
+11. Confirm `CHANGELOG.md` and `PATCH_NOTES.md` are both updated for every future change.
 
 ---
 
@@ -497,7 +483,7 @@ Recommended manual validation:
 
 - Treat `ADMIN_TOKEN` as a privileged secret.
 - Rotate any previously shared or committed credentials.
-- Keep `.env`, SSH keys, database snapshots, and generated secrets out of source control.
+- Keep `.env`, SSH keys, database snapshots, generated secrets, dependency folders, and build output out of source control.
 - Prefer `LISTEN_ADDR=127.0.0.1:8080` for local use.
 - Do not expose the backend directly to the internet.
 - If remote access is required, place the backend behind TLS, a trusted reverse proxy, and a strong identity provider.
@@ -509,10 +495,10 @@ Recommended manual validation:
 
 ## 9. Known limitations and accepted risk
 
-- WebSocket query-token authentication is a practical browser compatibility solution, but deployments outside localhost should use TLS/WSS and avoid logging full URLs.
-- Batch item grants intentionally allow explicit stack sizes up to the configured limit. Operators should use reasonable values that are compatible with game behavior.
+- WebSocket query-token authentication is required for browser compatibility but should be protected by TLS/WSS outside localhost.
+- Batch item grants intentionally allow explicit stack sizes up to the configured limit. Operators should use values compatible with game behavior.
 - Some gosec categories are tuned out of the blocking CI gate because they represent known local-admin deployment tradeoffs or low-signal cleanup findings. They should still be reviewed periodically.
-- DAST currently validates the frontend preview server. Production deployments should also validate the final reverse-proxy or hosting layer because headers, TLS, and caching behavior may differ there.
+- DAST currently validates the frontend preview server. Production deployments should also validate the final reverse-proxy or hosting layer.
 
 ---
 
@@ -536,4 +522,4 @@ now creates:
 
 instead of attempting to create 2000 separate inventory entries.
 
-This update establishes a stronger security baseline, a more accurate administration workflow for player inventory management, and a documented expectation that every future change must keep `PATCH_NOTES.md` current.
+This update establishes a stronger security baseline, a more accurate administration workflow for player inventory management, and a documented expectation that every future change must keep both `PATCH_NOTES.md` and `CHANGELOG.md` current.
