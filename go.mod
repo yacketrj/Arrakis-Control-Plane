@@ -1,6 +1,6 @@
 module dune-admin
 
-go 1.26.2
+go 1.26.3
 
 require (
 	charm.land/bubbles/v2 v2.1.0
@@ -8,7 +8,7 @@ require (
 	charm.land/lipgloss/v2 v2.0.3
 	github.com/gorilla/websocket v1.5.3
 	github.com/jackc/pgx/v5 v5.9.2
-	golang.org/x/crypto v0.51.0
+	golang.org/x/crypto v0.52.0
 )
 
 require (
