@@ -129,7 +129,7 @@ jobs:
         run: |
           npm ci
           npm run build
-          npm run dev -- --host 127.0.0.1 > /tmp/dune-admin-frontend.log 2>&1 &
+          npm run preview -- --host 127.0.0.1 > /tmp/dune-admin-frontend.log 2>&1 &
           echo $! > /tmp/dune-admin-frontend.pid
           sleep 8
           curl -I http://127.0.0.1:5173
