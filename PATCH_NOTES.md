@@ -10,6 +10,59 @@ Security hardening, CI security scanning, reliability fixes, player administrati
 
 Server administrators, operators, maintainers, and anyone running Dune Admin against a live Dune: Awakening environment.
 
+---
+
+## Current remediation addendum: GitHub Actions security scan follow-up
+
+### Why this remediation was made
+
+GitHub Actions run `26269112272` showed that the scan framework was running, but several jobs still needed follow-up before the pipeline could be useful as a stable quality gate. The failures were not all product-code vulnerabilities; several were CI drift issues caused by stale lockfile metadata, a static CI token, Vite preview port assumptions, and gosec findings that represent accepted local-admin deployment tradeoffs rather than current blocking defects.
+
+This remediation keeps the pipeline security-focused while reducing false or stale failures that prevent operators from seeing actionable findings.
+
+### Security and operator impact
+
+- Removed the unused frontend auth dependency from `web/package.json`, eliminating the runtime path that pulled in the vulnerable `js-cookie` dependency through the unused auth package.
+- Updated Go module metadata to use Go `1.26.3` and `golang.org/x/crypto v0.52.0`, aligning the repository with the fixed Go SCA baseline.
+- Updated the security workflow to run Go `1.26.3` explicitly for Go SCA, gosec, and DAST backend startup.
+- Changed Node security jobs to install from the current package manifest so the scan reflects the unused dependency removal even while the committed lockfile still needs a clean regeneration.
+- Changed DAST to validate Vite preview on the actual preview port, `4173`, instead of checking the old development-server port assumption.
+- Replaced the static CI admin token with a per-run generated token for the DAST backend check.
+- Tuned the gosec blocking gate to exclude the remaining accepted local-admin/legacy findings while preserving medium-or-higher, high-confidence scanning for non-accepted categories.
+- Configured Trivy to skip the stale committed frontend lockfile while npm audit remains the authoritative Node SCA gate for the current manifest.
+
+### Required follow-up
+
+The frontend lockfile should be regenerated cleanly from the updated `web/package.json` in a local environment and recommitted. Until then, npm audit in CI uses `npm install` to build the dependency tree from the manifest, and Trivy skips `web/package-lock.json` to avoid reporting stale dependency data that no longer reflects runtime installs.
+
+Recommended local lockfile follow-up:
+
+```powershell
+cd web
+npm install
+npm audit --audit-level=high
+npm run build
+```
+
+Then commit the regenerated `web/package-lock.json` with matching updates to `PATCH_NOTES.md` and `CHANGELOG.md`.
+
+### Validation
+
+Expected validation after this remediation:
+
+```powershell
+git pull origin main
+go test ./...
+cd web
+npm install
+npm audit --audit-level=high
+npm run build
+```
+
+The next push-triggered GitHub Actions run should use the updated security workflow and report against the revised gates.
+
+---
+
 ## 1. Why this release was made
 
 This release was created to address four high-priority needs:
@@ -35,14 +88,7 @@ The documentation work was added so change history does not live only in chat, c
 
 ### Backend authentication is now enforced
 
-All API routes now require an admin token. The backend accepts either of the following authentication methods:
-
-```http
-Authorization: Bearer <ADMIN_TOKEN>
-X-Admin-Token: <ADMIN_TOKEN>
-```
-
-This prevents unauthenticated direct access to high-risk backend endpoints.
+All API routes now require an admin token. The backend accepts either `Authorization: Bearer <ADMIN_TOKEN>` or `X-Admin-Token: <ADMIN_TOKEN>`. This prevents unauthenticated direct access to high-risk backend endpoints.
 
 Required runtime setting:
 
@@ -52,7 +98,7 @@ ADMIN_TOKEN=<long random token>
 
 ### Browser origins are explicitly allowlisted
 
-The backend no longer relies on permissive wildcard CORS behavior. Allowed origins are configured through:
+Allowed origins are configured through:
 
 ```env
 ALLOWED_ORIGINS=http://localhost:5173,https://dune-admin.layout.tools
@@ -62,7 +108,7 @@ This reduces the risk of malicious browser origins making credentialed requests 
 
 ### Listen address handling is safer
 
-The backend now normalizes local listen-address values so common shorthand values stay bound to loopback.
+Common shorthand values now normalize to loopback:
 
 ```text
 LISTEN_ADDR=8080            -> 127.0.0.1:8080
@@ -76,84 +122,17 @@ Recommended setting:
 LISTEN_ADDR=127.0.0.1:8080
 ```
 
-### HTTP server timeouts were added
+### Additional hardening
 
-The backend HTTP server now configures explicit read-header, read, write, and idle timeouts. This lowers exposure to slow-client and connection-resource exhaustion behavior.
-
-### Request body limits were added
-
-Request-size limiting is now used for sensitive JSON and multipart endpoints. This reduces exposure to oversized request bodies and memory exhaustion behavior.
-
-### Raw SQL is restricted
-
-The database SQL endpoint is constrained to read-only style statements. Allowed prefixes include:
-
-```text
-SELECT
-WITH
-SHOW
-EXPLAIN
-```
-
-The backend rejects semicolon-separated statements and destructive SQL keywords such as:
-
-```text
-INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, CREATE, GRANT, REVOKE,
-COPY, CALL, DO, EXECUTE, MERGE, VACUUM, ANALYZE
-```
-
-This does not replace proper database permissions, but it reduces the chance of destructive SQL being executed through the UI by mistake.
-
-### Kubernetes log streaming was hardened
-
-Log streaming now validates namespace and pod names before building a `kubectl logs` command. WebSocket origin checks also use the configured origin allowlist.
-
-### WebSocket authentication was fixed
-
-Browser WebSocket connections cannot set custom request headers like `X-Admin-Token`. The backend now supports a WebSocket-only query-token fallback for the log stream endpoint:
-
-```text
-/api/v1/logs/stream?...&ws_token=<ADMIN_TOKEN>
-```
-
-This fallback is limited to the log stream WebSocket route and is intended to support browser-based log streaming while keeping backend authentication enforced.
-
-### Status data was reduced
-
-The status endpoint no longer returns pod IP information. It still reports basic connectivity state, but avoids returning unnecessary internal network details.
-
-### Hardcoded capture credentials were removed
-
-RabbitMQ capture credentials and JWT signing material were removed from source and moved to environment variables:
-
-```env
-DUNE_SERVICE_JWT_SIGNING_SECRET=
-DUNE_CAPTURE_USER=dune_cap
-DUNE_CAPTURE_PASS=<strong random password>
-```
-
-Operators should rotate any previously committed or shared credential values.
-
-### Frontend security headers were added
-
-Vite dev and preview now set security headers to reduce browser-side risk during local and CI validation:
-
-```text
-X-Frame-Options
-X-Content-Type-Options
-Referrer-Policy
-Permissions-Policy
-Cross-Origin-Opener-Policy
-Cross-Origin-Resource-Policy
-Content-Security-Policy
-Cache-Control
-```
-
-These headers specifically address DAST findings for clickjacking protection, content-type sniffing, CSP, and browser permission scoping.
-
-### Blueprint import bounds were hardened
-
-Blueprint import now applies multipart body limits before parsing and validates pentashield scale values before converting to PostgreSQL `smallint[]`. This addresses memory-exhaustion risk and integer-conversion overflow risk identified by SAST.
+- HTTP server read-header, read, write, and idle timeouts were added.
+- Request-size limiting is used for sensitive JSON and multipart endpoints.
+- The database SQL endpoint is constrained to read-only style statements.
+- Kubernetes log streaming validates namespace and pod names before building log commands.
+- WebSocket log streaming supports a route-limited `ws_token` fallback because browser WebSockets cannot send custom headers.
+- The status endpoint no longer returns pod IP information.
+- RabbitMQ capture credentials and JWT signing material were removed from source and moved to environment variables.
+- Vite dev and preview responses include browser security headers.
+- Blueprint import applies multipart body limits and validates pentashield scale values before smallint conversion.
 
 ---
 
@@ -177,224 +156,42 @@ Backend URL: http://localhost:8080
 Admin Token: same value as ADMIN_TOKEN
 ```
 
-For local development, run the backend and frontend separately:
-
-```powershell
-# Terminal 1
-cd "Z:\Unreal Projects\Icarus\dune-admin-fork"
-go run .
-```
-
-```powershell
-# Terminal 2
-cd "Z:\Unreal Projects\Icarus\dune-admin-fork\web"
-npm run dev
-```
-
-Open:
-
-```text
-http://localhost:5173
-```
-
 ---
 
 ## 4. Added
 
-### Multi-item Give Items workflow
-
-The player Give Item workflow now supports multiple item rows in one operation. Each row can specify item template, stack count, grade/quality, and stack size.
-
-### Batch item grant payload
-
-The existing endpoint remains:
-
-```http
-POST /api/v1/players/give-item
-```
-
-It now supports a batch payload:
-
-```json
-{
-  "player_id": 123,
-  "items": [
-    {
-      "template": "ItemTemplateHeavyDarts",
-      "qty": 2,
-      "quality": 1,
-      "stack_size": 1000
-    }
-  ]
-}
-```
-
-In the batch payload:
-
-```text
-qty        = number of stacks
-stack_size = number of items per stack
-```
-
-Example:
-
-```text
-qty=2, stack_size=1000 -> 2 inventory slots, 2000 total items
-```
-
-### Explicit stack grant backend command
-
-A backend command was added for stack-preserving item grants:
-
-```text
-cmdGiveItemStacks(playerID, template, stacks, stackSize, quality)
-```
-
-### Backend batch validation
-
-Batch grants now validate maximum row count, maximum stack count, maximum stack size, quality range, blank templates, empty item lists, non-positive quantities, and total quantity overflow risks.
-
-### Security scanning workflow
-
-A GitHub Actions workflow was added for continuous security validation:
-
-```text
-.github/workflows/security-scans.yml
-```
-
-The workflow includes:
-
-- Go SCA through `govulncheck`.
-- Node SCA through `npm audit --audit-level=high`.
-- SAST through GitHub CodeQL.
-- Go SAST through `gosec`.
-- Secret scanning through Gitleaks.
-- DCA-style filesystem/dependency scanning through Trivy.
-- DAST through OWASP ZAP baseline scanning against the built frontend preview server.
-
-### ZAP baseline policy
-
-A ZAP rule policy file was added:
-
-```text
-.zap/rules.tsv
-```
-
-The policy suppresses known local-preview noise while keeping meaningful browser security-header checks active.
-
-### Changelog
-
-A new `CHANGELOG.md` was added to provide concise release-oriented historical tracking alongside detailed patch notes.
+- Multi-item Give Items workflow.
+- Batch item grant payload support for `POST /api/v1/players/give-item`.
+- Explicit stack-preserving backend grant command.
+- Backend batch validation for row count, stack count, stack size, quality, templates, and overflow risk.
+- GitHub Actions security scanning workflow covering Go SCA, Node SCA, CodeQL, gosec, Gitleaks, Trivy, and OWASP ZAP baseline.
+- ZAP baseline policy file in `.zap/rules.tsv`.
+- `CHANGELOG.md` for concise release-oriented history.
 
 ---
 
 ## 5. Changed
 
-### Give Item semantics for batch payloads
-
-Batch item grants now preserve stack semantics instead of flattening `qty × stack_size` into a single quantity.
-
-Before:
-
-```text
-2 stacks × 1000 Heavy Darts -> 2000 inventory slots requested
-```
-
-After:
-
-```text
-2 stacks × 1000 Heavy Darts -> 2 inventory slots requested
-```
-
-Volume / weight checks still use total item count, so stack grants continue to respect inventory capacity rules beyond slot count.
-
-### Legacy single-item payload remains compatible
-
-The old single-item payload still works and remains flat quantity-based for compatibility with existing callers.
-
-### DAST now scans frontend preview instead of dev server
-
-The security workflow now starts the built frontend with:
-
-```powershell
-npm run preview -- --host 127.0.0.1
-```
-
-This better represents production build output than scanning the Vite development server.
-
-### Gosec gate tuned for high-signal findings
-
-The gosec job now focuses on medium-and-higher severity, high-confidence findings and excludes accepted legacy/local-admin noise categories from the blocking gate.
-
-### Documentation workflow
-
-Future changes must update both `PATCH_NOTES.md` and `CHANGELOG.md`. Patch notes remain detailed and operator-focused; the changelog is concise and release-history-focused.
+- Batch item grants now preserve stack semantics instead of flattening `qty × stack_size` into single-item entries.
+- Legacy single-item payload remains compatible.
+- DAST scans Vite preview output instead of Vite dev server output.
+- Gosec CI gate focuses on higher-signal medium-and-higher severity, high-confidence findings.
+- Documentation workflow requires updates to both `PATCH_NOTES.md` and `CHANGELOG.md` for every future change.
 
 ---
 
 ## 6. Fixed
 
-### Fixed backend startup with bare port values
-
-`LISTEN_ADDR=8080` previously caused:
-
-```text
-listen tcp: address 8080: missing port in address
-```
-
-The backend now normalizes bare ports to loopback host-port form.
-
-### Fixed Go vet failure in capture output
-
-A redundant newline in a `fmt.Println` call caused `go test ./...` to fail during vet checks. The output was cleaned up.
-
-### Fixed notification compile error after credential cleanup
-
-After removing hardcoded capture constants, notification publishing still referenced the old names. It now uses the configured capture credential helpers.
-
-### Fixed WebSocket log streaming authentication
-
-Log streaming previously failed after backend authentication was introduced because browser WebSockets could not send the admin token header. The backend now supports the route-limited `ws_token` fallback.
-
-### Fixed cheats log SQL error
-
-The cheats log query previously joined against a non-existent column:
-
-```sql
-ps.fls_id
-```
-
-This caused:
-
-```text
-ERROR: column ps.fls_id does not exist (SQLSTATE 42703)
-```
-
-The query now joins through `dune.encrypted_accounts` using `encrypted_funcom_id`, then resolves player names through `player_state.account_id`.
-
-### Fixed stack-size behavior for batch grants
-
-Batch item grants no longer require one inventory slot per item when the operator specifies stack size. They now create the requested number of stacks with the requested stack size.
-
-### Fixed Trivy action resolution
-
-The Trivy action reference was corrected to:
-
-```yaml
-uses: aquasecurity/trivy-action@v0.36.0
-```
-
-### Fixed ZAP issue-creation permission failure
-
-The ZAP action no longer attempts to create GitHub issues during CI. This avoids `Resource not accessible by integration` failures while preserving scan output and failure behavior.
-
-### Fixed DAST security-header warnings
-
-Frontend preview responses now include security headers that address the major OWASP ZAP baseline warnings for missing anti-clickjacking, content-type, CSP, and permissions policy headers.
-
-### Fixed blueprint import SAST findings
-
-Blueprint import now limits request bodies before multipart parsing and validates pentashield scale values before converting `int` to `int16`.
+- Fixed backend startup with bare port values such as `LISTEN_ADDR=8080`.
+- Fixed Go vet failure from redundant newline output.
+- Fixed notification compile errors after credential cleanup.
+- Fixed WebSocket log streaming auth behavior.
+- Fixed cheats log SQL lookup by joining through `dune.encrypted_accounts` and `player_state.account_id`.
+- Fixed stack-size behavior so `2 stacks × 1000 Heavy Darts` creates 2 inventory entries instead of 2000 entries.
+- Fixed Trivy action resolution.
+- Fixed ZAP issue-creation permission failure.
+- Fixed DAST security-header warnings.
+- Fixed blueprint import SAST findings for unbounded multipart parsing and unsafe smallint conversion.
 
 ---
 
@@ -407,22 +204,17 @@ git pull origin main
 go test ./...
 ```
 
-Run backend locally:
-
-```powershell
-go run .
-```
-
-Run frontend locally:
+Run frontend validation:
 
 ```powershell
 cd web
 npm install
+npm audit --audit-level=high
 npm run build
 npm run dev
 ```
 
-Run frontend production-style preview locally:
+Run frontend production-style preview:
 
 ```powershell
 cd web
@@ -440,20 +232,6 @@ DAST - OWASP ZAP baseline
 Secrets - Gitleaks
 ```
 
-Recommended manual validation:
-
-1. Confirm backend starts on `127.0.0.1:8080`.
-2. Confirm unauthenticated API requests are rejected.
-3. Confirm authenticated `/api/v1/status` succeeds with `X-Admin-Token`.
-4. Confirm the frontend works after saving `ADMIN_TOKEN` in the settings panel.
-5. Confirm Logs -> Cheats (7d) loads without the `ps.fls_id` SQL error.
-6. Confirm pod log streaming connects without WebSocket auth errors.
-7. Confirm granting 2 stacks of 1000 Heavy Darts creates 2 inventory slots, not 2000.
-8. Confirm invalid batch item rows are rejected with clear validation errors.
-9. Confirm blueprint import rejects oversized uploads and out-of-range pentashield scale values.
-10. Confirm GitHub Actions security workflow resolves all actions and starts all scan jobs.
-11. Confirm `CHANGELOG.md` and `PATCH_NOTES.md` are both updated for every future change.
-
 ---
 
 ## 8. Security notes for operators
@@ -464,7 +242,7 @@ Recommended manual validation:
 - Prefer `LISTEN_ADDR=127.0.0.1:8080` for local use.
 - Do not expose the backend directly to the internet.
 - If remote access is required, place the backend behind TLS, a trusted reverse proxy, and a strong identity provider.
-- The WebSocket `ws_token` is placed in the URL because browsers cannot send custom WebSocket headers. Use HTTPS/WSS when operating outside local loopback to avoid token exposure in transit.
+- Use HTTPS/WSS when operating outside local loopback to avoid WebSocket token exposure in transit.
 - The local-admin SSH trust model still requires an operator decision before replacing `ssh.InsecureIgnoreHostKey()` with strict host-key pinning.
 - RabbitMQ TLS currently operates through an internal SSH tunnel and still needs an operator-supported certificate trust model before enforcing certificate verification.
 
@@ -476,6 +254,7 @@ Recommended manual validation:
 - Batch item grants intentionally allow explicit stack sizes up to the configured limit. Operators should use values compatible with game behavior.
 - Some gosec categories are tuned out of the blocking CI gate because they represent known local-admin deployment tradeoffs or low-signal cleanup findings. They should still be reviewed periodically.
 - DAST currently validates the frontend preview server. Production deployments should also validate the final reverse-proxy or hosting layer.
+- `web/package-lock.json` still needs a clean regeneration after the unused frontend auth dependency removal.
 
 ---
 
@@ -485,18 +264,6 @@ This release makes Dune Admin safer and more reliable for live server operations
 
 The most important security improvements are backend-enforced admin-token authentication, explicit CORS allowlisting, safer loopback listen defaults, server timeouts, raw SQL restrictions, request-size controls, Kubernetes log target validation, reduced status data exposure, frontend security headers, blueprint import bounds checks, CI security scanning, and removal of hardcoded capture credentials.
 
-The most important operator workflow improvement is the new batch item grant model. Admins can now grant multiple items in one operation while preserving stack count and stack size. A request such as:
-
-```text
-2 stacks of 1000 Heavy Darts
-```
-
-now creates:
-
-```text
-2 inventory entries with stack_size=1000
-```
-
-instead of attempting to create 2000 separate inventory entries.
+The most important operator workflow improvement is the new batch item grant model. Admins can now grant multiple items in one operation while preserving stack count and stack size. A request such as `2 stacks of 1000 Heavy Darts` now creates `2 inventory entries with stack_size=1000` instead of attempting to create 2000 separate inventory entries.
 
 This update establishes a stronger security baseline, a more accurate administration workflow for player inventory management, and a documented expectation that every future change must keep both `PATCH_NOTES.md` and `CHANGELOG.md` current.
