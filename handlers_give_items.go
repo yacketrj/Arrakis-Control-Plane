@@ -8,30 +8,46 @@ import (
 )
 
 const (
-	maxGiveItemRows      = 100
-	maxGiveItemQty       = 9999
-	maxGiveItemStackSize = 9999
+	maxGiveItemRows          = 100
+	maxGiveItemQty           = 9999
+	maxGiveItemStackSize     = 9999
+	maxGiveItemAugments      = 5
+	maxGiveItemAugmentRolls  = 8
+	defaultGiveItemRollValue = 1.0
 )
 
+type giveItemAugmentEntry struct {
+	Name          string    `json:"name"`
+	Grade         int64     `json:"grade"`
+	Quality       int64     `json:"quality"`
+	Roll          float64   `json:"roll"`
+	Rolls         []float64 `json:"rolls"`
+	RollCount     int       `json:"roll_count"`
+	EffectIndices []int64   `json:"effect_indices"`
+}
+
 type giveItemEntry struct {
-	Template  string `json:"template"`
-	Qty       int64  `json:"qty"`
-	Quality   int64  `json:"quality"`
-	StackSize int64  `json:"stack_size"`
+	Template  string                 `json:"template"`
+	Qty       int64                  `json:"qty"`
+	Quality   int64                  `json:"quality"`
+	StackSize int64                  `json:"stack_size"`
+	Augments  []giveItemAugmentEntry `json:"augments"`
 }
 
 type giveItemsRequest struct {
-	PlayerID int64           `json:"player_id"`
-	Template string          `json:"template"`
-	Qty      int64           `json:"qty"`
-	Quality  int64           `json:"quality"`
-	Items    []giveItemEntry `json:"items"`
+	PlayerID  int64                  `json:"player_id"`
+	Template  string                 `json:"template"`
+	Qty       int64                  `json:"qty"`
+	Quality   int64                  `json:"quality"`
+	StackSize int64                  `json:"stack_size"`
+	Augments  []giveItemAugmentEntry `json:"augments"`
+	Items     []giveItemEntry        `json:"items"`
 }
 
 func normalizeGiveItemsRequest(req giveItemsRequest) ([]giveItemEntry, error) {
 	items := req.Items
 	if len(items) == 0 && strings.TrimSpace(req.Template) != "" {
-		items = []giveItemEntry{{Template: req.Template, Qty: req.Qty, Quality: req.Quality, StackSize: 1}}
+		items = []giveItemEntry{{Template: req.Template, Qty: req.Qty, Quality: req.Quality, StackSize: req.StackSize, Augments: req.Augments}}
 	}
 	if len(items) == 0 {
 		return nil, fmt.Errorf("at least one item is required")
@@ -62,6 +78,39 @@ func normalizeGiveItemsRequest(req giveItemsRequest) ([]giveItemEntry, error) {
 		if items[i].Qty > math.MaxInt64/items[i].StackSize {
 			return nil, fmt.Errorf("item %d total quantity is too large", i+1)
 		}
+		if len(items[i].Augments) > maxGiveItemAugments {
+			return nil, fmt.Errorf("item %d augments must be <= %d", i+1, maxGiveItemAugments)
+		}
+		for j := range items[i].Augments {
+			aug := &items[i].Augments[j]
+			aug.Name = strings.TrimSpace(aug.Name)
+			if aug.Name == "" {
+				return nil, fmt.Errorf("item %d augment %d name required", i+1, j+1)
+			}
+			if aug.Grade == 0 && aug.Quality > 0 {
+				aug.Grade = aug.Quality
+			}
+			if aug.Grade == 0 {
+				aug.Grade = 5
+			}
+			if aug.Grade < 1 || aug.Grade > 5 {
+				return nil, fmt.Errorf("item %d augment %d grade must be 1-5", i+1, j+1)
+			}
+			if len(aug.Rolls) > maxGiveItemAugmentRolls {
+				return nil, fmt.Errorf("item %d augment %d rolls must be <= %d", i+1, j+1, maxGiveItemAugmentRolls)
+			}
+			if aug.RollCount < 0 || aug.RollCount > maxGiveItemAugmentRolls {
+				return nil, fmt.Errorf("item %d augment %d roll_count must be 0-%d", i+1, j+1, maxGiveItemAugmentRolls)
+			}
+			if aug.Roll < 0 || aug.Roll > 1 {
+				return nil, fmt.Errorf("item %d augment %d roll must be 0.0-1.0", i+1, j+1)
+			}
+			for k, roll := range aug.Rolls {
+				if roll < 0 || roll > 1 {
+					return nil, fmt.Errorf("item %d augment %d roll %d must be 0.0-1.0", i+1, j+1, k+1)
+				}
+			}
+		}
 	}
 	return items, nil
 }
@@ -83,14 +132,14 @@ func handleGiveItems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	results := make([]string, 0, len(items))
-	legacySingleItem := len(req.Items) == 0 && strings.TrimSpace(req.Template) != ""
+	legacySingleItem := len(req.Items) == 0 && strings.TrimSpace(req.Template) != "" && len(req.Augments) == 0
 	for i, item := range items {
 		var msg msgMutate
 		var ok bool
 		if legacySingleItem {
 			msg, ok = cmdGiveItem(req.PlayerID, item.Template, item.Qty, item.Quality)().(msgMutate)
 		} else {
-			msg, ok = cmdGiveItemStacks(req.PlayerID, item.Template, item.Qty, item.StackSize, item.Quality)().(msgMutate)
+			msg, ok = cmdGiveItemStacks(req.PlayerID, item.Template, item.Qty, item.StackSize, item.Quality, item.Augments)().(msgMutate)
 		}
 		if !ok {
 			jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
@@ -100,7 +149,11 @@ func handleGiveItems(w http.ResponseWriter, r *http.Request) {
 			jsonErr(w, fmt.Errorf("item %d %s: %w", i+1, item.Template, msg.err), http.StatusInternalServerError)
 			return
 		}
-		results = append(results, fmt.Sprintf("%d stack(s) x %d of %s grade %d", item.Qty, item.StackSize, item.Template, item.Quality))
+		augSummary := ""
+		if len(item.Augments) > 0 {
+			augSummary = fmt.Sprintf(" with %d augment(s)", len(item.Augments))
+		}
+		results = append(results, fmt.Sprintf("%d stack(s) x %d of %s grade %d%s", item.Qty, item.StackSize, item.Template, item.Quality, augSummary))
 	}
 	jsonOK(w, map[string]string{"ok": fmt.Sprintf("Added %d item row(s): %s", len(results), strings.Join(results, "; "))})
 }
