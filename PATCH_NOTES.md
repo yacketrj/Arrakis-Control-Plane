@@ -10,29 +10,6 @@ Security hardening, CI security scanning, reliability fixes, player administrati
 
 Server administrators, operators, maintainers, and anyone running Dune Admin against a live Dune: Awakening environment.
 
-### Documentation standard going forward
-
-Every future code change, configuration change, security remediation, workflow update, behavior change, bug fix, or operator-facing update must include matching updates to both:
-
-- `PATCH_NOTES.md`
-- `CHANGELOG.md`
-
-`PATCH_NOTES.md` must explain why the change was made, the security/operator impact, required configuration changes, validation steps, and known limitations or accepted risk.
-
-`CHANGELOG.md` must provide concise release-oriented change tracking using standard categories such as:
-
-- `Added`
-- `Changed`
-- `Fixed`
-- `Security`
-- `Testing`
-- `Operational Notes`
-- `Known Limitations`
-
-This release adds `CHANGELOG.md` so future updates have both detailed patch notes and concise historical release tracking.
-
----
-
 ## 1. Why this release was made
 
 This release was created to address four high-priority needs:
