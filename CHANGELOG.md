@@ -4,8 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Added Linux dependency installer script at `scripts/linux/install-deps.sh`.
+- Added Linux development launcher at `scripts/linux/run-dev.sh`.
+- Added Linux production-style build helper at `scripts/linux/build-linux.sh`.
+- Added Linux systemd backend installer at `scripts/linux/install-systemd.sh`.
+- Added Linux operating guide at `docs/linux.md`.
+- Added README Linux quick start, build, validation, and systemd service instructions.
+
 ### Changed
 
+- Updated `.gitignore` to exclude Linux build output, frontend build output, frontend dependencies, and local Linux runtime logs.
+- Updated README from the older multi-give patch-only note into the primary project quick-start document.
 - Updated Vite preview and dev CSP to remove inline script execution.
 - Updated Vite preview and dev CSP so style elements load from self only while style attributes remain allowed for the current React UI.
 - Kept DAST as a blocking security gate and continued remediating ZAP findings instead of disabling the scan.
@@ -23,9 +34,12 @@ All notable changes to this project will be documented in this file.
 - Reduced frontend script execution risk by keeping script directives self-only.
 - Reduced frontend style injection surface by removing inline allowance from style elements.
 - Preserved style-attribute compatibility required by the current UI while retaining DAST visibility.
+- Added Linux systemd hardening defaults including `NoNewPrivileges`, `PrivateTmp`, `ProtectSystem`, and constrained write paths.
+- Documented Linux operational controls for loopback binding, admin token handling, SSH key protection, and reverse-proxy/TLS requirements.
 
 ### Operational Notes
 
+- Linux helper scripts are committed as text files. Run `chmod +x scripts/linux/*.sh` in local clones before execution.
 - Regenerate `web/package-lock.json` locally from the current `web/package.json` with `npm install` and recommit it once confirmed clean with `npm audit --audit-level=high` and `npm run build`.
 
 ---
