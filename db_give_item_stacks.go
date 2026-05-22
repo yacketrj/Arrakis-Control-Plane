@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"strings"
@@ -9,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-func cmdGiveItemStacks(playerID int64, template string, stacks, stackSize, quality int64) Cmd {
+func cmdGiveItemStacks(playerID int64, template string, stacks, stackSize, quality int64, augments []giveItemAugmentEntry) Cmd {
 	return func() Msg {
 		if globalDB == nil {
 			return msgMutate{err: fmt.Errorf("not connected")}
@@ -31,11 +32,16 @@ func cmdGiveItemStacks(playerID int64, template string, stacks, stackSize, quali
 			return msgMutate{err: fmt.Errorf("total quantity is too large")}
 		}
 
+		stats, err := buildAugmentedItemStatsJSON(augments)
+		if err != nil {
+			return msgMutate{err: err}
+		}
+
 		ctx := context.Background()
 		var invID int64
 		var maxSlots int
 		var maxVolume float64
-		err := globalDB.QueryRow(ctx, `
+		err = globalDB.QueryRow(ctx, `
 			SELECT id, COALESCE(max_item_count, -1), COALESCE(max_item_volume, -1)
 			FROM dune.inventories
 			WHERE actor_id = $1::bigint AND inventory_type = 0
@@ -132,8 +138,8 @@ func cmdGiveItemStacks(playerID int64, template string, stacks, stackSize, quali
 		for i := int64(0); i < stacks; i++ {
 			_, err = tx.Exec(ctx, `
 				INSERT INTO dune.items (inventory_id, stack_size, position_index, template_id, quality_level, stats)
-				VALUES ($1::bigint, $2::bigint, $3::bigint, $4::text, $5::bigint, '{}'::jsonb)`,
-				invID, stackSize, nextPos, template, quality)
+				VALUES ($1::bigint, $2::bigint, $3::bigint, $4::text, $5::bigint, $6::jsonb)`,
+				invID, stackSize, nextPos, template, quality, stats)
 			if err != nil {
 				return msgMutate{err: err}
 			}
@@ -143,6 +149,62 @@ func cmdGiveItemStacks(playerID int64, template string, stacks, stackSize, quali
 		if err := tx.Commit(ctx); err != nil {
 			return msgMutate{err: err}
 		}
-		return msgMutate{ok: fmt.Sprintf("Added %d stack(s) x %d of %s to player %d", stacks, stackSize, template, playerID)}
+		augSummary := ""
+		if len(augments) > 0 {
+			augSummary = fmt.Sprintf(" with %d augment(s)", len(augments))
+		}
+		return msgMutate{ok: fmt.Sprintf("Added %d stack(s) x %d of %s to player %d%s", stacks, stackSize, template, playerID, augSummary)}
 	}
+}
+
+func buildAugmentedItemStatsJSON(augments []giveItemAugmentEntry) ([]byte, error) {
+	if len(augments) == 0 {
+		return []byte(`{}`), nil
+	}
+
+	type augmentName struct {
+		Name string `json:"Name"`
+	}
+	type rollData struct {
+		StatRolls            []float64 `json:"StatRolls"`
+		AppliedEffectIndices []int64   `json:"AppliedEffectIndices"`
+	}
+	type augmentedPayload struct {
+		AppliedAugments         []augmentName `json:"AppliedAugments"`
+		AppliedAugmentRollData  []rollData    `json:"AppliedAugmentRollData"`
+		AppliedAugmentQualities []int64       `json:"AppliedAugmentQualities"`
+	}
+
+	payload := augmentedPayload{
+		AppliedAugments:         make([]augmentName, 0, len(augments)),
+		AppliedAugmentRollData:  make([]rollData, 0, len(augments)),
+		AppliedAugmentQualities: make([]int64, 0, len(augments)),
+	}
+	for _, aug := range augments {
+		rolls := append([]float64(nil), aug.Rolls...)
+		if len(rolls) == 0 {
+			roll := aug.Roll
+			if roll == 0 {
+				roll = defaultGiveItemRollValue
+			}
+			count := aug.RollCount
+			if count <= 0 {
+				count = 1
+			}
+			for i := 0; i < count; i++ {
+				rolls = append(rolls, roll)
+			}
+		}
+		payload.AppliedAugments = append(payload.AppliedAugments, augmentName{Name: aug.Name})
+		payload.AppliedAugmentRollData = append(payload.AppliedAugmentRollData, rollData{
+			StatRolls:            rolls,
+			AppliedEffectIndices: append([]int64(nil), aug.EffectIndices...),
+		})
+		payload.AppliedAugmentQualities = append(payload.AppliedAugmentQualities, aug.Grade)
+	}
+
+	stats := map[string]any{
+		"FAugmentedItemStats": []any{[]any{}, payload},
+	}
+	return json.Marshal(stats)
 }
