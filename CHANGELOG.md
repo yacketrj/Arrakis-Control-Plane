@@ -24,11 +24,14 @@ All notable changes to this project will be documented in this file.
 - Removed npm cache key references to the deleted frontend lockfile from security workflow Node setup steps.
 - Restored Trivy DCA to scan the repository without a stale lockfile skip because the stale frontend lockfile was removed.
 - Removed npm cache mode from Node setup steps while no committed frontend lockfile is present.
+- Removed the optional Clerk-authenticated UI path so the frontend matches backend-token-only authentication.
+- Made the Blueprints tab available through the backend-token protected app rather than a removed frontend identity provider gate.
 
 ### Fixed
 
 - Removed the unused frontend auth dependency from `web/package.json` to eliminate the transitive vulnerable `js-cookie` dependency from runtime installs and npm audit.
 - Removed stale `web/package-lock.json` because it still contained vulnerable `js-cookie` metadata after the unused auth dependency was removed from `web/package.json`.
+- Removed stale `@clerk/react` imports from `web/src/App.tsx` and `web/src/main.tsx` so the frontend build succeeds after dependency removal.
 - Fixed the Go SCA baseline by moving the repository module metadata to Go 1.26.3 and `golang.org/x/crypto` 0.52.0.
 - Fixed Go SCA and gosec failures caused by missing `go.sum` entries after the Go module version update.
 - Fixed the standalone Go Test workflow failure caused by running `go test ./...` before refreshing Go module sums.
@@ -41,6 +44,7 @@ All notable changes to this project will be documented in this file.
 - Reduced CI secret exposure by generating the DAST admin token at runtime.
 - Prevented Trivy DCA from reporting stale dependency metadata by removing the outdated lockfile rather than suppressing the file in the scan.
 - Kept Node vulnerability detection in npm audit against the current manifest-derived dependency tree.
+- Reduced frontend authentication ambiguity by removing optional Clerk code paths and relying on backend-enforced admin-token authorization.
 
 ### Operational Notes
 
