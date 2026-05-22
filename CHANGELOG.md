@@ -27,6 +27,8 @@ All notable changes to this project will be documented in this file.
 - Removed the optional Clerk-authenticated UI path so the frontend matches backend-token-only authentication.
 - Made the Blueprints tab available through the backend-token protected app rather than a removed frontend identity provider gate.
 - Updated `.zap/rules.tsv` to use ZAP baseline's required three-column rule format.
+- Expanded the Vite frontend Content Security Policy with explicit fallback directives required by ZAP baseline.
+- Added the Cross-Origin-Embedder-Policy header for Vite dev and preview responses.
 
 ### Fixed
 
@@ -39,6 +41,7 @@ All notable changes to this project will be documented in this file.
 - Fixed SCA npm and DAST setup-node failures caused by enabling npm cache without a committed lockfile.
 - Fixed DAST preview startup validation by checking the actual Vite preview port.
 - Fixed DAST ZAP policy parsing failure caused by two-column rule entries in `.zap/rules.tsv`.
+- Fixed DAST ZAP warnings for missing Cross-Origin-Embedder-Policy and incomplete CSP fallback directives.
 
 ### Security
 
@@ -48,6 +51,7 @@ All notable changes to this project will be documented in this file.
 - Kept Node vulnerability detection in npm audit against the current manifest-derived dependency tree.
 - Reduced frontend authentication ambiguity by removing optional Clerk code paths and relying on backend-enforced admin-token authorization.
 - Preserved DAST signal by fixing ZAP rule parsing instead of disabling the ZAP baseline job.
+- Strengthened browser isolation and CSP behavior for CI preview and local Vite serving.
 
 ### Operational Notes
 
