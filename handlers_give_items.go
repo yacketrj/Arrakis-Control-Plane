@@ -83,9 +83,15 @@ func handleGiveItems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	results := make([]string, 0, len(items))
+	legacySingleItem := len(req.Items) == 0 && strings.TrimSpace(req.Template) != ""
 	for i, item := range items {
-		total := item.Qty * item.StackSize
-		msg, ok := cmdGiveItem(req.PlayerID, item.Template, total, item.Quality)().(msgMutate)
+		var msg msgMutate
+		var ok bool
+		if legacySingleItem {
+			msg, ok = cmdGiveItem(req.PlayerID, item.Template, item.Qty, item.Quality)().(msgMutate)
+		} else {
+			msg, ok = cmdGiveItemStacks(req.PlayerID, item.Template, item.Qty, item.StackSize, item.Quality)().(msgMutate)
+		}
 		if !ok {
 			jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 			return
