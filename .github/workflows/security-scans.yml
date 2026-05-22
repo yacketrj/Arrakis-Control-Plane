@@ -23,8 +23,8 @@ jobs:
         with:
           go-version: '1.26.3'
           cache: true
-      - name: Refresh Go module sums
-        run: go mod download
+      - name: Refresh Go module graph
+        run: go mod tidy
       - name: Run Go tests and vet
         run: go test ./...
       - name: Install govulncheck
@@ -67,8 +67,8 @@ jobs:
         with:
           go-version: '1.26.3'
           cache: true
-      - name: Refresh Go module sums
-        run: go mod download
+      - name: Refresh Go module graph
+        run: go mod tidy
       - name: Install gosec
         run: go install github.com/securego/gosec/v2/cmd/gosec@latest
       - name: Run gosec high-confidence gate
@@ -123,14 +123,20 @@ jobs:
           printf 'DB_PASS=ci-placeholder\n' >> .env
           printf 'DUNE_CAPTURE_USER=dune_cap\n' >> .env
           printf 'DUNE_CAPTURE_PASS=ci-placeholder\n' >> .env
-      - name: Refresh Go module sums
-        run: go mod download
+      - name: Refresh Go module graph
+        run: go mod tidy
       - name: Start backend
         run: |
           go run . > /tmp/dune-admin-backend.log 2>&1 &
           echo $! > /tmp/dune-admin-backend.pid
-          sleep 8
-          curl -i -H "X-Admin-Token: $(cat /tmp/dune-admin-ci-token)" http://127.0.0.1:8080/api/v1/status
+          for i in {1..30}; do
+            if curl -fsS -H "X-Admin-Token: $(cat /tmp/dune-admin-ci-token)" http://127.0.0.1:8080/api/v1/status; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/dune-admin-backend.log
+          exit 1
       - name: Build and start frontend preview
         working-directory: web
         run: |
@@ -138,8 +144,14 @@ jobs:
           npm run build
           npm run preview -- --host 127.0.0.1 > /tmp/dune-admin-frontend.log 2>&1 &
           echo $! > /tmp/dune-admin-frontend.pid
-          sleep 8
-          curl -I http://127.0.0.1:4173
+          for i in {1..30}; do
+            if curl -fsSI http://127.0.0.1:4173; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/dune-admin-frontend.log
+          exit 1
       - name: Run ZAP baseline against frontend preview
         uses: zaproxy/action-baseline@v0.14.0
         with:
