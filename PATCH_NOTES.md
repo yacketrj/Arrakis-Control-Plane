@@ -1,14 +1,18 @@
 # Dune Admin Release Notes
 
-## Current update: Linux version support
+## Current update: Linux version support and helper tests
 
 ### Why this update was made
 
 The Windows-oriented workflow is now complemented by a Linux version so operators can install dependencies, run the app locally, build a Linux backend binary, and install the backend as a systemd service without translating Windows steps manually.
 
+After the initial Linux scripts were added, automated tests were added so Linux helper behavior is validated continuously instead of relying only on manual review.
+
 ### Security and operator impact
 
 - Added Linux helper scripts under `scripts/linux/` for dependency setup, local development, Linux builds, and systemd installation.
+- Added Linux helper functional tests in `scripts/linux/test-linux.sh`.
+- Added `.github/workflows/linux-helper-tests.yml` so GitHub Actions runs Linux helper tests on pushes to `main` and manual workflow dispatch.
 - Added a Linux operating guide at `docs/linux.md` with configuration, build, run, service, validation, and security steps.
 - Updated the README with Linux quick-start instructions and runtime configuration guidance.
 - Updated `.gitignore` so Linux build output, frontend build output, frontend dependencies, and local runtime logs are not committed.
@@ -41,6 +45,23 @@ sudo ./scripts/linux/install-systemd.sh
 sudo nano /opt/dune-admin/.env
 sudo systemctl start dune-admin
 sudo systemctl status dune-admin
+```
+
+### Automated Linux helper tests
+
+The Linux test suite validates:
+
+- Shell syntax for all Linux helper scripts.
+- Documentation coverage for README, Linux guide, admin token guidance, and ignored build artifacts.
+- Build helper behavior using a fake Go/Node/npm toolchain.
+- First-run `run-dev.sh` bootstrap behavior when `.env` is missing.
+- `run-dev.sh` backend/frontend process-launch behavior using fake long-running tools.
+
+Run locally:
+
+```bash
+chmod +x scripts/linux/*.sh
+scripts/linux/test-linux.sh
 ```
 
 ### Validation
