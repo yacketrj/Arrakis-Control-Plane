@@ -35,8 +35,14 @@ func mqGameChannel() (*amqp.Channel, error) {
 		mqGameConn.Close()
 	}
 
+	user := captureUser()
+	pass := capturePass()
+	if user == "" || pass == "" {
+		return nil, fmt.Errorf("DUNE_CAPTURE_USER and DUNE_CAPTURE_PASS must be configured for mq-game notifications")
+	}
+
 	cfg := amqp.Config{
-		SASL:            []amqp.Authentication{&amqp.PlainAuth{Username: capUser, Password: capPass}},
+		SASL:            []amqp.Authentication{&amqp.PlainAuth{Username: user, Password: pass}},
 		Vhost:           "/",
 		Heartbeat:       10 * time.Second,
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -139,5 +145,5 @@ func handleNotify(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, err, 500)
 		return
 	}
-	jsonOK(w, map[string]string{"ok": "notification sent"})
+	jsonOK(w, map[string]string{"ok": "sent"})
 }
