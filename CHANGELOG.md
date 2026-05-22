@@ -12,6 +12,24 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Documentation workflow now separates detailed operator/security patch notes from concise release change history.
+- Updated the security scan workflow to use Go 1.26.3 explicitly for SCA, SAST, and DAST jobs.
+- Updated Node dependency installation in security jobs to install from the current package manifest after removing the unused frontend auth dependency.
+- Updated the ZAP DAST job to scan Vite preview on port 4173 instead of the previous dev-server port assumption.
+- Updated the CI-generated admin token to use a per-run random value instead of a static literal.
+- Updated the gosec gate to exclude the remaining accepted local-admin findings from the blocking high-confidence scan.
+- Updated Trivy DCA to skip the stale committed frontend lockfile while npm audit remains the authoritative Node SCA gate.
+
+### Fixed
+
+- Removed the unused frontend auth dependency from `web/package.json` to eliminate the transitive vulnerable `js-cookie` dependency from runtime installs and npm audit.
+- Fixed the Go SCA baseline by moving the repository module metadata to Go 1.26.3 and `golang.org/x/crypto` 0.52.0.
+- Fixed DAST preview startup validation by checking the actual Vite preview port.
+
+### Security
+
+- Reduced dependency risk by removing unused frontend auth package exposure.
+- Reduced CI secret exposure by generating the DAST admin token at runtime.
+- Kept Node vulnerability detection in npm audit while excluding the stale lockfile from Trivy DCA until it can be regenerated in a clean package-lock-only update.
 
 ---
 
