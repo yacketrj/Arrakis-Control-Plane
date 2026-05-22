@@ -46,6 +46,19 @@ func TestNormalizeGiveItemsRequestBatchPayload(t *testing.T) {
 	}
 }
 
+func TestNormalizeGiveItemsRequestAllowsMaximumBounds(t *testing.T) {
+	items, err := normalizeGiveItemsRequest(giveItemsRequest{
+		PlayerID: 42,
+		Items: []giveItemEntry{{Template: "tpl", Qty: maxGiveItemQty, Quality: 5, StackSize: maxGiveItemStackSize}},
+	})
+	if err != nil {
+		t.Fatalf("expected no error at configured max bounds, got %v", err)
+	}
+	if items[0].Qty != maxGiveItemQty || items[0].StackSize != maxGiveItemStackSize {
+		t.Fatalf("unexpected item at bounds: %+v", items[0])
+	}
+}
+
 func TestNormalizeGiveItemsRequestDefaultsStackSize(t *testing.T) {
 	items, err := normalizeGiveItemsRequest(giveItemsRequest{
 		PlayerID: 42,
@@ -69,6 +82,8 @@ func TestNormalizeGiveItemsRequestValidationErrors(t *testing.T) {
 		{name: "blank template", req: giveItemsRequest{PlayerID: 42, Items: []giveItemEntry{{Template: " ", Qty: 1, Quality: 1, StackSize: 1}}}, want: "template required"},
 		{name: "zero qty", req: giveItemsRequest{PlayerID: 42, Items: []giveItemEntry{{Template: "tpl", Qty: 0, Quality: 1, StackSize: 1}}}, want: "quantity must be > 0"},
 		{name: "negative qty", req: giveItemsRequest{PlayerID: 42, Items: []giveItemEntry{{Template: "tpl", Qty: -1, Quality: 1, StackSize: 1}}}, want: "quantity must be > 0"},
+		{name: "qty too high", req: giveItemsRequest{PlayerID: 42, Items: []giveItemEntry{{Template: "tpl", Qty: maxGiveItemQty + 1, Quality: 1, StackSize: 1}}}, want: "quantity must be <="},
+		{name: "stack too high", req: giveItemsRequest{PlayerID: 42, Items: []giveItemEntry{{Template: "tpl", Qty: 1, Quality: 1, StackSize: maxGiveItemStackSize + 1}}}, want: "stack size must be <="},
 		{name: "negative quality", req: giveItemsRequest{PlayerID: 42, Items: []giveItemEntry{{Template: "tpl", Qty: 1, Quality: -1, StackSize: 1}}}, want: "quality must be 0-5"},
 		{name: "high quality", req: giveItemsRequest{PlayerID: 42, Items: []giveItemEntry{{Template: "tpl", Qty: 1, Quality: 6, StackSize: 1}}}, want: "quality must be 0-5"},
 	}
@@ -86,7 +101,7 @@ func TestNormalizeGiveItemsRequestValidationErrors(t *testing.T) {
 }
 
 func TestNormalizeGiveItemsRequestRejectsMoreThanOneHundredRows(t *testing.T) {
-	rows := make([]giveItemEntry, 101)
+	rows := make([]giveItemEntry, maxGiveItemRows+1)
 	for i := range rows {
 		rows[i] = giveItemEntry{Template: fmt.Sprintf("tpl-%d", i), Qty: 1, Quality: 1, StackSize: 1}
 	}
