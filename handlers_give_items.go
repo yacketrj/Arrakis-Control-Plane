@@ -2,8 +2,15 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 	"strings"
+)
+
+const (
+	maxGiveItemRows      = 100
+	maxGiveItemQty       = 9999
+	maxGiveItemStackSize = 9999
 )
 
 type giveItemEntry struct {
@@ -29,8 +36,8 @@ func normalizeGiveItemsRequest(req giveItemsRequest) ([]giveItemEntry, error) {
 	if len(items) == 0 {
 		return nil, fmt.Errorf("at least one item is required")
 	}
-	if len(items) > 100 {
-		return nil, fmt.Errorf("maximum 100 item rows per request")
+	if len(items) > maxGiveItemRows {
+		return nil, fmt.Errorf("maximum %d item rows per request", maxGiveItemRows)
 	}
 	for i := range items {
 		items[i].Template = strings.TrimSpace(items[i].Template)
@@ -40,11 +47,20 @@ func normalizeGiveItemsRequest(req giveItemsRequest) ([]giveItemEntry, error) {
 		if items[i].Qty <= 0 {
 			return nil, fmt.Errorf("item %d quantity must be > 0", i+1)
 		}
+		if items[i].Qty > maxGiveItemQty {
+			return nil, fmt.Errorf("item %d quantity must be <= %d", i+1, maxGiveItemQty)
+		}
 		if items[i].StackSize <= 0 {
 			items[i].StackSize = 1
 		}
+		if items[i].StackSize > maxGiveItemStackSize {
+			return nil, fmt.Errorf("item %d stack size must be <= %d", i+1, maxGiveItemStackSize)
+		}
 		if items[i].Quality < 0 || items[i].Quality > 5 {
 			return nil, fmt.Errorf("item %d quality must be 0-5", i+1)
+		}
+		if items[i].Qty > math.MaxInt64/items[i].StackSize {
+			return nil, fmt.Errorf("item %d total quantity is too large", i+1)
 		}
 	}
 	return items, nil
