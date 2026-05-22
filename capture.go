@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"os"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -17,9 +18,8 @@ import (
 // ── JWT generation ────────────────────────────────────────────────────────────
 
 // captureJWT reads the BGD pod's ServiceAuthToken to extract HostId and
-// ServiceAuthKey, then generates a fresh token signed with our own key.
+// ServiceAuthKey, then generates a fresh token signed with a configured key.
 func captureJWT() (hostID, token string, err error) {
-	// Find the BGD pod.
 	pod, err := sshExec(fmt.Sprintf(
 		"sudo kubectl get pods -n %s --no-headers -o custom-columns=NAME:.metadata.name 2>/dev/null | grep bgd | head -1",
 		globalPodNS))
@@ -28,7 +28,6 @@ func captureJWT() (hostID, token string, err error) {
 	}
 	pod = strings.TrimSpace(pod)
 
-	// Read the existing ServiceAuthToken from the BGD pod.
 	existingToken, err := sshExec(fmt.Sprintf(
 		"sudo kubectl exec -n %s %s -- env 2>/dev/null | grep FuncomLiveServices__ServiceAuthToken | cut -d= -f2-",
 		globalPodNS, pod))
@@ -37,7 +36,6 @@ func captureJWT() (hostID, token string, err error) {
 	}
 	existingToken = strings.TrimSpace(existingToken)
 
-	// Decode the JWT payload to extract HostId and ServiceAuthKey.
 	parts := strings.Split(existingToken, ".")
 	if len(parts) != 3 {
 		return "", "", fmt.Errorf("malformed JWT")
@@ -56,18 +54,18 @@ func captureJWT() (hostID, token string, err error) {
 
 	fmt.Printf("[capture] HostId=%s ServiceHostType=%v\n", hostID, claims["ServiceHostType"])
 
-	// Decode the signing secret (base64-standard, may have padding).
-	secret := "wus017CIPIkSB6+MhjvIAhWF+a+kVj+nW1AMb1mN1LfkUmcClqlmKeL69OT8BYuUA+Y4Vv44aUji4JBLeFfhxQ=="
+	secret := strings.TrimSpace(os.Getenv("DUNE_SERVICE_JWT_SIGNING_SECRET"))
+	if secret == "" {
+		return "", "", fmt.Errorf("DUNE_SERVICE_JWT_SIGNING_SECRET is not set")
+	}
 	keyBytes, err := base64.StdEncoding.DecodeString(secret)
 	if err != nil {
-		// Try without padding.
 		keyBytes, err = base64.RawStdEncoding.DecodeString(secret)
 		if err != nil {
 			return "", "", fmt.Errorf("decode signing secret: %w", err)
 		}
 	}
 
-	// Generate a new token with the same structure but fresh timestamps.
 	now := time.Now()
 	newClaims := jwt.MapClaims{
 		"HostId":          hostID,
@@ -90,8 +88,6 @@ func captureJWT() (hostID, token string, err error) {
 
 // ── SSH-tunnelled AMQP dialer ─────────────────────────────────────────────────
 
-// sshDial creates a TCP connection to addr through the existing SSH client.
-// This lets us reach cluster-internal IPs (bypassing TLS NodePorts).
 func sshDial(addr string) (net.Conn, error) {
 	if globalSSH == nil {
 		return nil, fmt.Errorf("SSH not connected")
@@ -120,7 +116,6 @@ func dialAMQP(internalAddr, user, pass string, useTLS bool) (*amqp.Connection, e
 
 // ── Capture entry point ───────────────────────────────────────────────────────
 
-// listExchanges queries a broker pod for all non-default exchange names.
 func listExchanges(podPattern string) []binding {
 	out, err := sshExec(fmt.Sprintf(
 		"sudo kubectl get pods -n %s --no-headers -o custom-columns=NAME:.metadata.name 2>/dev/null | grep %s | head -1",
@@ -151,18 +146,17 @@ func runCapture() {
 	ensureCaptureUser()
 
 	fmt.Println("=== Dune Admin — RabbitMQ Message Capture ===")
-	fmt.Println("Press Ctrl-C to stop.\n")
+	fmt.Println("Press Ctrl-C to stop.")
+	fmt.Println()
 
-	// Get valid JWT credentials via BGD pod.
 	hostID, token, err := captureJWT()
 	if err != nil {
 		fmt.Printf("[capture] JWT error: %v\n", err)
-		fmt.Println("[capture] Falling back to dune_cap user (may not work)")
-		hostID = capUser
-		token = capPass
+		fmt.Println("[capture] Falling back to configured capture user")
+		hostID = captureUser()
+		token = capturePass()
 	}
 
-	// Discover all exchanges on both brokers.
 	adminBindings := listExchanges("mq-admin")
 	gameBindings := listExchanges("mq-game")
 	fmt.Printf("[capture] mq-admin: %d exchanges\n", len(adminBindings))
@@ -170,7 +164,6 @@ func runCapture() {
 
 	done := make(chan struct{}, 2)
 
-	// Refresh auth backends every 15s — the cache TTL appears to be very short.
 	go func() {
 		for {
 			time.Sleep(15 * time.Second)
@@ -178,7 +171,6 @@ func runCapture() {
 		}
 	}()
 
-	// mq-admin: plain AMQP through SSH tunnel.
 	go func() {
 		defer func() { done <- struct{}{} }()
 		if err := captureBroker("mq-admin", "10.43.189.193:5672", false, hostID, token, adminBindings); err != nil {
@@ -186,7 +178,6 @@ func runCapture() {
 		}
 	}()
 
-	// mq-game: AMQP+TLS through SSH tunnel (port 5672 is amqp/ssl on this broker).
 	go func() {
 		defer func() { done <- struct{}{} }()
 		if err := captureBroker("mq-game", "10.43.48.246:5672", true, hostID, token, gameBindings); err != nil {
@@ -205,20 +196,33 @@ type binding struct {
 	key      string
 }
 
-const (
-	capUser = "dune_cap"
-	capPass = "DuneCap2026!"
-)
+const capUserDefault = "dune_cap"
+
+func captureUser() string {
+	if v := strings.TrimSpace(os.Getenv("DUNE_CAPTURE_USER")); v != "" {
+		return v
+	}
+	return capUserDefault
+}
+
+func capturePass() string {
+	return strings.TrimSpace(os.Getenv("DUNE_CAPTURE_PASS"))
+}
 
 func captureBroker(name, addr string, useTLS bool, user, pass string, bindings []binding) error {
-	attempts := []struct{ u, p string }{
-		{capUser, capPass},
-		{user, pass},
-		{pass, user},
+	attempts := []struct{ u, p string }{}
+	if configuredPass := capturePass(); configuredPass != "" {
+		attempts = append(attempts, struct{ u, p string }{captureUser(), configuredPass})
+	}
+	if user != "" && pass != "" {
+		attempts = append(attempts, struct{ u, p string }{user, pass})
+		attempts = append(attempts, struct{ u, p string }{pass, user})
+	}
+	if len(attempts) == 0 {
+		return fmt.Errorf("no AMQP credentials configured")
 	}
 
 	for {
-
 		var conn *amqp.Connection
 		var connErr error
 		for _, a := range attempts {
@@ -313,6 +317,11 @@ func isJSON(b []byte) bool {
 }
 
 func ensureBroker(podPattern, label string) {
+	capPass := capturePass()
+	if capPass == "" {
+		fmt.Printf("[capture] DUNE_CAPTURE_PASS not set; skipping %s capture user setup\n", label)
+		return
+	}
 	pod, err := sshExec(fmt.Sprintf(
 		"sudo kubectl get pods -n %s --no-headers -o custom-columns=NAME:.metadata.name 2>/dev/null | grep %s | head -1",
 		globalPodNS, podPattern))
@@ -322,6 +331,7 @@ func ensureBroker(podPattern, label string) {
 	}
 	pod = strings.TrimSpace(pod)
 	base := fmt.Sprintf("sudo kubectl exec -n %s %s --", globalPodNS, pod)
+	capUser := captureUser()
 
 	out, _ := sshExec(fmt.Sprintf("%s rabbitmqctl add_user %s %s 2>&1", base, capUser, capPass))
 	if !strings.Contains(out, "already exists") {
