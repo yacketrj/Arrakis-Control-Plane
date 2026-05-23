@@ -1,6 +1,108 @@
 # Dune Admin Release Notes
 
-## Current update: Linux version support and helper tests
+## Current update: Augmented Give Items and item template source strategy
+
+### Why this update was made
+
+The Give Item workflow needed support for augmented items, including augment names, augment grades, and normalized roll data. Operators also needed a clear decision on whether item templates should come from the live database, a JSON file, or both.
+
+### Security and operator impact
+
+- Added backend support for augmented Give Item payloads on `POST /api/v1/players/give-item`.
+- Added per-item augment definitions with augment name, augment grade, roll value, explicit roll arrays, roll count, and effect indices.
+- Added validation for augment name presence, maximum augment count, grade bounds, roll bounds, roll count bounds, and explicit roll-array bounds before writing item stats.
+- Added `FAugmentedItemStats` generation using the observed game-compatible `[[], payload]` wrapper shape.
+- Preserved alignment between `AppliedAugments`, `AppliedAugmentRollData`, and `AppliedAugmentQualities`.
+- Preserved legacy single-item non-augmented payload behavior for existing callers.
+- Augmented grants create new stack rows rather than topping up existing stacks, avoiding accidental merging between augmented and plain items.
+- Added frontend API types for augmented Give Item payloads.
+- Added a ready-to-wire augmented Give Item modal component at `web/src/tabs/GiveItemModalAugmented.tsx`.
+
+### Current UI status
+
+The backend API, client payload types, tests, and a dedicated augmented modal component are in place. The currently displayed `PlayersTab.tsx` Give Item button still points at the embedded legacy modal. The new modal component should be wired by refactoring `PlayersTab.tsx` to remove the old embedded modal and avoid duplicate modal logic.
+
+### Augmented payload example
+
+```json
+{
+  "player_id": 123,
+  "items": [
+    {
+      "template": "ItemTemplateWeaponExample",
+      "qty": 1,
+      "quality": 5,
+      "stack_size": 1,
+      "augments": [
+        {
+          "name": "T6_Augment_Damage1",
+          "grade": 5,
+          "roll": 1.0,
+          "roll_count": 1,
+          "effect_indices": []
+        },
+        {
+          "name": "T6_Augment_Magazinecapacity1",
+          "grade": 5,
+          "rolls": [1.0, 1.0, 1.0],
+          "effect_indices": []
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Item template source strategy
+
+Use a hybrid template source:
+
+1. Pull live observed item templates from the database at backend connect, reconnect, manual refresh, or low-frequency scheduled refresh.
+2. Keep `item-data.json` as curated fallback metadata for display names, stack defaults, volume defaults, aliases, and templates that have not appeared in the live database.
+3. Serve the frontend from a merged in-memory cache instead of querying the database on every search keystroke.
+
+A `WITH` query can improve readability and can combine observed template IDs with observed stack or volume data, but the query shape is not the primary optimization. The main performance win is caching the result and avoiding repeated typeahead queries against `dune.items`.
+
+Recommended refresh cadence:
+
+- Backend startup after DB connection.
+- `/api/v1/reconnect`.
+- Manual operator refresh endpoint.
+- Optional background refresh every 15 to 60 minutes for long-running admin sessions.
+
+Do not create indexes automatically from the admin app. If a large live database makes template refresh slow, operators can evaluate a controlled database migration such as a `template_id` index.
+
+### Testing added
+
+Added Go unit tests for:
+
+- Augmented Give Item request normalization.
+- Legacy single-item payload with augments.
+- Invalid augment name, grade, roll, and roll-array validation.
+- `FAugmentedItemStats` JSON generation.
+- Empty stats behavior when no augments are supplied.
+
+### Validation
+
+```bash
+go mod tidy
+go test ./...
+cd web
+npm install
+npm audit --audit-level=high
+npm run build
+```
+
+### Known limitations and follow-up
+
+- `GiveItemModalAugmented.tsx` exists but is not yet wired into the active `PlayersTab.tsx` button flow.
+- Some augments appear to require multiple stat rolls. Until an augment metadata catalog exists, operators should provide explicit `rolls` arrays for augments known to need multiple values.
+- Database template refresh strategy is documented, but a manual refresh endpoint and scheduled refresh loop have not yet been implemented.
+- `web/package-lock.json` needs clean regeneration from the current frontend manifest.
+
+---
+
+## Previous update: Linux version support and helper tests
 
 ### Why this update was made
 
@@ -19,54 +121,7 @@ After the initial Linux scripts were added, automated tests were added so Linux 
 - The systemd installer creates a dedicated service user and enables service hardening options including no new privileges, private tmp, protected system paths, and constrained write access.
 - Linux guidance continues to require loopback backend binding by default, strong admin tokens, SSH key protection, and TLS/reverse-proxy controls for any remote exposure.
 
-### New Linux workflow
-
-Install and run locally:
-
-```bash
-git pull origin main
-chmod +x scripts/linux/*.sh
-./scripts/linux/install-deps.sh
-cp .env.example .env
-nano .env
-./scripts/linux/run-dev.sh
-```
-
-Build a Linux backend binary:
-
-```bash
-./scripts/linux/build-linux.sh
-```
-
-Install the backend as a systemd service:
-
-```bash
-sudo ./scripts/linux/install-systemd.sh
-sudo nano /opt/dune-admin/.env
-sudo systemctl start dune-admin
-sudo systemctl status dune-admin
-```
-
-### Automated Linux helper tests
-
-The Linux test suite validates:
-
-- Shell syntax for all Linux helper scripts.
-- Documentation coverage for README, Linux guide, admin token guidance, and ignored build artifacts.
-- Build helper behavior using a fake Go/Node/npm toolchain.
-- First-run `run-dev.sh` bootstrap behavior when `.env` is missing.
-- `run-dev.sh` backend/frontend process-launch behavior using fake long-running tools.
-
-Run locally:
-
-```bash
-chmod +x scripts/linux/*.sh
-scripts/linux/test-linux.sh
-```
-
 ### Validation
-
-Expected Linux validation:
 
 ```bash
 go mod tidy
@@ -77,94 +132,15 @@ npm audit --audit-level=high
 npm run build
 ```
 
-### Required follow-up
-
-Regenerate `web/package-lock.json` from the current manifest when working locally:
-
-```bash
-cd web
-npm install
-npm audit --audit-level=high
-npm run build
-```
-
-Then commit the regenerated lockfile with matching updates to `PATCH_NOTES.md` and `CHANGELOG.md`.
-
----
-
-## Previous remediation addendum: GitHub Actions security scan follow-up
-
-### Why this remediation was made
-
-GitHub Actions run `26277991316` passed every security job except DAST. The remaining DAST finding was a ZAP CSP warning for inline style allowance in the Vite preview response.
-
-This remediation keeps the DAST gate enabled and tightens the frontend policy instead of suppressing the scan.
-
-### Security and operator impact
-
-- Updated `web/vite.config.ts` so `style-src` and `style-src-elem` load styles from `self` only.
-- Kept `style-src-attr` compatible with the current React UI because the app still uses style attributes extensively.
-- Preserved the earlier self-only script policy, browser isolation headers, ZAP baseline rules, and Vite preview security headers.
-- Continued using the full security pipeline for SCA, SAST, DCA, DAST, and secret scanning.
-
 ---
 
 ## Release: Security Hardening, Security Scanning, Multi-Item Administration, and Documentation Standards Update
 
-### Release type
-
-Security hardening, CI security scanning, reliability fixes, player administration feature update, and documentation process update.
-
-### Audience
-
-Server administrators, operators, maintainers, and anyone running Dune Admin against a live Dune: Awakening environment.
-
----
-
-## Summary
+### Summary
 
 This release makes Dune Admin safer and more reliable for live server operations. It establishes backend-enforced admin-token authentication, explicit CORS allowlisting, safer loopback listen defaults, server timeouts, raw SQL restrictions, request-size controls, Kubernetes log target validation, reduced status data exposure, hardened frontend security headers, blueprint import bounds checks, CI security scanning, removal of hardcoded capture credentials, and the requirement that every future change keep both `PATCH_NOTES.md` and `CHANGELOG.md` current.
 
----
-
-## Added
-
-- Multi-item Give Items workflow.
-- Batch item grant payload support for `POST /api/v1/players/give-item`.
-- Explicit stack-preserving backend grant command.
-- Backend batch validation for row count, stack count, stack size, quality, templates, and overflow risk.
-- GitHub Actions security scanning workflow covering Go SCA, Node SCA, CodeQL, gosec, Gitleaks, Trivy, and OWASP ZAP baseline.
-- ZAP baseline policy file in `.zap/rules.tsv`.
-- `CHANGELOG.md` for concise release-oriented history.
-
----
-
-## Changed
-
-- Batch item grants now preserve stack semantics instead of flattening `qty × stack_size` into single-item entries.
-- Legacy single-item payload remains compatible.
-- DAST scans Vite preview output instead of Vite dev server output.
-- Gosec CI gate focuses on higher-signal medium-and-higher severity, high-confidence findings.
-- Documentation workflow requires updates to both `PATCH_NOTES.md` and `CHANGELOG.md` for every future change.
-
----
-
-## Fixed
-
-- Fixed backend startup with bare port values such as `LISTEN_ADDR=8080`.
-- Fixed Go vet failure from redundant newline output.
-- Fixed notification compile errors after credential cleanup.
-- Fixed WebSocket log streaming auth behavior.
-- Fixed cheats log SQL lookup by joining through `dune.encrypted_accounts` and `player_state.account_id`.
-- Fixed stack-size behavior so stacked item grants use the correct number of inventory entries.
-- Fixed Trivy action resolution.
-- Fixed ZAP issue-creation permission failure.
-- Fixed DAST security-header warnings.
-- Fixed blueprint import SAST findings for unbounded multipart parsing and unsafe smallint conversion.
-
----
-
-## Security notes for operators
+### Security notes for operators
 
 - Treat `ADMIN_TOKEN` as a privileged secret.
 - Rotate any previously shared or committed credentials.
