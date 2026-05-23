@@ -36,6 +36,7 @@ func startServer(addr string) {
 	mux.HandleFunc("GET /api/v1/public/status", handlePublicStatus)
 	mux.HandleFunc("GET /api/v1/status", handleStatus)
 	mux.HandleFunc("POST /api/v1/reconnect", handleReconnect)
+	mux.HandleFunc("GET /api/v1/audit/events", handleAdminAuditEvents)
 
 	mux.HandleFunc("GET /api/v1/battlegroup/status", handleBGStatus)
 	mux.HandleFunc("POST /api/v1/battlegroup/exec", handleBGExec)
@@ -102,7 +103,7 @@ func startServer(addr string) {
 	log.Printf("dune-admin listening on %s", addr)
 	server := &http.Server{
 		Addr:              addr,
-		Handler:           corsMiddleware(authMiddleware(mux)),
+		Handler:           corsMiddleware(auditMiddleware(authMiddleware(mux))),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      60 * time.Second,
