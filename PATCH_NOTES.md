@@ -1,6 +1,36 @@
 # Dune Admin Release Notes
 
-## Current update: Refactor implementation progress
+## Current update: Frontend Quality workflow stabilization
+
+### Why this update was made
+
+GitHub Actions run `26325532482` failed before frontend dependency installation because `actions/setup-node` was still configured to cache npm dependencies using `web/package-lock.json`. That lockfile is intentionally not committed right now, so the cache dependency path could not be resolved and the job stopped during setup.
+
+### Security and operator impact
+
+- Removed the frontend workflow cache dependency on the missing `web/package-lock.json`.
+- Kept frontend validation active: install, high-severity npm audit, TypeScript typecheck, lint, and build.
+- Added `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` to the frontend workflow to opt into the newer JavaScript action runtime and avoid Node 20 deprecation drift on GitHub-hosted runners.
+- Preserved the lockfile follow-up requirement: regenerate `web/package-lock.json` locally from the current manifest and recommit it once clean.
+
+### Validation
+
+The next Frontend Quality run should proceed past `actions/setup-node` and reach dependency install/typecheck/lint/build.
+
+Local validation remains:
+
+```bash
+cd web
+npm install
+npm audit --audit-level=high
+npm run typecheck
+npm run lint
+npm run build
+```
+
+---
+
+## Previous update: Refactor implementation progress
 
 ### Why this update was made
 
@@ -55,6 +85,8 @@ go test ./...
 cd web
 npm install
 npm audit --audit-level=high
+npm run typecheck
+npm run lint
 npm run build
 ```
 
