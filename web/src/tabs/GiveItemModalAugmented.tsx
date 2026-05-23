@@ -149,6 +149,7 @@ export default function GiveItemModalAugmented({ player, open, onClose }: { play
         name: aug.name.trim(),
         grade: aug.grade,
         roll: aug.roll,
+        rolls: aug.rolls,
         roll_count: aug.roll_count,
         effect_indices: aug.effect_indices ?? [],
       })),

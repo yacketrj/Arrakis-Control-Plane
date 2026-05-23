@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 - Added `FAugmentedItemStats` JSON generation for newly granted augmented item stacks.
 - Added augmented give-item validation tests covering normalization, invalid augment inputs, roll bounds, aligned augment arrays, and empty stats behavior.
 - Added frontend API payload types for augmented item grants.
-- Added a ready-to-wire augmented Give Item modal component at `web/src/tabs/GiveItemModalAugmented.tsx`.
+- Added and wired the augmented Give Item modal component at `web/src/tabs/GiveItemModalAugmented.tsx`.
 - Added `docs/augmented-give-items.md` with request examples, stored JSON shape, validation rules, and implementation notes.
 - Added `docs/item-template-source-strategy.md` documenting the recommended hybrid database-plus-JSON item template source strategy.
 - Added Linux dependency installer script at `scripts/linux/install-deps.sh`.
@@ -58,7 +58,7 @@ All notable changes to this project will be documented in this file.
 
 ### Operational Notes
 
-- The augmented backend API and frontend client types are in place. The dedicated augmented modal component exists but the current embedded `PlayersTab.tsx` Give Item modal still needs wiring/refactor before operators see the new augment controls in the existing button flow.
+- The Players tab Give Item button now opens the augmented Give Item modal. The prior embedded modal remains exported as `LegacyGiveItemModal` for short-term rollback/reference until the player tab is split into smaller files.
 - Database template refresh should be cached and operator-controlled or low-frequency scheduled; do not query `dune.items` for every UI search keystroke.
 - Linux helper scripts are committed as text files. Run `chmod +x scripts/linux/*.sh` in local clones before execution.
 - Regenerate `web/package-lock.json` locally from the current `web/package.json` with `npm install` and recommit it once confirmed clean with `npm audit --audit-level=high` and `npm run build`.

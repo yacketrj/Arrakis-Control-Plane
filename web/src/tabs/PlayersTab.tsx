@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, type ReactNode } from 'react'
 import { Button, Modal, Spinner, toast, Select, ListBox } from '@heroui/react'
 import { api } from '../api/client'
+import GiveItemModalAugmented from './GiveItemModalAugmented'
 import type {
   Player, InventoryItem, JourneyNode,
   CurrencyRow, FactionRep, SpecTrack, OnlineRow,
@@ -407,7 +408,7 @@ export default function PlayersTab() {
         <InventoryModal player={selectedPlayer} open={showInventory} onClose={() => setShowInventory(false)} />
       )}
       {selectedPlayer && (
-        <GiveItemModal player={selectedPlayer} open={showGiveItem} onClose={() => setShowGiveItem(false)} />
+        <GiveItemModalAugmented player={selectedPlayer} open={showGiveItem} onClose={() => setShowGiveItem(false)} />
       )}
       {selectedPlayer && (
         <PlayerActionsModal player={selectedPlayer} open={showActions} onClose={() => setShowActions(false)} />
@@ -584,7 +585,7 @@ const newGiveItemDraft = (id: number): GiveItemDraft => ({
   stack_size: 1,
 })
 
-function GiveItemModal({ player, open, onClose }: { player: Player; open: boolean; onClose: () => void }) {
+export function LegacyGiveItemModal({ player, open, onClose }: { player: Player; open: boolean; onClose: () => void }) {
   const [templates, setTemplates] = useState<{id: string; name: string}[]>([])
   const [query, setQuery] = useState('')
   const [rows, setRows] = useState<GiveItemDraft[]>([newGiveItemDraft(1)])

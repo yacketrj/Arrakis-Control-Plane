@@ -107,4 +107,4 @@ The current backend implementation writes the augmented item JSON directly when 
 
 ## UI status
 
-The backend API and client payload types support augmented item grants. A dedicated augmented give-item modal component exists in `web/src/tabs/GiveItemModalAugmented.tsx`. It should be wired into `PlayersTab.tsx` once the large player tab is split or refactored to avoid maintaining duplicate modal logic in one oversized file.
+The active Players tab now opens `web/src/tabs/GiveItemModalAugmented.tsx` from the Give Item button. The prior embedded modal remains exported as `LegacyGiveItemModal` only for short-term rollback/reference while the larger player tab is split into smaller components.

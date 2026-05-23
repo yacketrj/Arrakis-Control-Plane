@@ -20,7 +20,7 @@ The Give Item workflow needed support for augmented items, including augment nam
 
 ### Current UI status
 
-The backend API, client payload types, tests, and a dedicated augmented modal component are in place. The currently displayed `PlayersTab.tsx` Give Item button still points at the embedded legacy modal. The new modal component should be wired by refactoring `PlayersTab.tsx` to remove the old embedded modal and avoid duplicate modal logic.
+The active `PlayersTab.tsx` Give Item button now opens `GiveItemModalAugmented.tsx`. The prior embedded modal has been renamed to `LegacyGiveItemModal` as a short-term rollback/reference component until the larger player tab is split into smaller files.
 
 ### Augmented payload example
 
@@ -95,7 +95,7 @@ npm run build
 
 ### Known limitations and follow-up
 
-- `GiveItemModalAugmented.tsx` exists but is not yet wired into the active `PlayersTab.tsx` button flow.
+- The legacy embedded Give Item modal remains exported as `LegacyGiveItemModal` for short-term rollback/reference and should be removed after the player tab is split into smaller files.
 - Some augments appear to require multiple stat rolls. Until an augment metadata catalog exists, operators should provide explicit `rolls` arrays for augments known to need multiple values.
 - Database template refresh strategy is documented, but a manual refresh endpoint and scheduled refresh loop have not yet been implemented.
 - `web/package-lock.json` needs clean regeneration from the current frontend manifest.
