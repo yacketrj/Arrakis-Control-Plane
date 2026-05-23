@@ -6,6 +6,7 @@ import { getAdminToken, setAdminToken } from './api/client'
 import BattlegroupTab from './tabs/BattlegroupTab'
 import PlayersTab from './tabs/PlayersTab'
 import DatabaseTab from './tabs/DatabaseTab'
+import DbRoutinesTab from './tabs/DbRoutinesTab'
 import LogsTab from './tabs/LogsTab'
 import BlueprintsTab from './tabs/BlueprintsTab'
 import StorageTab from './tabs/StorageTab'
@@ -147,6 +148,7 @@ export default function App() {
               <Tabs.Tab id="battlegroup">Battlegroup<Tabs.Indicator /></Tabs.Tab>
               <Tabs.Tab id="players">Players<Tabs.Indicator /></Tabs.Tab>
               <Tabs.Tab id="database">Database<Tabs.Indicator /></Tabs.Tab>
+              <Tabs.Tab id="db-routines">DB Routines<Tabs.Indicator /></Tabs.Tab>
               <Tabs.Tab id="logs">Logs<Tabs.Indicator /></Tabs.Tab>
               <Tabs.Tab id="blueprints">Blueprints<Tabs.Indicator /></Tabs.Tab>
               <Tabs.Tab id="storage">Storage<Tabs.Indicator /></Tabs.Tab>
@@ -155,6 +157,7 @@ export default function App() {
           <Tabs.Panel id="battlegroup" className="flex-1 overflow-hidden flex flex-col"><BattlegroupTab /></Tabs.Panel>
           <Tabs.Panel id="players" className="flex-1 overflow-auto p-4"><PlayersTab /></Tabs.Panel>
           <Tabs.Panel id="database" className="flex-1 overflow-auto p-4"><DatabaseTab /></Tabs.Panel>
+          <Tabs.Panel id="db-routines" className="flex-1 overflow-hidden flex flex-col p-4"><DbRoutinesTab /></Tabs.Panel>
           <Tabs.Panel id="logs" className="flex-1 overflow-hidden flex flex-col"><LogsTab /></Tabs.Panel>
           <Tabs.Panel id="blueprints" className="flex-1 overflow-hidden flex flex-col p-4"><BlueprintsTab /></Tabs.Panel>
           <Tabs.Panel id="storage" className="flex-1 overflow-hidden flex flex-col p-4"><StorageTab /></Tabs.Panel>
