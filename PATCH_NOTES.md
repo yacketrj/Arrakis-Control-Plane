@@ -1,5 +1,32 @@
 # Dune Admin Release Notes
 
+## Current update: Public status endpoint and DB routine wiring
+
+### Why this update was made
+
+The admin console is being split into player-safe user portal surfaces and protected admin tools. The user portal needs only reviewed, redacted public APIs. The DB routine inspection feature also needed final UI wiring.
+
+### What changed
+
+- Added `/api/v1/public/status` as a redacted unauthenticated status endpoint.
+- Kept sensitive status fields behind the protected `/api/v1/status` endpoint.
+- Wired the DB Routines admin tab into the main protected admin interface.
+- Documented the separation between public-safe portal data and protected admin operations.
+
+### Validation
+
+```bash
+go test ./...
+cd web
+npm install
+npm audit --audit-level=high
+npm run typecheck
+npm run lint
+npm run build
+```
+
+---
+
 ## Current update: Live Claim Rewards delivery mode
 
 ### Why this update was made

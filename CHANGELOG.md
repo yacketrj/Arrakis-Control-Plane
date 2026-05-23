@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Added redacted unauthenticated public status endpoint at `/api/v1/public/status` for the future player-safe user portal.
 - Added feature design and priority roadmap at `docs/admin-feature-design-and-priorities.md`, including the item delivery architecture distinction between gameplay inventory, direct inventory writes, and claim reward queue grants.
 - Added Live Claim Rewards delivery mode to the augmented Give Item modal for online-friendly plain item grants through the existing live grant endpoint.
 - Added delivery-mode payload preview so operators can distinguish direct inventory writes from live claim rewards before submitting.

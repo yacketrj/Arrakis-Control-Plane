@@ -33,6 +33,7 @@ func startServer(addr string) {
 
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("GET /api/v1/public/status", handlePublicStatus)
 	mux.HandleFunc("GET /api/v1/status", handleStatus)
 	mux.HandleFunc("POST /api/v1/reconnect", handleReconnect)
 
@@ -123,6 +124,13 @@ func jsonErr(w http.ResponseWriter, err error, code int) {
 
 func decode(r *http.Request, v any) error {
 	return json.NewDecoder(r.Body).Decode(v)
+}
+
+func handlePublicStatus(w http.ResponseWriter, r *http.Request) {
+	jsonOK(w, map[string]any{
+		"service": "dune-admin",
+		"status":  "online",
+	})
 }
 
 func handleStatus(w http.ResponseWriter, r *http.Request) {
