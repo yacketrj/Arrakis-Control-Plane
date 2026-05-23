@@ -6,6 +6,13 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Added backend support for augmented Give Item payloads with per-item augment name, augment grade, roll value, explicit roll arrays, roll count, and effect indices.
+- Added `FAugmentedItemStats` JSON generation for newly granted augmented item stacks.
+- Added augmented give-item validation tests covering normalization, invalid augment inputs, roll bounds, aligned augment arrays, and empty stats behavior.
+- Added frontend API payload types for augmented item grants.
+- Added a ready-to-wire augmented Give Item modal component at `web/src/tabs/GiveItemModalAugmented.tsx`.
+- Added `docs/augmented-give-items.md` with request examples, stored JSON shape, validation rules, and implementation notes.
+- Added `docs/item-template-source-strategy.md` documenting the recommended hybrid database-plus-JSON item template source strategy.
 - Added Linux dependency installer script at `scripts/linux/install-deps.sh`.
 - Added Linux development launcher at `scripts/linux/run-dev.sh`.
 - Added Linux production-style build helper at `scripts/linux/build-linux.sh`.
@@ -17,6 +24,10 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Changed batch Give Item backend behavior so augmented grants write item stats directly on inserted stack rows instead of creating plain `{}` stats.
+- Changed client Give Item row typing so item rows can carry optional augment arrays.
+- Documented that database template discovery should run on connect, reconnect, manual refresh, or low-frequency scheduled refresh rather than on every UI search.
+- Documented that `item-data.json` should remain as curated metadata and unseen-template fallback while live database templates provide current observed server templates.
 - Updated `.gitignore` to exclude Linux build output, frontend build output, frontend dependencies, and local Linux runtime logs.
 - Updated README from the older multi-give patch-only note into the primary project quick-start document.
 - Updated Vite preview and dev CSP to remove inline script execution.
@@ -25,6 +36,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Fixed augmented item persistence so `AppliedAugments`, `AppliedAugmentRollData`, and `AppliedAugmentQualities` are generated as aligned arrays under `FAugmentedItemStats`.
+- Fixed augmented batch grants so legacy non-augmented single-item payloads remain backward compatible.
 - Fixed the latest DAST warning from run `26277991316` by tightening the `style-src` and `style-src-elem` directives in `web/vite.config.ts`.
 - Fixed prior DAST warnings for missing browser isolation headers, incomplete CSP fallback directives, malformed ZAP baseline rules, and inline script execution.
 - Fixed prior frontend build failures after unused auth dependency cleanup.
@@ -33,6 +46,9 @@ All notable changes to this project will be documented in this file.
 
 ### Security
 
+- Reduced unsafe item-edit risk by validating augment names, augment counts, grade bounds, roll bounds, and roll array limits before writing `dune.items.stats`.
+- Avoided database load amplification by documenting cached template discovery instead of per-keystroke database search.
+- Preserved item template correctness by recommending a hybrid live database plus curated JSON model.
 - Reduced frontend script execution risk by keeping script directives self-only.
 - Reduced frontend style injection surface by removing inline allowance from style elements.
 - Preserved style-attribute compatibility required by the current UI while retaining DAST visibility.
@@ -42,6 +58,8 @@ All notable changes to this project will be documented in this file.
 
 ### Operational Notes
 
+- The augmented backend API and frontend client types are in place. The dedicated augmented modal component exists but the current embedded `PlayersTab.tsx` Give Item modal still needs wiring/refactor before operators see the new augment controls in the existing button flow.
+- Database template refresh should be cached and operator-controlled or low-frequency scheduled; do not query `dune.items` for every UI search keystroke.
 - Linux helper scripts are committed as text files. Run `chmod +x scripts/linux/*.sh` in local clones before execution.
 - Regenerate `web/package-lock.json` locally from the current `web/package.json` with `npm install` and recommit it once confirmed clean with `npm audit --audit-level=high` and `npm run build`.
 
