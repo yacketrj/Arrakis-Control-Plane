@@ -1,6 +1,42 @@
 # Dune Admin Release Notes
 
-## Current update: Admin action audit log foundation
+## Current update: Admin audit log test coverage
+
+### Why this update was made
+
+The Admin Action Audit Log is a P0 foundation feature. After adding the audit sink, middleware, protected endpoint, and UI tab, the next step was to add unit coverage for the behavior that protects the audit model from regressions.
+
+### What changed
+
+- Added `audit_log_test.go`.
+- Added coverage confirming protected mutating requests create audit events.
+- Added coverage confirming failure statuses are recorded as failures.
+- Added coverage confirming read-only and public-safe routes are not audited.
+- Added coverage confirming audit reads are sorted newest-first and respect caller limits.
+
+### Security and operator impact
+
+- Improves confidence that public user-portal routes stay out of protected admin audit capture.
+- Improves confidence that failed admin mutations are still recorded.
+- Keeps the audit foundation minimal and secret-safe while preserving the path for typed metadata in the upcoming Mutation Safety Framework.
+
+### Validation
+
+Expected validation:
+
+```bash
+go test ./...
+cd web
+npm install
+npm audit --audit-level=high
+npm run typecheck
+npm run lint
+npm run build
+```
+
+---
+
+## Previous update: Admin action audit log foundation
 
 ### Why this update was made
 
