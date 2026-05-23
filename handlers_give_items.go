@@ -8,23 +8,10 @@ import (
 )
 
 const (
-	maxGiveItemRows          = 100
-	maxGiveItemQty           = 9999
-	maxGiveItemStackSize     = 9999
-	maxGiveItemAugments      = 5
-	maxGiveItemAugmentRolls  = 8
-	defaultGiveItemRollValue = 1.0
+	maxGiveItemRows      = 100
+	maxGiveItemQty       = 9999
+	maxGiveItemStackSize = 9999
 )
-
-type giveItemAugmentEntry struct {
-	Name          string    `json:"name"`
-	Grade         int64     `json:"grade"`
-	Quality       int64     `json:"quality"`
-	Roll          float64   `json:"roll"`
-	Rolls         []float64 `json:"rolls"`
-	RollCount     int       `json:"roll_count"`
-	EffectIndices []int64   `json:"effect_indices"`
-}
 
 type giveItemEntry struct {
 	Template  string                 `json:"template"`
@@ -56,60 +43,31 @@ func normalizeGiveItemsRequest(req giveItemsRequest) ([]giveItemEntry, error) {
 		return nil, fmt.Errorf("maximum %d item rows per request", maxGiveItemRows)
 	}
 	for i := range items {
+		rowIndex := i + 1
 		items[i].Template = strings.TrimSpace(items[i].Template)
 		if items[i].Template == "" {
-			return nil, fmt.Errorf("item %d template required", i+1)
+			return nil, fmt.Errorf("item %d template required", rowIndex)
 		}
 		if items[i].Qty <= 0 {
-			return nil, fmt.Errorf("item %d quantity must be > 0", i+1)
+			return nil, fmt.Errorf("item %d quantity must be > 0", rowIndex)
 		}
 		if items[i].Qty > maxGiveItemQty {
-			return nil, fmt.Errorf("item %d quantity must be <= %d", i+1, maxGiveItemQty)
+			return nil, fmt.Errorf("item %d quantity must be <= %d", rowIndex, maxGiveItemQty)
 		}
 		if items[i].StackSize <= 0 {
 			items[i].StackSize = 1
 		}
 		if items[i].StackSize > maxGiveItemStackSize {
-			return nil, fmt.Errorf("item %d stack size must be <= %d", i+1, maxGiveItemStackSize)
+			return nil, fmt.Errorf("item %d stack size must be <= %d", rowIndex, maxGiveItemStackSize)
 		}
 		if items[i].Quality < 0 || items[i].Quality > 5 {
-			return nil, fmt.Errorf("item %d quality must be 0-5", i+1)
+			return nil, fmt.Errorf("item %d quality must be 0-5", rowIndex)
 		}
 		if items[i].Qty > math.MaxInt64/items[i].StackSize {
-			return nil, fmt.Errorf("item %d total quantity is too large", i+1)
+			return nil, fmt.Errorf("item %d total quantity is too large", rowIndex)
 		}
-		if len(items[i].Augments) > maxGiveItemAugments {
-			return nil, fmt.Errorf("item %d augments must be <= %d", i+1, maxGiveItemAugments)
-		}
-		for j := range items[i].Augments {
-			aug := &items[i].Augments[j]
-			aug.Name = strings.TrimSpace(aug.Name)
-			if aug.Name == "" {
-				return nil, fmt.Errorf("item %d augment %d name required", i+1, j+1)
-			}
-			if aug.Grade == 0 && aug.Quality > 0 {
-				aug.Grade = aug.Quality
-			}
-			if aug.Grade == 0 {
-				aug.Grade = 5
-			}
-			if aug.Grade < 1 || aug.Grade > 5 {
-				return nil, fmt.Errorf("item %d augment %d grade must be 1-5", i+1, j+1)
-			}
-			if len(aug.Rolls) > maxGiveItemAugmentRolls {
-				return nil, fmt.Errorf("item %d augment %d rolls must be <= %d", i+1, j+1, maxGiveItemAugmentRolls)
-			}
-			if aug.RollCount < 0 || aug.RollCount > maxGiveItemAugmentRolls {
-				return nil, fmt.Errorf("item %d augment %d roll_count must be 0-%d", i+1, j+1, maxGiveItemAugmentRolls)
-			}
-			if aug.Roll < 0 || aug.Roll > 1 {
-				return nil, fmt.Errorf("item %d augment %d roll must be 0.0-1.0", i+1, j+1)
-			}
-			for k, roll := range aug.Rolls {
-				if roll < 0 || roll > 1 {
-					return nil, fmt.Errorf("item %d augment %d roll %d must be 0.0-1.0", i+1, j+1, k+1)
-				}
-			}
+		if err := normalizeGiveItemAugments(rowIndex, items[i].Augments); err != nil {
+			return nil, err
 		}
 	}
 	return items, nil
