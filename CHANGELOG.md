@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Added feature design and priority roadmap at `docs/admin-feature-design-and-priorities.md`, including the item delivery architecture distinction between gameplay inventory, direct inventory writes, and claim reward queue grants.
 - Added Live Claim Rewards delivery mode to the augmented Give Item modal for online-friendly plain item grants through the existing live grant endpoint.
 - Added delivery-mode payload preview so operators can distinguish direct inventory writes from live claim rewards before submitting.
 - Added comprehensive refactor and improvement review at `docs/refactor-review.md`.
@@ -34,6 +35,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Clarified that Claim Rewards Queue grants are not the same as crafting, looting, finding an item, or authoritative gameplay inventory mutation.
 - Updated `GiveItemModalAugmented.tsx` so Inventory Write remains the full-featured grade/augment/stat path while Live Claim Rewards is clearly limited to plain template-and-amount grants.
 - Updated `GiveItemModalAugmented.tsx` to use the shared Give Item payload helper module instead of duplicating clamping, preset, roll parsing, and payload mapping logic inline.
 - Strengthened Go quality workflow to run formatting verification, module graph verification, vet, and tests.
@@ -53,6 +55,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Fixed Give Item operator confusion by documenting that the live reward path is a claim queue, not a universal instant inventory mutation system.
 - Fixed Give Item operator confusion by exposing the existing live grant mechanism as an explicit delivery mode rather than hiding it behind a separate action.
 - Fixed Go Quality run `26326549538` by aligning template merge test expectations with the hybrid database-plus-JSON merge behavior.
 - Fixed frontend Give Item helper drift by making the active modal use `giveItemPayload.ts` directly.
@@ -68,6 +71,7 @@ All notable changes to this project will be documented in this file.
 
 ### Security
 
+- Reduced design risk by distinguishing full-fidelity inventory writes from plain claim-queue grants in the feature roadmap.
 - Reduced live-operation risk by blocking Live Claim Rewards mode for graded or augmented rows that require direct inventory/stat writes.
 - Increased test coverage around augmented item roll defaults, explicit roll arrays, grade aliases, and template serialization before generated item stats are written.
 - Increased CI coverage for both Go and frontend quality gates before changes are treated as production-ready.
@@ -87,7 +91,7 @@ All notable changes to this project will be documented in this file.
 ### Operational Notes
 
 - The Give Item modal now has two delivery modes: Inventory Write for full augmented/graded item creation and Live Claim Rewards for online-friendly plain grants.
-- Live Claim Rewards uses the existing live grant path backed by `landsraad_house_rewards`; the player should see Claim Rewards instead of needing a relog for direct inventory refresh.
+- Live Claim Rewards uses a reward queue/claim flow; it is not equivalent to crafting, looting, finding an item, or exact direct inventory placement.
 - The Players tab Give Item button now opens only the augmented Give Item modal.
 - Item templates can now be refreshed through `POST /api/v1/players/templates/refresh`; database search remains cached and operator-controlled rather than per-keystroke.
 - Frontend quality now runs through GitHub Actions; local validation is still `cd web && npm install && npm audit --audit-level=high && npm run typecheck && npm run lint && npm run build`.
