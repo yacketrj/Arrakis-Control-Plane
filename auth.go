@@ -40,7 +40,7 @@ func generateAdminToken() string {
 
 func authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodOptions {
+		if r.Method == http.MethodOptions || isPublicPath(r.URL.Path) {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -65,6 +65,10 @@ func authMiddleware(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func isPublicPath(path string) bool {
+	return path == "/api/v1/public/status"
 }
 
 func bearerToken(header string) string {
