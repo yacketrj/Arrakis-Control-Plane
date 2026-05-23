@@ -80,6 +80,8 @@ func startServer(addr string) {
 	mux.HandleFunc("GET /api/v1/database/describe", handleDBDescribe)
 	mux.HandleFunc("GET /api/v1/database/sample", handleDBSample)
 	mux.HandleFunc("GET /api/v1/database/search", handleDBSearch)
+	mux.HandleFunc("GET /api/v1/database/functions", handleDBFunctions)
+	mux.HandleFunc("GET /api/v1/database/functions/inspect", handleDBFunctionInspect)
 	mux.HandleFunc("POST /api/v1/database/sql", handleDBSQL)
 
 	mux.HandleFunc("GET /api/v1/logs/pods", handleLogPods)
