@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file.
 - Added augment preset catalog at `web/src/tabs/augmentPresets.ts`.
 - Added manual item template refresh endpoint at `POST /api/v1/players/templates/refresh`.
 - Added frontend client support for manual item template refresh.
+- Added frontend quality workflow for install, audit, typecheck, lint, and build.
+- Added frontend `typecheck` script for explicit TypeScript validation.
 - Added backend support for augmented Give Item payloads with per-item augment name, augment grade, roll value, explicit roll arrays, roll count, and effect indices.
 - Added `FAugmentedItemStats` JSON generation for newly granted augmented item stacks.
 - Added augmented give-item validation tests covering normalization, invalid augment inputs, roll bounds, aligned augment arrays, and empty stats behavior.
@@ -29,6 +31,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Strengthened Go quality workflow to run formatting verification, module graph verification, vet, and tests.
 - Moved augment validation and stats JSON serialization out of database command code and into `item_augments.go`.
 - Updated the augmented Give Item modal with augment presets, explicit comma-separated roll arrays, and generated payload preview.
 - Refreshed item templates after `/api/v1/reconnect` so the cached hybrid item list stays current after reconnects.
@@ -57,6 +60,7 @@ All notable changes to this project will be documented in this file.
 
 ### Security
 
+- Increased CI coverage for both Go and frontend quality gates before changes are treated as production-ready.
 - Reduced mutation risk by isolating augment validation and serialization into a focused backend model file.
 - Reduced operator error by adding preset-driven augment defaults and payload preview before submission.
 - Reduced UI drift risk by removing the unused legacy Give Item modal code path.
@@ -74,6 +78,7 @@ All notable changes to this project will be documented in this file.
 
 - The Players tab Give Item button now opens only the augmented Give Item modal.
 - Item templates can now be refreshed through `POST /api/v1/players/templates/refresh`; database search remains cached and operator-controlled rather than per-keystroke.
+- Frontend quality now runs through GitHub Actions; local validation is still `cd web && npm install && npm audit --audit-level=high && npm run typecheck && npm run lint && npm run build`.
 - Linux helper scripts are committed as text files. Run `chmod +x scripts/linux/*.sh` in local clones before execution.
 - Regenerate `web/package-lock.json` locally from the current `web/package.json` with `npm install` and recommit it once confirmed clean with `npm audit --audit-level=high` and `npm run build`.
 
