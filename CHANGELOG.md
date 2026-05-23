@@ -9,13 +9,14 @@ All notable changes to this project will be documented in this file.
 - Added comprehensive refactor and improvement review at `docs/refactor-review.md`.
 - Added focused augmented item stats domain model in `item_augments.go`.
 - Added augment preset catalog at `web/src/tabs/augmentPresets.ts`.
+- Added reusable frontend Give Item payload helper module at `web/src/tabs/giveItemPayload.ts`.
 - Added manual item template refresh endpoint at `POST /api/v1/players/templates/refresh`.
 - Added frontend client support for manual item template refresh.
 - Added frontend quality workflow for install, audit, typecheck, lint, and build.
 - Added frontend `typecheck` script for explicit TypeScript validation.
 - Added backend support for augmented Give Item payloads with per-item augment name, augment grade, roll value, explicit roll arrays, roll count, and effect indices.
 - Added `FAugmentedItemStats` JSON generation for newly granted augmented item stacks.
-- Added augmented give-item validation tests covering normalization, invalid augment inputs, roll bounds, aligned augment arrays, and empty stats behavior.
+- Added expanded augmented give-item tests covering normalization, invalid augment inputs, quality alias handling, roll defaulting, explicit roll precedence, aligned augment arrays, empty stats behavior, template merging, and template response serialization.
 - Added frontend API payload types for augmented item grants.
 - Added and wired the augmented Give Item modal component at `web/src/tabs/GiveItemModalAugmented.tsx`.
 - Added `docs/augmented-give-items.md` with request examples, stored JSON shape, validation rules, and implementation notes.
@@ -31,6 +32,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Updated `GiveItemModalAugmented.tsx` to use the shared Give Item payload helper module instead of duplicating clamping, preset, roll parsing, and payload mapping logic inline.
 - Strengthened Go quality workflow to run formatting verification, module graph verification, vet, and tests.
 - Moved augment validation and stats JSON serialization out of database command code and into `item_augments.go`.
 - Updated the augmented Give Item modal with augment presets, explicit comma-separated roll arrays, and generated payload preview.
@@ -48,6 +50,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Fixed frontend Give Item helper drift by making the active modal use `giveItemPayload.ts` directly.
 - Restored player handler endpoint coverage after the item-template refresh refactor so existing player mutation routes remain available.
 - Fixed Give Item workflow drift by removing the stale embedded modal after wiring the augmented modal.
 - Fixed augmented item persistence so `AppliedAugments`, `AppliedAugmentRollData`, and `AppliedAugmentQualities` are generated as aligned arrays under `FAugmentedItemStats`.
@@ -60,6 +63,7 @@ All notable changes to this project will be documented in this file.
 
 ### Security
 
+- Increased test coverage around augmented item roll defaults, explicit roll arrays, grade aliases, and template serialization before generated item stats are written.
 - Increased CI coverage for both Go and frontend quality gates before changes are treated as production-ready.
 - Reduced mutation risk by isolating augment validation and serialization into a focused backend model file.
 - Reduced operator error by adding preset-driven augment defaults and payload preview before submission.
