@@ -1,11 +1,21 @@
-name: Go Test
+name: Go Quality
 
 on:
   push:
     branches: [main]
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/go-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   test:
+    name: Go fmt, vet, and test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -13,7 +23,13 @@ jobs:
         with:
           go-version: '1.26.3'
           cache: true
+      - name: Verify formatting
+        run: gofmt -w *.go && git diff --exit-code
       - name: Refresh Go module graph
         run: go mod tidy
-      - name: Run Go tests
+      - name: Verify module graph
+        run: git diff --exit-code go.mod go.sum
+      - name: Vet
+        run: go vet ./...
+      - name: Test
         run: go test ./...
