@@ -105,6 +105,43 @@ func handleDBSearch(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func handleDBFunctions(w http.ResponseWriter, r *http.Request) {
+	term := r.URL.Query().Get("term")
+	category := r.URL.Query().Get("category")
+	msg, ok := cmdFetchDBFunctions(term, category)().(msgDBFunctions)
+	if !ok {
+		jsonErr(w, fmt.Errorf("internal error"), 500)
+		return
+	}
+	if msg.err != nil {
+		jsonErr(w, msg.err, 500)
+		return
+	}
+	rows := msg.rows
+	if rows == nil {
+		rows = []dbFunctionRow{}
+	}
+	jsonOK(w, rows)
+}
+
+func handleDBFunctionInspect(w http.ResponseWriter, r *http.Request) {
+	oid := r.URL.Query().Get("oid")
+	if oid == "" {
+		jsonErr(w, fmt.Errorf("oid required"), 400)
+		return
+	}
+	msg, ok := cmdInspectDBFunction(oid)().(msgDBFunctionInspection)
+	if !ok {
+		jsonErr(w, fmt.Errorf("internal error"), 500)
+		return
+	}
+	if msg.err != nil {
+		jsonErr(w, msg.err, 500)
+		return
+	}
+	jsonOK(w, msg.row)
+}
+
 func handleDBSQL(w http.ResponseWriter, r *http.Request) {
 	limitBody(w, r, maxJSONBodyBytes)
 	var req struct {
