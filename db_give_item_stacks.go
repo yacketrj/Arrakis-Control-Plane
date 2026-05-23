@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math"
 	"strings"
@@ -155,60 +154,4 @@ func cmdGiveItemStacks(playerID int64, template string, stacks, stackSize, quali
 		}
 		return msgMutate{ok: fmt.Sprintf("Added %d stack(s) x %d of %s to player %d%s", stacks, stackSize, template, playerID, augSummary)}
 	}
-}
-
-func buildAugmentedItemStatsJSON(augments []giveItemAugmentEntry) (string, error) {
-	if len(augments) == 0 {
-		return `{}`, nil
-	}
-
-	type augmentName struct {
-		Name string `json:"Name"`
-	}
-	type rollData struct {
-		StatRolls            []float64 `json:"StatRolls"`
-		AppliedEffectIndices []int64   `json:"AppliedEffectIndices"`
-	}
-	type augmentedPayload struct {
-		AppliedAugments         []augmentName `json:"AppliedAugments"`
-		AppliedAugmentRollData  []rollData    `json:"AppliedAugmentRollData"`
-		AppliedAugmentQualities []int64       `json:"AppliedAugmentQualities"`
-	}
-
-	payload := augmentedPayload{
-		AppliedAugments:         make([]augmentName, 0, len(augments)),
-		AppliedAugmentRollData:  make([]rollData, 0, len(augments)),
-		AppliedAugmentQualities: make([]int64, 0, len(augments)),
-	}
-	for _, aug := range augments {
-		rolls := append([]float64(nil), aug.Rolls...)
-		if len(rolls) == 0 {
-			roll := aug.Roll
-			if roll == 0 {
-				roll = defaultGiveItemRollValue
-			}
-			count := aug.RollCount
-			if count <= 0 {
-				count = 1
-			}
-			for i := 0; i < count; i++ {
-				rolls = append(rolls, roll)
-			}
-		}
-		payload.AppliedAugments = append(payload.AppliedAugments, augmentName{Name: aug.Name})
-		payload.AppliedAugmentRollData = append(payload.AppliedAugmentRollData, rollData{
-			StatRolls:            rolls,
-			AppliedEffectIndices: append([]int64(nil), aug.EffectIndices...),
-		})
-		payload.AppliedAugmentQualities = append(payload.AppliedAugmentQualities, aug.Grade)
-	}
-
-	stats := map[string]any{
-		"FAugmentedItemStats": []any{[]any{}, payload},
-	}
-	data, err := json.Marshal(stats)
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
 }
