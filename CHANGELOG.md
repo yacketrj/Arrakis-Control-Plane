@@ -7,6 +7,10 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Added comprehensive refactor and improvement review at `docs/refactor-review.md`.
+- Added focused augmented item stats domain model in `item_augments.go`.
+- Added augment preset catalog at `web/src/tabs/augmentPresets.ts`.
+- Added manual item template refresh endpoint at `POST /api/v1/players/templates/refresh`.
+- Added frontend client support for manual item template refresh.
 - Added backend support for augmented Give Item payloads with per-item augment name, augment grade, roll value, explicit roll arrays, roll count, and effect indices.
 - Added `FAugmentedItemStats` JSON generation for newly granted augmented item stacks.
 - Added augmented give-item validation tests covering normalization, invalid augment inputs, roll bounds, aligned augment arrays, and empty stats behavior.
@@ -25,6 +29,9 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Moved augment validation and stats JSON serialization out of database command code and into `item_augments.go`.
+- Updated the augmented Give Item modal with augment presets, explicit comma-separated roll arrays, and generated payload preview.
+- Refreshed item templates after `/api/v1/reconnect` so the cached hybrid item list stays current after reconnects.
 - Removed the legacy embedded Give Item modal from `PlayersTab.tsx` so the active UI has a single augmented item workflow.
 - Changed batch Give Item backend behavior so augmented grants write item stats directly on inserted stack rows instead of creating plain `{}` stats.
 - Changed client Give Item row typing so item rows can carry optional augment arrays.
@@ -38,6 +45,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Restored player handler endpoint coverage after the item-template refresh refactor so existing player mutation routes remain available.
 - Fixed Give Item workflow drift by removing the stale embedded modal after wiring the augmented modal.
 - Fixed augmented item persistence so `AppliedAugments`, `AppliedAugmentRollData`, and `AppliedAugmentQualities` are generated as aligned arrays under `FAugmentedItemStats`.
 - Fixed augmented batch grants so legacy non-augmented single-item payloads remain backward compatible.
@@ -49,6 +57,8 @@ All notable changes to this project will be documented in this file.
 
 ### Security
 
+- Reduced mutation risk by isolating augment validation and serialization into a focused backend model file.
+- Reduced operator error by adding preset-driven augment defaults and payload preview before submission.
 - Reduced UI drift risk by removing the unused legacy Give Item modal code path.
 - Reduced unsafe item-edit risk by validating augment names, augment counts, grade bounds, roll bounds, and roll array limits before writing `dune.items.stats`.
 - Avoided database load amplification by documenting cached template discovery instead of per-keystroke database search.
@@ -63,7 +73,7 @@ All notable changes to this project will be documented in this file.
 ### Operational Notes
 
 - The Players tab Give Item button now opens only the augmented Give Item modal.
-- Database template refresh should be cached and operator-controlled or low-frequency scheduled; do not query `dune.items` for every UI search keystroke.
+- Item templates can now be refreshed through `POST /api/v1/players/templates/refresh`; database search remains cached and operator-controlled rather than per-keystroke.
 - Linux helper scripts are committed as text files. Run `chmod +x scripts/linux/*.sh` in local clones before execution.
 - Regenerate `web/package-lock.json` locally from the current `web/package.json` with `npm install` and recommit it once confirmed clean with `npm audit --audit-level=high` and `npm run build`.
 
