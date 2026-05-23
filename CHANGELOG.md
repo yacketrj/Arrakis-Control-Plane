@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Added comprehensive refactor and improvement review at `docs/refactor-review.md`.
 - Added backend support for augmented Give Item payloads with per-item augment name, augment grade, roll value, explicit roll arrays, roll count, and effect indices.
 - Added `FAugmentedItemStats` JSON generation for newly granted augmented item stacks.
 - Added augmented give-item validation tests covering normalization, invalid augment inputs, roll bounds, aligned augment arrays, and empty stats behavior.
@@ -24,6 +25,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Removed the legacy embedded Give Item modal from `PlayersTab.tsx` so the active UI has a single augmented item workflow.
 - Changed batch Give Item backend behavior so augmented grants write item stats directly on inserted stack rows instead of creating plain `{}` stats.
 - Changed client Give Item row typing so item rows can carry optional augment arrays.
 - Documented that database template discovery should run on connect, reconnect, manual refresh, or low-frequency scheduled refresh rather than on every UI search.
@@ -36,6 +38,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Fixed Give Item workflow drift by removing the stale embedded modal after wiring the augmented modal.
 - Fixed augmented item persistence so `AppliedAugments`, `AppliedAugmentRollData`, and `AppliedAugmentQualities` are generated as aligned arrays under `FAugmentedItemStats`.
 - Fixed augmented batch grants so legacy non-augmented single-item payloads remain backward compatible.
 - Fixed the latest DAST warning from run `26277991316` by tightening the `style-src` and `style-src-elem` directives in `web/vite.config.ts`.
@@ -46,6 +49,7 @@ All notable changes to this project will be documented in this file.
 
 ### Security
 
+- Reduced UI drift risk by removing the unused legacy Give Item modal code path.
 - Reduced unsafe item-edit risk by validating augment names, augment counts, grade bounds, roll bounds, and roll array limits before writing `dune.items.stats`.
 - Avoided database load amplification by documenting cached template discovery instead of per-keystroke database search.
 - Preserved item template correctness by recommending a hybrid live database plus curated JSON model.
@@ -58,7 +62,7 @@ All notable changes to this project will be documented in this file.
 
 ### Operational Notes
 
-- The Players tab Give Item button now opens the augmented Give Item modal. The prior embedded modal remains exported as `LegacyGiveItemModal` for short-term rollback/reference until the player tab is split into smaller files.
+- The Players tab Give Item button now opens only the augmented Give Item modal.
 - Database template refresh should be cached and operator-controlled or low-frequency scheduled; do not query `dune.items` for every UI search keystroke.
 - Linux helper scripts are committed as text files. Run `chmod +x scripts/linux/*.sh` in local clones before execution.
 - Regenerate `web/package-lock.json` locally from the current `web/package.json` with `npm install` and recommit it once confirmed clean with `npm audit --audit-level=high` and `npm run build`.
