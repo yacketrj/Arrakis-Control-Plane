@@ -198,8 +198,8 @@ func TestMergeItemTemplatesAndHandleGetTemplates(t *testing.T) {
 	}
 
 	mergeItemTemplates([]string{"DB_TEMPLATE", "live_template"})
-	if len(dbItemTemplates) != 3 {
-		t.Fatalf("expected three merged templates, got %#v", dbItemTemplates)
+	if len(dbItemTemplates) != 4 {
+		t.Fatalf("expected four merged templates, got %#v", dbItemTemplates)
 	}
 
 	rec := httptest.NewRecorder()
@@ -212,16 +212,23 @@ func TestMergeItemTemplatesAndHandleGetTemplates(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &rows); err != nil {
 		t.Fatalf("invalid template response JSON: %v", err)
 	}
-	if len(rows) != 3 {
-		t.Fatalf("expected three template rows, got %#v", rows)
+	if len(rows) != 4 {
+		t.Fatalf("expected four template rows, got %#v", rows)
 	}
 	foundFriendlyName := false
+	foundItemRuleTemplate := false
 	for _, row := range rows {
 		if row.ID == "DB_TEMPLATE" && row.Name == "DB Template Friendly Name" {
 			foundFriendlyName = true
 		}
+		if row.ID == "item_rule_template" {
+			foundItemRuleTemplate = true
+		}
 	}
 	if !foundFriendlyName {
 		t.Fatalf("expected DB_TEMPLATE to use lower-case friendly name lookup, got %#v", rows)
+	}
+	if !foundItemRuleTemplate {
+		t.Fatalf("expected curated item rule template to be merged, got %#v", rows)
 	}
 }

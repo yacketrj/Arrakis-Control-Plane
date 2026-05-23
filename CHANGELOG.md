@@ -50,6 +50,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Fixed Go Quality run `26326549538` by aligning template merge test expectations with the hybrid database-plus-JSON merge behavior.
 - Fixed frontend Give Item helper drift by making the active modal use `giveItemPayload.ts` directly.
 - Restored player handler endpoint coverage after the item-template refresh refactor so existing player mutation routes remain available.
 - Fixed Give Item workflow drift by removing the stale embedded modal after wiring the augmented modal.

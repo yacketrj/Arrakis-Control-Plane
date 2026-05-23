@@ -1,6 +1,24 @@
 # Dune Admin Release Notes
 
-## Current update: Give Item helper cleanup and expanded test coverage
+## Current update: Go Quality run 26326549538 remediation
+
+### Why this update was made
+
+GitHub Actions run `26326549538` failed in the expanded template merge test because the test expected three merged templates, while the hybrid merge correctly returns four: two live database templates, one curated name-only template, and one curated item-rule template.
+
+### Remediation
+
+- Updated the test to expect four merged templates.
+- Added explicit verification that the curated `item_rule_template` entry is present in the serialized template response.
+- Preserved the lower-case friendly-name lookup assertion for `DB_TEMPLATE`.
+
+### Validation
+
+The next Go Quality run should proceed past `TestMergeItemTemplatesAndHandleGetTemplates`.
+
+---
+
+## Previous update: Give Item helper cleanup and expanded test coverage
 
 ### Why this update was made
 
