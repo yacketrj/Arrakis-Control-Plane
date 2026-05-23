@@ -1,6 +1,46 @@
 # Dune Admin Release Notes
 
-## Current update: Go Quality run 26326549538 remediation
+## Current update: Live Claim Rewards delivery mode
+
+### Why this update was made
+
+Direct inventory database writes support the richest Give Item workflow, including stack placement, grades, and augmented item stats. Online players may not see those direct inventory changes until they relog because the game client/server inventory state is already loaded.
+
+This update exposes the existing Claim Rewards delivery path directly in the Give Item modal as a separate operator-selectable delivery mode.
+
+### What changed
+
+- Added a delivery mode selector to `GiveItemModalAugmented.tsx`.
+- Added `Inventory Write` mode for direct database item creation with item grade, stack size, and augment support.
+- Added `Live Claim Rewards` mode for online-friendly plain item delivery through the existing live reward API path.
+- Added delivery-mode-aware payload preview.
+- Blocked Live Claim Rewards mode when selected rows contain item grade greater than zero or augments, because the live reward path only supports plain template-and-amount entries.
+- Disabled grade and augment controls while Live Claim Rewards mode is selected.
+
+### Operator guidance
+
+Use `Live Claim Rewards` when the player is online and you need them to receive plain items without logging out. The player should see a Claim Rewards prompt.
+
+Use `Inventory Write` when you need exact inventory placement, item grade, stack control, or augmented item stats. For online players, this may still require logout/login before the game refreshes client-visible inventory state.
+
+### Validation
+
+Expected validation:
+
+```bash
+go mod tidy
+go test ./...
+cd web
+npm install
+npm audit --audit-level=high
+npm run typecheck
+npm run lint
+npm run build
+```
+
+---
+
+## Previous update: Go Quality run 26326549538 remediation
 
 ### Why this update was made
 
@@ -54,28 +94,3 @@ npm run build
 - Continue splitting `PlayersTab.tsx` into smaller player table, inventory, action, and modal components.
 - Regenerate and commit `web/package-lock.json` from a clean local `npm install` once the frontend manifest is stable.
 - Expand the augment preset catalog as more verified in-game augmented item examples are captured.
-
----
-
-## Previous update: Frontend Quality workflow stabilization
-
-### Why this update was made
-
-GitHub Actions run `26325532482` failed before frontend dependency installation because `actions/setup-node` referenced a frontend lockfile that is not currently committed.
-
-### Security and operator impact
-
-- Removed the frontend workflow cache dependency on the missing lockfile.
-- Kept frontend validation active: install, high-severity npm audit, TypeScript typecheck, lint, and build.
-- Added `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` to the frontend workflow.
-
-### Validation
-
-```bash
-cd web
-npm install
-npm audit --audit-level=high
-npm run typecheck
-npm run lint
-npm run build
-```
