@@ -1,6 +1,43 @@
 # Dune Admin Release Notes
 
-## Current update: Public status endpoint and DB routine wiring
+## Current update: Admin action audit log foundation
+
+### Why this update was made
+
+The feature roadmap identifies the Admin Action Audit Log as a P0 foundation item. As Dune Admin gains more powerful workflows, protected mutating requests need an append-only record that shows what endpoint was called, when it was called, whether it succeeded, and how long it took.
+
+### What changed
+
+- Added `audit_log.go` with an append-only JSONL audit sink.
+- Added audit middleware that records protected mutating HTTP requests.
+- Added a protected audit read endpoint at `GET /api/v1/audit/events`.
+- Excluded public-safe routes from audit capture.
+- Added `docs/admin-audit-log.md` describing the audit model, security rules, current limitations, and follow-up tasks.
+
+### Security and operator impact
+
+- Audit events are intentionally minimal and do not record request bodies, admin tokens, database credentials, SSH keys, or other secrets.
+- Audit records are written to `admin-audit.jsonl` by default.
+- Operators can override the path with `ADMIN_AUDIT_LOG`.
+- This is the first audit foundation; typed payload summaries, operator names, reason fields, and rollback hints remain part of the upcoming Mutation Safety Framework.
+
+### Validation
+
+Expected validation:
+
+```bash
+go test ./...
+cd web
+npm install
+npm audit --audit-level=high
+npm run typecheck
+npm run lint
+npm run build
+```
+
+---
+
+## Previous update: Public status endpoint and DB routine wiring
 
 ### Why this update was made
 
@@ -27,7 +64,7 @@ npm run build
 
 ---
 
-## Current update: Live Claim Rewards delivery mode
+## Previous update: Live Claim Rewards delivery mode
 
 ### Why this update was made
 
@@ -78,46 +115,3 @@ GitHub Actions run `26326549538` failed in the expanded template merge test beca
 - Updated the test to expect four merged templates.
 - Added explicit verification that the curated `item_rule_template` entry is present in the serialized template response.
 - Preserved the lower-case friendly-name lookup assertion for `DB_TEMPLATE`.
-
-### Validation
-
-The next Go Quality run should proceed past `TestMergeItemTemplatesAndHandleGetTemplates`.
-
----
-
-## Previous update: Give Item helper cleanup and expanded test coverage
-
-### Why this update was made
-
-The previous polish pass added a shared frontend Give Item payload helper, but the active augmented Give Item modal still duplicated clamping, preset, roll parsing, and payload mapping logic inline. This update finishes that cleanup and expands backend test coverage around augmented item and template-list behavior.
-
-### Security and operator impact
-
-- Updated `GiveItemModalAugmented.tsx` to use `web/src/tabs/giveItemPayload.ts` directly.
-- Removed duplicated frontend payload helper logic from the modal so the UI and future tests exercise one payload mapping path.
-- Added backend tests for augment quality-to-grade alias handling.
-- Added backend tests for augment roll defaulting, repeated roll generation, and explicit roll precedence.
-- Added backend tests for database-plus-JSON template merging and `/api/v1/players/templates` response serialization.
-- Preserved the augmented Give Item workflow with item grade, augment grade, roll values, explicit roll arrays, roll count, and generated payload preview.
-
-### Validation
-
-Expected validation:
-
-```bash
-go mod tidy
-go test ./...
-cd web
-npm install
-npm audit --audit-level=high
-npm run typecheck
-npm run lint
-npm run build
-```
-
-### Remaining polish work
-
-- Watch the next Go Quality and Frontend Quality workflow runs and fix any compile, typecheck, lint, or build failures.
-- Continue splitting `PlayersTab.tsx` into smaller player table, inventory, action, and modal components.
-- Regenerate and commit `web/package-lock.json` from a clean local `npm install` once the frontend manifest is stable.
-- Expand the augment preset catalog as more verified in-game augmented item examples are captured.
