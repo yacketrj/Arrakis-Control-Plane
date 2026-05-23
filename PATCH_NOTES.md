@@ -1,93 +1,51 @@
 # Dune Admin Release Notes
 
-## Current update: Augmented Give Items, UI synchronization, and refactor review
+## Current update: Refactor implementation progress
 
 ### Why this update was made
 
-The Give Item workflow needed support for augmented items, including augment names, augment grades, and normalized roll data. Operators also needed a clear decision on whether item templates should come from the live database, a JSON file, or both.
-
-After the augmented modal was wired into the active Players tab, the repository still had stale legacy modal code and documentation that described a temporary rollback state. This update synchronizes the code and documentation so there is one active augmented Give Item workflow.
+The refactor review identified several immediate code improvements that could be completed without waiting for a larger architectural rewrite. This update implements the first set of improvements: isolate augmented item stat serialization, add augment presets, add a generated payload preview, remove stale UI drift, and add a manual item template refresh path.
 
 ### Security and operator impact
 
-- Added backend support for augmented Give Item payloads on `POST /api/v1/players/give-item`.
-- Added per-item augment definitions with augment name, augment grade, roll value, explicit roll arrays, roll count, and effect indices.
-- Added validation for augment name presence, maximum augment count, grade bounds, roll bounds, roll count bounds, and explicit roll-array bounds before writing item stats.
-- Added `FAugmentedItemStats` generation using the observed game-compatible `[[], payload]` wrapper shape.
-- Preserved alignment between `AppliedAugments`, `AppliedAugmentRollData`, and `AppliedAugmentQualities`.
-- Preserved legacy single-item non-augmented payload behavior for existing callers.
-- Augmented grants create new stack rows rather than topping up existing stacks, avoiding accidental merging between augmented and plain items.
-- Added frontend API types for augmented Give Item payloads.
-- Wired the active Players tab Give Item button to `web/src/tabs/GiveItemModalAugmented.tsx`.
-- Removed the stale embedded legacy Give Item modal from `PlayersTab.tsx` to prevent UI drift and duplicate behavior.
+- Moved augment validation and `FAugmentedItemStats` JSON serialization into `item_augments.go` so high-risk item stat mutation logic is centralized.
+- Added an augment preset catalog at `web/src/tabs/augmentPresets.ts` with default grades and roll counts for common T6 augments.
+- Updated the augmented Give Item modal with preset buttons, explicit comma-separated roll arrays, and a generated payload preview.
+- Added `POST /api/v1/players/templates/refresh` so operators can refresh cached live database templates without restarting the backend.
+- Updated reconnect handling so item templates refresh after successful reconnect.
+- Restored player handler endpoint coverage after the template refresh refactor so existing player mutation routes remain available.
+- Removed the stale embedded legacy Give Item modal from `PlayersTab.tsx`; the active Players tab now has one augmented Give Item workflow.
 
 ### Current UI status
 
-The active `PlayersTab.tsx` Give Item button opens `GiveItemModalAugmented.tsx`. The prior embedded legacy modal has been removed. The UI, backend payload model, documentation, patch notes, and changelog now describe a single augmented Give Item workflow.
-
-### Augmented payload example
-
-```json
-{
-  "player_id": 123,
-  "items": [
-    {
-      "template": "ItemTemplateWeaponExample",
-      "qty": 1,
-      "quality": 5,
-      "stack_size": 1,
-      "augments": [
-        {
-          "name": "T6_Augment_Damage1",
-          "grade": 5,
-          "roll": 1.0,
-          "roll_count": 1,
-          "effect_indices": []
-        },
-        {
-          "name": "T6_Augment_Magazinecapacity1",
-          "grade": 5,
-          "rolls": [1.0, 1.0, 1.0],
-          "effect_indices": []
-        }
-      ]
-    }
-  ]
-}
-```
+The active `PlayersTab.tsx` Give Item button opens `GiveItemModalAugmented.tsx`. Operators can select items, set stack count, item grade, stack size, add augment presets, enter custom augment names, set augment grade, set roll values, set explicit roll arrays, and preview the outgoing payload before submission.
 
 ### Item template source strategy
 
-Use a hybrid template source:
+The implemented path is cached and operator-controlled:
 
-1. Pull live observed item templates from the database at backend connect, reconnect, manual refresh, or low-frequency scheduled refresh.
-2. Keep `item-data.json` as curated fallback metadata for display names, stack defaults, volume defaults, aliases, and templates that have not appeared in the live database.
-3. Serve the frontend from a merged in-memory cache instead of querying the database on every search keystroke.
+- Backend startup loads and merges database-observed templates with `item-data.json`.
+- Successful `/api/v1/reconnect` refreshes templates.
+- `POST /api/v1/players/templates/refresh` refreshes templates on demand.
+- The frontend still searches the returned cached list locally rather than querying the database on every keystroke.
 
-A `WITH` query can improve readability and can combine observed template IDs with observed stack or volume data, but the query shape is not the primary optimization. The main performance win is caching the result and avoiding repeated typeahead queries against `dune.items`.
+This keeps the database load low while improving correctness over JSON-only item lists.
 
-Recommended refresh cadence:
+### Testing impact
 
-- Backend startup after DB connection.
-- `/api/v1/reconnect`.
-- Manual operator refresh endpoint.
-- Optional background refresh every 15 to 60 minutes for long-running admin sessions.
-
-Do not create indexes automatically from the admin app. If a large live database makes template refresh slow, operators can evaluate a controlled database migration such as a `template_id` index.
-
-### Refactor review added
-
-A comprehensive refactor and improvement review was added at `docs/refactor-review.md`. It prioritizes splitting `PlayersTab.tsx`, adding typed augmented item domain models, creating an augment metadata catalog, implementing a cached database-plus-JSON template provider, separating HTTP handlers from database commands, adding admin action audit logs, and expanding backend/frontend test coverage.
-
-### Testing added
-
-Added Go unit tests for:
+Existing Go tests continue to cover:
 
 - Augmented Give Item request normalization.
 - Legacy single-item payload with augments.
 - Invalid augment name, grade, roll, and roll-array validation.
 - `FAugmentedItemStats` JSON generation.
 - Empty stats behavior when no augments are supplied.
+
+Additional recommended next tests:
+
+- Handler coverage for the new template refresh endpoint.
+- Frontend tests for augment preset selection and payload preview.
+- Integration-style tests around augmented item insert SQL.
 
 ### Validation
 
@@ -103,9 +61,32 @@ npm run build
 ### Known limitations and follow-up
 
 - `PlayersTab.tsx` is still large and should be split into smaller player table, inventory, action, and modal components.
-- Some augments appear to require multiple stat rolls. Until an augment metadata catalog exists, operators should provide explicit `rolls` arrays for augments known to need multiple values.
-- Database template refresh strategy is documented, but a manual refresh endpoint and scheduled refresh loop have not yet been implemented.
+- The augment preset catalog is intentionally small and should grow as more verified augmented item examples are captured.
+- Some augments appear to require multiple stat rolls. Operators should still use explicit `rolls` arrays when the preset catalog is incomplete.
 - `web/package-lock.json` needs clean regeneration from the current frontend manifest.
+
+---
+
+## Previous update: Augmented Give Items, UI synchronization, and refactor review
+
+### Why this update was made
+
+The Give Item workflow needed support for augmented items, including augment names, augment grades, and normalized roll data. Operators also needed a clear decision on whether item templates should come from the live database, a JSON file, or both.
+
+After the augmented modal was wired into the active Players tab, the repository still had stale legacy modal code and documentation that described a temporary rollback state. This update synchronized the code and documentation so there is one active augmented Give Item workflow.
+
+### Security and operator impact
+
+- Added backend support for augmented Give Item payloads on `POST /api/v1/players/give-item`.
+- Added per-item augment definitions with augment name, augment grade, roll value, explicit roll arrays, roll count, and effect indices.
+- Added validation for augment name presence, maximum augment count, grade bounds, roll bounds, roll count bounds, and explicit roll-array bounds before writing item stats.
+- Added `FAugmentedItemStats` generation using the observed game-compatible `[[], payload]` wrapper shape.
+- Preserved alignment between `AppliedAugments`, `AppliedAugmentRollData`, and `AppliedAugmentQualities`.
+- Preserved legacy single-item non-augmented payload behavior for existing callers.
+- Augmented grants create new stack rows rather than topping up existing stacks, avoiding accidental merging between augmented and plain items.
+- Added frontend API types for augmented Give Item payloads.
+- Wired the active Players tab Give Item button to `web/src/tabs/GiveItemModalAugmented.tsx`.
+- Removed the stale embedded legacy Give Item modal from `PlayersTab.tsx` to prevent UI drift and duplicate behavior.
 
 ---
 
@@ -116,17 +97,6 @@ npm run build
 The Windows-oriented workflow is now complemented by a Linux version so operators can install dependencies, run the app locally, build a Linux backend binary, and install the backend as a systemd service without translating Windows steps manually.
 
 After the initial Linux scripts were added, automated tests were added so Linux helper behavior is validated continuously instead of relying only on manual review.
-
-### Security and operator impact
-
-- Added Linux helper scripts under `scripts/linux/` for dependency setup, local development, Linux builds, and systemd installation.
-- Added Linux helper functional tests in `scripts/linux/test-linux.sh`.
-- Added `.github/workflows/linux-helper-tests.yml` so GitHub Actions runs Linux helper tests on pushes to `main` and manual workflow dispatch.
-- Added a Linux operating guide at `docs/linux.md` with configuration, build, run, service, validation, and security steps.
-- Updated the README with Linux quick-start instructions and runtime configuration guidance.
-- Updated `.gitignore` so Linux build output, frontend build output, frontend dependencies, and local runtime logs are not committed.
-- The systemd installer creates a dedicated service user and enables service hardening options including no new privileges, private tmp, protected system paths, and constrained write access.
-- Linux guidance continues to require loopback backend binding by default, strong admin tokens, SSH key protection, and TLS/reverse-proxy controls for any remote exposure.
 
 ### Validation
 
