@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -68,6 +69,25 @@ func TestNormalizeGiveItemsRequestLegacyAugments(t *testing.T) {
 	}
 }
 
+func TestNormalizeGiveItemsRequestAugmentQualityAlias(t *testing.T) {
+	req := giveItemsRequest{
+		PlayerID: 1,
+		Items: []giveItemEntry{{
+			Template:  "Item",
+			Qty:       1,
+			StackSize: 1,
+			Augments:  []giveItemAugmentEntry{{Name: "Aug", Quality: 4}},
+		}},
+	}
+	items, err := normalizeGiveItemsRequest(req)
+	if err != nil {
+		t.Fatalf("normalizeGiveItemsRequest returned error: %v", err)
+	}
+	if items[0].Augments[0].Grade != 4 {
+		t.Fatalf("expected quality alias to populate grade, got %+v", items[0].Augments[0])
+	}
+}
+
 func TestNormalizeGiveItemsRequestRejectsInvalidAugment(t *testing.T) {
 	cases := []struct {
 		name string
@@ -75,19 +95,19 @@ func TestNormalizeGiveItemsRequestRejectsInvalidAugment(t *testing.T) {
 	}{
 		{
 			name: "blank augment name",
-			req: giveItemsRequest{PlayerID: 1, Items: []giveItemEntry{{Template: "Item", Qty: 1, StackSize: 1, Augments: []giveItemAugmentEntry{{Name: " "}}}}},
+			req:  giveItemsRequest{PlayerID: 1, Items: []giveItemEntry{{Template: "Item", Qty: 1, StackSize: 1, Augments: []giveItemAugmentEntry{{Name: " "}}}}},
 		},
 		{
 			name: "bad augment grade",
-			req: giveItemsRequest{PlayerID: 1, Items: []giveItemEntry{{Template: "Item", Qty: 1, StackSize: 1, Augments: []giveItemAugmentEntry{{Name: "Aug", Grade: 6}}}}},
+			req:  giveItemsRequest{PlayerID: 1, Items: []giveItemEntry{{Template: "Item", Qty: 1, StackSize: 1, Augments: []giveItemAugmentEntry{{Name: "Aug", Grade: 6}}}}},
 		},
 		{
 			name: "bad roll",
-			req: giveItemsRequest{PlayerID: 1, Items: []giveItemEntry{{Template: "Item", Qty: 1, StackSize: 1, Augments: []giveItemAugmentEntry{{Name: "Aug", Grade: 1, Roll: 1.25}}}}},
+			req:  giveItemsRequest{PlayerID: 1, Items: []giveItemEntry{{Template: "Item", Qty: 1, StackSize: 1, Augments: []giveItemAugmentEntry{{Name: "Aug", Grade: 1, Roll: 1.25}}}}},
 		},
 		{
 			name: "too many rolls",
-			req: giveItemsRequest{PlayerID: 1, Items: []giveItemEntry{{Template: "Item", Qty: 1, StackSize: 1, Augments: []giveItemAugmentEntry{{Name: "Aug", Grade: 1, Rolls: []float64{1, 1, 1, 1, 1, 1, 1, 1, 1}}}}}},
+			req:  giveItemsRequest{PlayerID: 1, Items: []giveItemEntry{{Template: "Item", Qty: 1, StackSize: 1, Augments: []giveItemAugmentEntry{{Name: "Aug", Grade: 1, Rolls: []float64{1, 1, 1, 1, 1, 1, 1, 1, 1}}}}}},
 		},
 	}
 
@@ -97,6 +117,23 @@ func TestNormalizeGiveItemsRequestRejectsInvalidAugment(t *testing.T) {
 				t.Fatal("expected validation error")
 			}
 		})
+	}
+}
+
+func TestNormalizeAugmentRollsDefaultsAndExplicitRolls(t *testing.T) {
+	defaultRolls := normalizeAugmentRolls(giveItemAugmentEntry{Name: "Aug", Grade: 5})
+	if len(defaultRolls) != 1 || defaultRolls[0] != 1.0 {
+		t.Fatalf("expected default max roll, got %#v", defaultRolls)
+	}
+
+	repeated := normalizeAugmentRolls(giveItemAugmentEntry{Name: "Aug", Grade: 5, Roll: 0.5, RollCount: 3})
+	if len(repeated) != 3 || repeated[0] != 0.5 || repeated[1] != 0.5 || repeated[2] != 0.5 {
+		t.Fatalf("expected repeated roll values, got %#v", repeated)
+	}
+
+	explicit := normalizeAugmentRolls(giveItemAugmentEntry{Name: "Aug", Grade: 5, Roll: 0.25, RollCount: 3, Rolls: []float64{1, 0.75, 0}})
+	if len(explicit) != 3 || explicit[0] != 1 || explicit[1] != 0.75 || explicit[2] != 0 {
+		t.Fatalf("expected explicit rolls to win, got %#v", explicit)
 	}
 }
 
@@ -139,5 +176,52 @@ func TestBuildAugmentedItemStatsJSONEmpty(t *testing.T) {
 	}
 	if statsText != `{}` {
 		t.Fatalf("expected empty stats object, got %s", statsText)
+	}
+}
+
+func TestMergeItemTemplatesAndHandleGetTemplates(t *testing.T) {
+	oldTemplates := dbItemTemplates
+	oldItemData := itemData
+	defer func() {
+		dbItemTemplates = oldTemplates
+		itemData = oldItemData
+	}()
+
+	itemData = itemDataFile{
+		Names: map[string]string{
+			"json_template": "Curated JSON Template",
+			"db_template":   "DB Template Friendly Name",
+		},
+		Items: map[string]itemRule{
+			"item_rule_template": {Name: "Item Rule Template", StackMax: 10},
+		},
+	}
+
+	mergeItemTemplates([]string{"DB_TEMPLATE", "live_template"})
+	if len(dbItemTemplates) != 3 {
+		t.Fatalf("expected three merged templates, got %#v", dbItemTemplates)
+	}
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/api/v1/players/templates", nil)
+	handleGetTemplates(rec, req)
+	if rec.Code != 200 {
+		t.Fatalf("expected 200 response, got %d", rec.Code)
+	}
+	var rows []templateOut
+	if err := json.Unmarshal(rec.Body.Bytes(), &rows); err != nil {
+		t.Fatalf("invalid template response JSON: %v", err)
+	}
+	if len(rows) != 3 {
+		t.Fatalf("expected three template rows, got %#v", rows)
+	}
+	foundFriendlyName := false
+	for _, row := range rows {
+		if row.ID == "DB_TEMPLATE" && row.Name == "DB Template Friendly Name" {
+			foundFriendlyName = true
+		}
+	}
+	if !foundFriendlyName {
+		t.Fatalf("expected DB_TEMPLATE to use lower-case friendly name lookup, got %#v", rows)
 	}
 }
