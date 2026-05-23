@@ -46,6 +46,7 @@ func startServer(addr string) {
 	mux.HandleFunc("GET /api/v1/players/factions", handleGetFactions)
 	mux.HandleFunc("GET /api/v1/players/specs", handleGetSpecs)
 	mux.HandleFunc("GET /api/v1/players/templates", handleGetTemplates)
+	mux.HandleFunc("POST /api/v1/players/templates/refresh", handleRefreshTemplates)
 	mux.HandleFunc("GET /api/v1/players/{id}/inventory", handleGetInventory)
 	mux.HandleFunc("GET /api/v1/players/{id}/journey", handleGetJourney)
 	mux.HandleFunc("POST /api/v1/players/give-item", handleGiveItems)
@@ -148,6 +149,9 @@ func handleReconnect(w http.ResponseWriter, r *http.Request) {
 		}
 		jsonErr(w, fmt.Errorf("%s", errMsg), 500)
 		return
+	}
+	if msg, ok := cmdFetchItemTemplates().(msgItemTemplates); ok {
+		mergeItemTemplates(msg.templates)
 	}
 	handleStatus(w, r)
 }
