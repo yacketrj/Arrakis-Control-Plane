@@ -1,10 +1,12 @@
 # Dune Admin Release Notes
 
-## Current update: Augmented Give Items and item template source strategy
+## Current update: Augmented Give Items, UI synchronization, and refactor review
 
 ### Why this update was made
 
 The Give Item workflow needed support for augmented items, including augment names, augment grades, and normalized roll data. Operators also needed a clear decision on whether item templates should come from the live database, a JSON file, or both.
+
+After the augmented modal was wired into the active Players tab, the repository still had stale legacy modal code and documentation that described a temporary rollback state. This update synchronizes the code and documentation so there is one active augmented Give Item workflow.
 
 ### Security and operator impact
 
@@ -16,11 +18,12 @@ The Give Item workflow needed support for augmented items, including augment nam
 - Preserved legacy single-item non-augmented payload behavior for existing callers.
 - Augmented grants create new stack rows rather than topping up existing stacks, avoiding accidental merging between augmented and plain items.
 - Added frontend API types for augmented Give Item payloads.
-- Added a ready-to-wire augmented Give Item modal component at `web/src/tabs/GiveItemModalAugmented.tsx`.
+- Wired the active Players tab Give Item button to `web/src/tabs/GiveItemModalAugmented.tsx`.
+- Removed the stale embedded legacy Give Item modal from `PlayersTab.tsx` to prevent UI drift and duplicate behavior.
 
 ### Current UI status
 
-The active `PlayersTab.tsx` Give Item button now opens `GiveItemModalAugmented.tsx`. The prior embedded modal has been renamed to `LegacyGiveItemModal` as a short-term rollback/reference component until the larger player tab is split into smaller files.
+The active `PlayersTab.tsx` Give Item button opens `GiveItemModalAugmented.tsx`. The prior embedded legacy modal has been removed. The UI, backend payload model, documentation, patch notes, and changelog now describe a single augmented Give Item workflow.
 
 ### Augmented payload example
 
@@ -72,6 +75,10 @@ Recommended refresh cadence:
 
 Do not create indexes automatically from the admin app. If a large live database makes template refresh slow, operators can evaluate a controlled database migration such as a `template_id` index.
 
+### Refactor review added
+
+A comprehensive refactor and improvement review was added at `docs/refactor-review.md`. It prioritizes splitting `PlayersTab.tsx`, adding typed augmented item domain models, creating an augment metadata catalog, implementing a cached database-plus-JSON template provider, separating HTTP handlers from database commands, adding admin action audit logs, and expanding backend/frontend test coverage.
+
 ### Testing added
 
 Added Go unit tests for:
@@ -95,7 +102,7 @@ npm run build
 
 ### Known limitations and follow-up
 
-- The legacy embedded Give Item modal remains exported as `LegacyGiveItemModal` for short-term rollback/reference and should be removed after the player tab is split into smaller files.
+- `PlayersTab.tsx` is still large and should be split into smaller player table, inventory, action, and modal components.
 - Some augments appear to require multiple stat rolls. Until an augment metadata catalog exists, operators should provide explicit `rolls` arrays for augments known to need multiple values.
 - Database template refresh strategy is documented, but a manual refresh endpoint and scheduled refresh loop have not yet been implemented.
 - `web/package-lock.json` needs clean regeneration from the current frontend manifest.
