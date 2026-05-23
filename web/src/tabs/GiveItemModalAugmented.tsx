@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Button, Modal, Spinner, toast } from '@heroui/react'
 import { api } from '../api/client'
-import type { GiveItemAugment, GiveItemRow, Player } from '../api/client'
+import type { GiveItemAugment, Player } from '../api/client'
 import { AUGMENT_PRESETS, findAugmentPreset } from './augmentPresets'
+import { clampFloat, clampInt, parseRollsCsv, presetAugment, toGiveItemPayload } from './giveItemPayload'
 
 type TemplateOption = { id: string; name: string }
 
@@ -32,30 +33,6 @@ const newGiveItemDraft = (id: number): GiveItemDraft => ({
   stack_size: 1,
   augments: [],
 })
-
-const clampInt = (value: string, min: number, max: number, fallback: number) => {
-  const parsed = parseInt(value, 10)
-  if (!Number.isFinite(parsed)) return fallback
-  return Math.max(min, Math.min(max, parsed))
-}
-
-const clampFloat = (value: string, min: number, max: number, fallback: number) => {
-  const parsed = parseFloat(value)
-  if (!Number.isFinite(parsed)) return fallback
-  return Math.max(min, Math.min(max, parsed))
-}
-
-function presetAugment(name: string): GiveItemAugment {
-  const preset = findAugmentPreset(name)
-  return {
-    name,
-    grade: preset?.defaultGrade ?? 5,
-    roll: preset?.defaultRoll ?? 1,
-    rolls: preset?.defaultRolls,
-    roll_count: preset?.defaultRollCount ?? 1,
-    effect_indices: [],
-  }
-}
 
 export default function GiveItemModalAugmented({ player, open, onClose }: { player: Player; open: boolean; onClose: () => void }) {
   const [templates, setTemplates] = useState<TemplateOption[]>([])
@@ -89,7 +66,7 @@ export default function GiveItemModalAugmented({ player, open, onClose }: { play
   }, [templates, query])
 
   const activeRow = rows.find(r => r.id === activeRowId) ?? rows[0]
-  const readyRows = rows.filter(r => r.template.trim() && r.qty > 0 && r.stack_size > 0)
+  const readyRows = useMemo(() => rows.filter(r => r.template.trim() && r.qty > 0 && r.stack_size > 0), [rows])
 
   const patchRow = (id: number, patch: Partial<GiveItemDraft>) => {
     setRows(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r))
@@ -98,10 +75,7 @@ export default function GiveItemModalAugmented({ player, open, onClose }: { play
   const patchAugment = (rowId: number, index: number, patch: Partial<GiveItemAugment>) => {
     setRows(prev => prev.map(row => {
       if (row.id !== rowId) return row
-      return {
-        ...row,
-        augments: row.augments.map((aug, i) => i === index ? { ...aug, ...patch } : aug),
-      }
+      return { ...row, augments: row.augments.map((aug, i) => i === index ? { ...aug, ...patch } : aug) }
     }))
   }
 
@@ -147,31 +121,11 @@ export default function GiveItemModalAugmented({ player, open, onClose }: { play
 
   const pick = (template: TemplateOption) => {
     if (!activeRow) return
-    patchRow(activeRow.id, {
-      template: template.id,
-      label: template.name ? `${template.id}  —  ${template.name}` : template.id,
-    })
+    patchRow(activeRow.id, { template: template.id, label: template.name ? `${template.id}  —  ${template.name}` : template.id })
     setQuery('')
   }
 
-  const toPayload = (row: GiveItemDraft): GiveItemRow => ({
-    template: row.template.trim(),
-    qty: row.qty,
-    quality: row.quality,
-    stack_size: row.stack_size,
-    augments: row.augments
-      .filter(aug => aug.name.trim())
-      .map(aug => ({
-        name: aug.name.trim(),
-        grade: aug.grade,
-        roll: aug.roll,
-        rolls: aug.rolls,
-        roll_count: aug.roll_count,
-        effect_indices: aug.effect_indices ?? [],
-      })),
-  })
-
-  const payloadPreview = useMemo(() => ({ player_id: player.id, items: readyRows.map(toPayload) }), [player.id, readyRows])
+  const payloadPreview = useMemo(() => ({ player_id: player.id, items: readyRows.map(toGiveItemPayload) }), [player.id, readyRows])
 
   const handleSubmit = async () => {
     if (readyRows.length === 0) {
@@ -180,7 +134,7 @@ export default function GiveItemModalAugmented({ player, open, onClose }: { play
     }
     setSubmitting(true)
     try {
-      await api.players.giveItems(player.id, readyRows.map(toPayload))
+      await api.players.giveItems(player.id, readyRows.map(toGiveItemPayload))
       toast.success(`Gave ${readyRows.length} item row(s) to ${player.name}`)
       onClose()
     } catch (e: unknown) {
@@ -208,11 +162,7 @@ export default function GiveItemModalAugmented({ player, open, onClose }: { play
                     <span className="text-xs" style={{ color: 'var(--color-text-dim)' }}>{readyRows.length} ready / {rows.length} row(s)</span>
                   </div>
 
-                  {showPayload && (
-                    <pre className="text-xs rounded p-3 overflow-auto max-h-36" style={{ background: '#070604', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
-                      {JSON.stringify(payloadPreview, null, 2)}
-                    </pre>
-                  )}
+                  {showPayload && <pre className="text-xs rounded p-3 overflow-auto max-h-36" style={{ background: '#070604', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>{JSON.stringify(payloadPreview, null, 2)}</pre>}
 
                   <div className="overflow-auto rounded-lg shrink-0" style={{ border: '1px solid #2a2418', maxHeight: '44vh' }}>
                     <table className="w-full text-xs">
@@ -236,7 +186,7 @@ export default function GiveItemModalAugmented({ player, open, onClose }: { play
                                     <input type="number" min={1} max={5} className="rounded px-2 py-1 text-xs border w-14" style={inputStyle} value={aug.grade} onChange={e => patchAugment(row.id, index, { grade: clampInt(e.target.value, 1, 5, 5) })} title="Augment grade" />
                                     <input type="number" min={0} max={1} step={0.01} className="rounded px-2 py-1 text-xs border w-16" style={inputStyle} value={aug.roll ?? 1} onChange={e => patchAugment(row.id, index, { roll: clampFloat(e.target.value, 0, 1, 1), rolls: undefined })} title="Roll value 0.0-1.0" />
                                     <input type="number" min={1} max={8} className="rounded px-2 py-1 text-xs border w-14" style={inputStyle} value={aug.roll_count ?? 1} onChange={e => patchAugment(row.id, index, { roll_count: clampInt(e.target.value, 1, 8, 1), rolls: undefined })} title="Roll count" />
-                                    <input className="rounded px-2 py-1 text-xs border w-32" style={inputStyle} placeholder="rolls csv" value={(aug.rolls ?? []).join(',')} onChange={e => patchAugment(row.id, index, { rolls: e.target.value.split(',').map(v => clampFloat(v.trim(), 0, 1, 1)).filter(v => Number.isFinite(v)) })} title="Explicit rolls, comma separated" />
+                                    <input className="rounded px-2 py-1 text-xs border w-32" style={inputStyle} placeholder="rolls csv" value={(aug.rolls ?? []).join(',')} onChange={e => patchAugment(row.id, index, { rolls: parseRollsCsv(e.target.value) })} title="Explicit rolls, comma separated" />
                                     <Button size="sm" variant="danger-soft" onPress={() => removeAugment(row.id, index)}>X</Button>
                                   </div>
                                 ))}
