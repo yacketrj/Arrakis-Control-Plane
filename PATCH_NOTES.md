@@ -16,7 +16,9 @@ This update moves the Server Health Command Center roadmap forward by adding pro
 - Added frontend API support for the health diagnostic response.
 - Added a `Health Diagnostics` view in the Battlegroup tab.
 - Added diagnostic cards showing section name, description, command, output, and command error.
-- Added `docs/battlegroup-health-diagnostics.md` with endpoint, UI, security, validation, and troubleshooting guidance.
+- Added raw support-bundle export for exact local diagnostic capture.
+- Added redacted support-bundle export that masks common infrastructure identifiers before download.
+- Added `docs/battlegroup-health-diagnostics.md` with endpoint, UI, security, validation, troubleshooting, export, and redaction guidance.
 - Fixed the Battlegroup view buttons to use supported HeroUI variants.
 
 ### Security and operator impact
@@ -25,6 +27,9 @@ This update moves the Server Health Command Center roadmap forward by adding pro
 - Commands are fixed server-side; operators cannot submit arbitrary commands through the health endpoint.
 - The diagnostic bundle is read-only.
 - Metrics-server errors are surfaced per section and do not block the rest of the health result.
+- Raw bundles remain available for local operations review.
+- Redacted bundles provide a safer handoff starting point by masking IPv4 addresses, IPv6 addresses, UUIDs, and common cloud/internal hostname patterns.
+- Redacted export is a helper, not a full data-loss-prevention system; operators should still review exported bundles before external sharing.
 - The feature improves supportability without adding a new mutation path.
 
 ### Validation
