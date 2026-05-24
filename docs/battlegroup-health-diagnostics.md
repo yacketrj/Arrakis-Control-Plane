@@ -33,7 +33,10 @@ The `Health Diagnostics` view runs the read-only diagnostic bundle and renders e
 - command output
 - command error, when present
 
-The view also includes `Export Support Bundle`, which downloads the current diagnostic result as a plain-text support file for local review, ticket attachment, or developer handoff.
+The view also includes export actions for support handoff:
+
+- `Export Raw Bundle`
+- `Export Redacted Bundle`
 
 ## Diagnostic sections
 
@@ -64,13 +67,26 @@ The exported support bundle is generated in the browser from the already-loaded 
 - command errors, when present
 - raw command output
 
-The filename format is:
+Raw bundle filename format:
 
 ```text
 dune-admin-health-<namespace>-<timestamp>.txt
 ```
 
-Before attaching the bundle to an external ticket or developer report, review it for environment-specific details such as hostnames, node names, pod IPs, service IPs, storage names, or other operational identifiers.
+Redacted bundle filename format:
+
+```text
+dune-admin-health-<namespace>-<timestamp>-redacted.txt
+```
+
+The redacted export masks common infrastructure identifiers before download:
+
+- IPv4 addresses
+- IPv6 addresses
+- UUIDs
+- common cloud/internal hostname patterns
+
+The redacted export is a convenience helper, not a complete data-loss-prevention system. Before attaching any bundle to an external ticket or developer report, review it for environment-specific details such as hostnames, node names, pod names, pod IPs, service IPs, storage names, namespaces, or other operational identifiers.
 
 ## Security model
 
@@ -81,6 +97,7 @@ Before attaching the bundle to an external ticket or developer report, review it
 - Metrics-server failures are informational; they should not block the rest of the diagnostic result.
 - The support bundle is generated client-side from protected data already visible to the operator.
 - Support bundles should be reviewed and redacted before external sharing.
+- The redacted export masks common identifiers but does not guarantee removal of every sensitive string.
 
 ## Operator workflow
 
@@ -97,8 +114,9 @@ Before attaching the bundle to an external ticket or developer report, review it
    - persistent_volumes
    - nodes
    - pod_metrics
-6. Click `Export Support Bundle` when a local text copy is needed.
-7. Review and redact the exported text before sharing outside the operations team.
+6. Click `Export Raw Bundle` when a local exact copy is needed.
+7. Click `Export Redacted Bundle` when preparing a bundle for handoff.
+8. Review and redact the exported text before sharing outside the operations team.
 
 ## Troubleshooting guidance
 
@@ -150,5 +168,4 @@ npm run build
 
 - Add structured parsing for the diagnostic sections.
 - Add health badges for unhealthy sections.
-- Add a redact-before-copy helper for external bug reports.
 - Add a server health landing page that combines DB, SSH, Kubernetes, RabbitMQ, and game process state.
