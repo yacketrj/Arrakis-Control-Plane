@@ -48,21 +48,6 @@ func looksLikeDBContainer(name, image string) bool {
 }
 
 func inspectDockerDBEndpoint(client *ssh.Client, containerID, fallbackName string) (dbEndpointDiscovery, error) {
-	runtime := runtimeDocker
-	name := fallbackName
-	project, _ := sshCombined(client, `docker inspect -f '{{index .Config.Labels "com.docker.compose.project"}}' `+shellQuote(containerID)+` 2>/dev/null`)
-	service, _ := sshCombined(client, `docker inspect -f '{{index .Config.Labels "com.docker.compose.service"}}' `+shellQuote(containerID)+` 2>/dev/null`)
-	project = strings.TrimSpace(project)
-	service = strings.TrimSpace(service)
-	if project != "" && project != "<no value>" {
-		runtime = runtimeDockerCompose
-		if service != "" && service != "<no value>" {
-			name = project + "/" + service
-		} else {
-			name = project + "/" + fallbackName
-		}
-	}
-
 	host, _ := sshCombined(client, `docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' `+shellQuote(containerID)+` 2>/dev/null`)
 	host = strings.TrimSpace(host)
 	port := 5432
@@ -74,9 +59,9 @@ func inspectDockerDBEndpoint(client *ssh.Client, containerID, fallbackName strin
 		port = 5432
 	}
 	return dbEndpointDiscovery{
-		Runtime:   runtime,
-		Namespace: string(runtime),
-		Name:      name,
+		Runtime:   runtimeDocker,
+		Namespace: string(runtimeDocker),
+		Name:      fallbackName,
 		Host:      host,
 		Port:      port,
 	}, nil
