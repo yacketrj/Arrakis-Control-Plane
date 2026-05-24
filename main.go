@@ -166,12 +166,20 @@ func loadItemData() error {
 // ── main ──────────────────────────────────────────────────────────────────────
 
 func needsSetup() bool {
-	_, err := os.Stat(".env")
-	if os.IsNotExist(err) {
+	if _, err := os.Stat(".env"); os.IsNotExist(err) {
 		return true
 	}
-	// .env exists but is empty or missing the discovered DB password.
-	return dbPass == ""
+	return len(requiredConfigErrors()) > 0
+}
+
+func printConfigErrors(errs []string) {
+	if len(errs) == 0 {
+		return
+	}
+	fmt.Fprintln(os.Stderr, "Configuration is missing or invalid:")
+	for _, err := range errs {
+		fmt.Fprintln(os.Stderr, "  - "+err)
+	}
 }
 
 func main() {
@@ -197,9 +205,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Auto-run setup wizard when no .env exists — setup leaves us connected.
+	// Auto-run setup only when .env is missing or required values are missing/invalid.
 	alreadyConnected := false
 	if needsSetup() {
+		if _, err := os.Stat(".env"); err == nil {
+			printConfigErrors(requiredConfigErrors())
+		}
 		runSetup()
 		alreadyConnected = true
 		fmt.Println()
