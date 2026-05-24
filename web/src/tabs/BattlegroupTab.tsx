@@ -20,6 +20,49 @@ function parseKubectlOutput(raw: string): PodRow[] {
   })
 }
 
+function safeFilenamePart(value: string): string {
+  return value.trim().replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'unknown'
+}
+
+function buildHealthBundleText(namespace: string, checkedAt: string, sections: BGHealthSection[]): string {
+  const lines = [
+    'Dune Admin Battlegroup Health Diagnostics',
+    `Namespace: ${namespace || 'unknown'}`,
+    `Checked At: ${checkedAt || new Date().toISOString()}`,
+    '',
+    'This support bundle is generated from protected, read-only diagnostics.',
+    'Review and redact environment-specific details before sharing externally.',
+    '',
+  ]
+
+  for (const section of sections) {
+    lines.push('='.repeat(80))
+    lines.push(section.name)
+    lines.push('='.repeat(80))
+    lines.push(section.description)
+    lines.push('')
+    lines.push(`Command: ${section.command}`)
+    if (section.error) lines.push(`Error: ${section.error}`)
+    lines.push('')
+    lines.push(section.output || '(no output)')
+    lines.push('')
+  }
+
+  return lines.join('\n')
+}
+
+function downloadTextFile(filename: string, content: string): void {
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
 const STATUS_COLOR: Record<string, string> = {
   Running: '#27ae60',
   Pending: '#f0a830',
@@ -88,6 +131,14 @@ export default function BattlegroupTab() {
     if (healthSections.length === 0) fetchHealth()
   }
 
+  const exportHealthBundle = () => {
+    const checkedAt = healthCheckedAt || new Date().toISOString()
+    const content = buildHealthBundleText(healthNamespace, checkedAt, healthSections)
+    const filename = `dune-admin-health-${safeFilenamePart(healthNamespace)}-${safeFilenamePart(checkedAt)}.txt`
+    downloadTextFile(filename, content)
+    toast.success('Health diagnostics bundle exported')
+  }
+
   const runCmd = async (action: ActionDef) => {
     setConfirmCmd(null)
     setRunningCmd(action.label)
@@ -122,9 +173,14 @@ export default function BattlegroupTab() {
               {statusLoading ? <Spinner size="sm" color="current" /> : '↻ Refresh'}
             </Button>
           ) : (
-            <Button size="sm" variant="ghost" onPress={fetchHealth} isDisabled={healthLoading}>
-              {healthLoading ? <Spinner size="sm" color="current" /> : '↻ Run Diagnostics'}
-            </Button>
+            <>
+              <Button size="sm" variant="ghost" onPress={fetchHealth} isDisabled={healthLoading}>
+                {healthLoading ? <Spinner size="sm" color="current" /> : '↻ Run Diagnostics'}
+              </Button>
+              <Button size="sm" variant="outline" onPress={exportHealthBundle} isDisabled={healthSections.length === 0 || healthLoading}>
+                Export Support Bundle
+              </Button>
+            </>
           )}
           {view === 'health' && healthNamespace && (
             <span className="text-xs" style={{ color: 'var(--color-text-dim)' }}>
