@@ -49,3 +49,31 @@ func TestBuildStatusPayloadIncludesTunnelFields(t *testing.T) {
 		t.Fatalf("expected no tunnels, got %#v", tunnels)
 	}
 }
+
+func TestBuildStatusPayloadIncludesActiveTunnelDetails(t *testing.T) {
+	oldTunnels := managedTunnels
+	t.Cleanup(func() { managedTunnels = oldTunnels })
+	managedTunnels = []*sshTunnel{{
+		name:       "postgres",
+		localAddr:  "127.0.0.1:15432",
+		remoteAddr: "10.0.0.10:5432",
+	}}
+
+	payload := buildStatusPayload()
+	tunnels, ok := payload["tunnels"].([]map[string]string)
+	if !ok {
+		t.Fatalf("tunnels payload has type %T, want []map[string]string", payload["tunnels"])
+	}
+	if len(tunnels) != 1 {
+		t.Fatalf("expected one tunnel, got %#v", tunnels)
+	}
+	if tunnels[0]["name"] != "postgres" {
+		t.Fatalf("tunnel name = %#v, want postgres", tunnels[0]["name"])
+	}
+	if tunnels[0]["local_addr"] != "127.0.0.1:15432" {
+		t.Fatalf("local_addr = %#v", tunnels[0]["local_addr"])
+	}
+	if tunnels[0]["remote_addr"] != "10.0.0.10:5432" {
+		t.Fatalf("remote_addr = %#v", tunnels[0]["remote_addr"])
+	}
+}
