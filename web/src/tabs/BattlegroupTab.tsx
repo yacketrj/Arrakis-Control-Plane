@@ -51,6 +51,15 @@ function buildHealthBundleText(namespace: string, checkedAt: string, sections: B
   return lines.join('\n')
 }
 
+function redactHealthBundleText(content: string): string {
+  return content
+    .replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, '<redacted-ipv4>')
+    .replace(/\b(?:[0-9a-fA-F]{1,4}:){2,}[0-9a-fA-F]{1,4}\b/g, '<redacted-ipv6>')
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi, '<redacted-uuid>')
+    .replace(/\bip-\d+-\d+-\d+-\d+(?:\.[a-z0-9.-]+)?\b/gi, '<redacted-host>')
+    .replace(/\b[a-z0-9-]+\.compute(?:-internal)?\.[a-z0-9.-]+\b/gi, '<redacted-host>')
+}
+
 function downloadTextFile(filename: string, content: string): void {
   const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
   const url = URL.createObjectURL(blob)
@@ -131,12 +140,14 @@ export default function BattlegroupTab() {
     if (healthSections.length === 0) fetchHealth()
   }
 
-  const exportHealthBundle = () => {
+  const exportHealthBundle = (redacted: boolean) => {
     const checkedAt = healthCheckedAt || new Date().toISOString()
-    const content = buildHealthBundleText(healthNamespace, checkedAt, healthSections)
-    const filename = `dune-admin-health-${safeFilenamePart(healthNamespace)}-${safeFilenamePart(checkedAt)}.txt`
+    const rawContent = buildHealthBundleText(healthNamespace, checkedAt, healthSections)
+    const content = redacted ? redactHealthBundleText(rawContent) : rawContent
+    const suffix = redacted ? '-redacted' : ''
+    const filename = `dune-admin-health-${safeFilenamePart(healthNamespace)}-${safeFilenamePart(checkedAt)}${suffix}.txt`
     downloadTextFile(filename, content)
-    toast.success('Health diagnostics bundle exported')
+    toast.success(redacted ? 'Redacted health diagnostics bundle exported' : 'Health diagnostics bundle exported')
   }
 
   const runCmd = async (action: ActionDef) => {
@@ -177,8 +188,11 @@ export default function BattlegroupTab() {
               <Button size="sm" variant="ghost" onPress={fetchHealth} isDisabled={healthLoading}>
                 {healthLoading ? <Spinner size="sm" color="current" /> : '↻ Run Diagnostics'}
               </Button>
-              <Button size="sm" variant="outline" onPress={exportHealthBundle} isDisabled={healthSections.length === 0 || healthLoading}>
-                Export Support Bundle
+              <Button size="sm" variant="outline" onPress={() => exportHealthBundle(false)} isDisabled={healthSections.length === 0 || healthLoading}>
+                Export Raw Bundle
+              </Button>
+              <Button size="sm" variant="outline" onPress={() => exportHealthBundle(true)} isDisabled={healthSections.length === 0 || healthLoading}>
+                Export Redacted Bundle
               </Button>
             </>
           )}
