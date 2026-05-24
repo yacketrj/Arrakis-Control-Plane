@@ -11,21 +11,7 @@ import (
 func runSetup() {
 	r := bufio.NewReader(os.Stdin)
 
-	task := func(label, def string) string {
-		if def != "" {
-			fmt.Printf("  %s [%s]: ", label, def)
-		} else {
-			fmt.Printf("  %s: ", label)
-		}
-		line, _ := r.ReadString('\n')
-		line = strings.TrimSpace(line)
-		if line == "" {
-			return def
-		}
-		return line
-	}
-	ask = task
-	ask = func(label, def string) string {
+	prompt := func(label, def string) string {
 		if def != "" {
 			fmt.Printf("  %s [%s]: ", label, def)
 		} else {
@@ -51,7 +37,7 @@ func runSetup() {
 	if _, err := os.Stat(keyPath); err != nil {
 		fail("SSH key not found (checked ./sshKey, ~/.ssh/dune, ~/.ssh/id_ed25519, ~/.ssh/id_rsa)")
 		fmt.Println()
-		sshKeyPath = expandLocalPath(task("Path to SSH private key", ""))
+		sshKeyPath = expandLocalPath(prompt("Path to SSH private key", ""))
 		if sshKeyPath == "" {
 			fmt.Fprintln(os.Stderr, "SSH key is required. Aborting.")
 			os.Exit(1)
@@ -68,8 +54,8 @@ func runSetup() {
 	fmt.Println()
 
 	fmt.Println("SSH connection:")
-	sshHost = task("VM host:port", sshHost)
-	sshUser = task("SSH user", sshUser)
+	sshHost = prompt("VM host:port", sshHost)
+	sshUser = prompt("SSH user", sshUser)
 	fmt.Println()
 
 	fmt.Printf("Connecting via SSH to %s...\n", sshHost)
@@ -80,7 +66,7 @@ func runSetup() {
 		fmt.Println("  Make sure:")
 		fmt.Println("    - The VM is reachable at the given host:port")
 		fmt.Println("    - The SSH key is authorized on the VM for that user")
-		fmt.Println("    - The SSH user has passwordless sudo for kubectl")
+		fmt.Println("    - The SSH user has passwordless sudo for kubectl, or Docker/Docker Compose is available")
 		os.Exit(1)
 	}
 	ok("SSH connected")
@@ -98,9 +84,11 @@ func runSetup() {
 	if err != nil {
 		fail("Pod discovery failed: " + err.Error())
 		fmt.Println()
-		fmt.Println("  SSH settings were saved. Run the commands below on the VM to inspect pod names:")
+		fmt.Println("  SSH settings were saved. Run the commands below on the VM to inspect services:")
 		fmt.Println("    sudo kubectl get pods -A -o wide")
 		fmt.Println("    sudo kubectl get svc -A -o wide")
+		fmt.Println("    docker compose ps")
+		fmt.Println("    docker ps")
 		os.Exit(1)
 	}
 	globalSSH = client
@@ -129,7 +117,7 @@ func runSetup() {
 				fmt.Printf("    [%d] %s\n", i+1, bg)
 			}
 			fmt.Println()
-			idxStr := task(fmt.Sprintf("Which battlegroup? [1-%d]", len(battlegroups)), "1")
+			idxStr := prompt(fmt.Sprintf("Which battlegroup? [1-%d]", len(battlegroups)), "1")
 			idx := 1
 			fmt.Sscanf(idxStr, "%d", &idx)
 			if idx >= 1 && idx <= len(battlegroups) {
@@ -148,8 +136,8 @@ func runSetup() {
 	if discoveredPass == "" {
 		fmt.Println()
 		fmt.Println("  Could not auto-discover the database password.")
-		discoveredUser = task("Database user", "postgres")
-		discoveredPass = task("Database password", "")
+		discoveredUser = prompt("Database user", "postgres")
+		discoveredPass = prompt("Database password", "")
 		if discoveredPass == "" {
 			fmt.Fprintln(os.Stderr, "Database password is required. Aborting.")
 			os.Exit(1)
@@ -172,7 +160,7 @@ func runSetup() {
 	fmt.Println()
 
 	fmt.Println("Server config:")
-	listenAddr = task("HTTP listen address", listenAddr)
+	listenAddr = prompt("HTTP listen address", listenAddr)
 	fmt.Println()
 
 	if err := writeSetupEnv(true); err != nil {
