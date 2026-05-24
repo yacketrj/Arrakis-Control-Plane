@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -60,6 +61,13 @@ func runSetup() {
 
 	fmt.Println("Database connection:")
 	dbName = prompt("DB name", dbName)
+	dbPortText := prompt("DB port", fmt.Sprintf("%d", dbPort))
+	parsedDBPort, err := strconv.Atoi(strings.TrimSpace(dbPortText))
+	if err != nil || parsedDBPort <= 0 {
+		fmt.Fprintf(os.Stderr, "Invalid DB port %q. Aborting.\n", dbPortText)
+		os.Exit(1)
+	}
+	dbPort = parsedDBPort
 	dbUser = prompt("DB user", dbUser)
 	newDBPass := prompt("DB password", "")
 	if newDBPass != "" {
