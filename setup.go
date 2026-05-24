@@ -58,6 +58,18 @@ func runSetup() {
 	sshUser = prompt("SSH user", sshUser)
 	fmt.Println()
 
+	fmt.Println("Database connection:")
+	dbUser = prompt("DB user", dbUser)
+	newDBPass := prompt("DB password", "")
+	if newDBPass != "" {
+		dbPass = newDBPass
+	}
+	if strings.TrimSpace(dbPass) == "" {
+		fmt.Fprintln(os.Stderr, "DB password is required. Aborting.")
+		os.Exit(1)
+	}
+	fmt.Println()
+
 	fmt.Printf("Connecting via SSH to %s...\n", sshHost)
 	client, err := dialSSH(keyPath)
 	if err != nil {
@@ -75,84 +87,33 @@ func runSetup() {
 	if err := writeSetupEnv(false); err != nil {
 		fail("Failed to write SSH config to .env: " + err.Error())
 	} else {
-		ok("SSH config saved to .env")
+		ok("SSH and DB config saved to .env")
 	}
 	fmt.Println()
 
-	fmt.Println("Discovering database pod...")
+	fmt.Println("Discovering database endpoint...")
 	ns, pod, podIP, err := discoverDBPod(client)
 	if err != nil {
-		fail("Pod discovery failed: " + err.Error())
+		fail("Database endpoint discovery failed: " + err.Error())
 		fmt.Println()
-		fmt.Println("  SSH settings were saved. Run the commands below on the VM to inspect services:")
-		fmt.Println("    sudo kubectl get pods -A -o wide")
-		fmt.Println("    sudo kubectl get svc -A -o wide")
-		fmt.Println("    docker compose ps --format '{{.Name}}'")
-		fmt.Println("    docker ps --format '{{.Names}}'")
+		fmt.Println("  SSH succeeded, but no supported Dune database service was found through Kubernetes, Docker Compose, or Docker.")
+		fmt.Println("  Verify the game server stack is running on the target host and then re-run setup.")
 		os.Exit(1)
 	}
 	globalSSH = client
 	globalPodNS = ns
 	globalPod = pod
 	globalPodIP = podIP
-	ok("Database pod: " + pod)
-	fmt.Println()
-
-	fmt.Println("Discovering database password...")
-	discoveredUser := "postgres"
-	discoveredPass := ""
-	var battlegroups []string
-	if bg := battlegroupFromPod(globalPod); bg != "" {
-		battlegroups = []string{bg}
-	} else {
-		battlegroups = listBattlegroups(client)
-	}
-	if len(battlegroups) == 0 {
-		fmt.Println("  Could not determine battlegroup name")
-	} else {
-		chosen := battlegroups[0]
-		if len(battlegroups) > 1 {
-			fmt.Println("  Available battlegroups:")
-			for i, bg := range battlegroups {
-				fmt.Printf("    [%d] %s\n", i+1, bg)
-			}
-			fmt.Println()
-			idxStr := prompt(fmt.Sprintf("Which battlegroup? [1-%d]", len(battlegroups)), "1")
-			idx := 1
-			fmt.Sscanf(idxStr, "%d", &idx)
-			if idx >= 1 && idx <= len(battlegroups) {
-				chosen = battlegroups[idx-1]
-			}
-		}
-		yamlPath := fmt.Sprintf("~/.dune/%s.yaml", chosen)
-		if u, pass := extractPasswordFromYAML(client, yamlPath); pass != "" {
-			discoveredUser = u
-			discoveredPass = pass
-			ok(fmt.Sprintf("Password found in %s (user: %s)", yamlPath, u))
-		} else {
-			fail("No password found in " + yamlPath)
-		}
-	}
-	if discoveredPass == "" {
-		fmt.Println()
-		fmt.Println("  Could not auto-discover the database password.")
-		discoveredUser = prompt("Database user", "postgres")
-		discoveredPass = prompt("Database password", "")
-		if discoveredPass == "" {
-			fmt.Fprintln(os.Stderr, "Database password is required. Aborting.")
-			os.Exit(1)
-		}
-	}
+	ok("Database endpoint: " + pod)
 	fmt.Println()
 
 	fmt.Println("Connecting to database...")
-	dbUser = discoveredUser
-	dbPass = discoveredPass
-	pool, err := connectDB(context.Background(), discoveredUser, discoveredPass)
+	pool, err := connectDB(context.Background(), dbUser, dbPass)
 	if err != nil {
 		fail("DB connect failed: " + err.Error())
 		fmt.Println()
-		fmt.Println("  The password may be wrong. Re-run setup to try again.")
+		fmt.Println("  SSH and endpoint discovery succeeded, but PostgreSQL rejected or closed the connection.")
+		fmt.Println("  Verify the DB user, DB password, database name, and detected database port.")
 		os.Exit(1)
 	}
 	globalDB = pool
