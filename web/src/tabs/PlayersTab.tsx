@@ -623,7 +623,7 @@ function PlayerActionsModal({ player, open, onClose }: { player: Player; open: b
       api.players.partitions().then(setPartitions).catch(() => {})
       api.players.charXPCurrent(player.id).then(setCharXPCurrent).catch(() => {})
     }
-  }, [open, player.faction_id])
+  }, [open, player.faction_id, player.id])
 
   useEffect(() => {
     if (section === 'journey' && !nodesLoaded && open) {
