@@ -99,21 +99,26 @@ func init() {
 
 func resolveKeyPath() string {
 	if sshKeyPath != "" {
-		return sshKeyPath
+		return expandLocalPath(sshKeyPath)
 	}
+	home, _ := os.UserHomeDir()
 	candidates := []string{
-		filepath.Join(os.Getenv("HOME"), ".ssh", "id_ed25519"),
-		filepath.Join(os.Getenv("HOME"), ".ssh", "id_rsa"),
-		filepath.Join(os.Getenv("HOME"), ".ssh", "dune"),
+		filepath.Join(home, ".ssh", "id_ed25519"),
+		filepath.Join(home, ".ssh", "id_rsa"),
+		filepath.Join(home, ".ssh", "dune"),
+		filepath.Join(os.Getenv("USERPROFILE"), ".ssh", "id_ed25519"),
+		filepath.Join(os.Getenv("USERPROFILE"), ".ssh", "id_rsa"),
+		filepath.Join(os.Getenv("USERPROFILE"), ".ssh", "dune"),
 		"../sshKey",
 		"./sshKey",
 	}
 	for _, p := range candidates {
+		p = expandLocalPath(p)
 		if _, err := os.Stat(p); err == nil {
 			return p
 		}
 	}
-	return candidates[0]
+	return expandLocalPath(candidates[0])
 }
 
 func resolveItemDataPath() string {
