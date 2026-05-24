@@ -149,6 +149,46 @@ Inventory Studio should include:
 - before/after diff
 - clear delivery path labels: Direct Inventory Write vs Claim Rewards Queue
 
+#### Future feature request: unified player inventory editor
+
+Cataloged for future work; do not implement until runtime/setup stabilization and the mutation safety framework are complete.
+
+Requested capabilities:
+
+- Combine **Player Inventory** and **Give Item** into one inventory management page.
+- Allow editing an existing item in a player's inventory instead of only adding/removing/repairing.
+- Support a complete item catalog view for adding new weapons, armor, gear, resources, vehicles, buildings, and placeables.
+- Support a complete augment catalog view that separates attachable item augments from augmentation stations and other placeable/crafting objects.
+- Allow attaching weapon, armor, gear, shield, and utility augments to the selected inventory item.
+- Provide basic mode for common edits and advanced mode for roll arrays, effect indices, raw JSON, or reverse-engineered augment metadata.
+- Provide before/after preview and audit records for all edits.
+
+Desired page layout:
+
+- Left panel: current player inventory with search/filter.
+- Center panel: selected item details and editable fields.
+- Right panel or drawer: item and augment catalog for adding or attaching templates.
+
+Potential editable fields, subject to backend validation:
+
+- stack size / quantity
+- item quality / grade
+- durability / repair state
+- attached augment list
+- augment grade
+- augment roll strengths
+- explicit roll arrays
+- effect indices, only in advanced mode
+
+Safety requirements:
+
+- Snapshot the item before mutation.
+- Log before/after values.
+- Require confirmation for destructive operations.
+- Validate item template IDs and augment template IDs.
+- Warn when direct database writes may require online players to relog.
+- Do not expose arbitrary SQL as the editing mechanism.
+
 ### Broadcast Center
 
 Broadcast Center should include:
