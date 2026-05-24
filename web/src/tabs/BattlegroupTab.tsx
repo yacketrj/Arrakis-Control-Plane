@@ -115,8 +115,8 @@ export default function BattlegroupTab() {
           <h2 className="text-base font-semibold" style={{ color: 'var(--color-primary)' }}>
             Battlegroup Status
           </h2>
-          <Button size="sm" variant={view === 'pods' ? 'solid' : 'ghost'} onPress={() => setView('pods')}>Pods</Button>
-          <Button size="sm" variant={view === 'health' ? 'solid' : 'ghost'} onPress={openHealth}>Health Diagnostics</Button>
+          <Button size="sm" variant={view === 'pods' ? 'primary' : 'ghost'} onPress={() => setView('pods')}>Pods</Button>
+          <Button size="sm" variant={view === 'health' ? 'primary' : 'ghost'} onPress={openHealth}>Health Diagnostics</Button>
           {view === 'pods' ? (
             <Button size="sm" variant="ghost" onPress={fetchStatus} isDisabled={statusLoading}>
               {statusLoading ? <Spinner size="sm" color="current" /> : '↻ Refresh'}
