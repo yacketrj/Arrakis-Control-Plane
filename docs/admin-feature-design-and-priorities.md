@@ -75,19 +75,20 @@ Use Direct Inventory Write for full-fidelity item creation and edits. Use Claim 
 |---:|---|---|---|---|
 | 1 | P0 | Admin Action Audit Log | Makes high-risk actions accountable | None |
 | 2 | P0 | Mutation Safety Framework | Shared preview, reason, audit, validation, rollback hooks | Audit Log |
-| 3 | P1 | Player 360 Profile | Single support view for player identity, state, inventory, history | Existing player APIs |
+| 3 | P1 | Player 360 Profile | Single support view for player identity, state, inventory, history | Existing player APIs | Fold Currance & Online Status into Player Info|
 | 4 | P1 | Inventory Studio v2 | Safer inventory snapshots, diffs, item edits, augment inspection | Audit + Give Item helpers |
-| 5 | P1 | Broadcast Center | Template-based maintenance and live-ops communication | Notification/RMQ path |
-| 6 | P1 | Safe Offline Teleport / Rescue | Stuck-player rescue with guardrails and rollback hints | Audit + partition APIs |
-| 7 | P1 | Server Health Command Center | Unified operational status and diagnostic bundle | Battlegroup + DB status |
-| 8 | P2 | RMQ Operations Dashboard | Queue/exchange/consumer diagnostics | Read-only RMQ helpers |
-| 9 | P2 | Journey / Progression Manager | Safer quest/progression support | Audit + journey commands |
-| 10 | P2 | Guild / Faction Admin | Guild/faction support tooling | Audit + DB procedures |
-| 11 | P2 | Augment Preset Manager | Better augmented item creation and reverse-engineering | Inventory Studio v2 |
-| 12 | P2 | Maintenance Mode Assistant | Guided downtime, broadcasts, health snapshots | Broadcast + Health Center |
-| 13 | P3 | Settings Diff / Config Manager | Read-only config baseline and future safe writes | Health + RMQ format research |
-| 14 | P3 | Chat Moderation / Intercept Viewer | Moderation evidence and chat diagnostics | RMQ dashboard foundation |
-| 15 | P3 | Safe Stored Procedure Runner | Typed allowlisted admin procedure execution | Audit + safety framework |
+| 5 | P1 | Battlegroup Status v2 | Implement Prometheus/Grafana graphs | improve diagnostics | Trouble Shooting |
+| 6 | P1 | Broadcast Center | Template-based maintenance and live-ops communication | Notification/RMQ path |
+| 7 | P1 | Safe Offline Teleport / Rescue | Stuck-player rescue with guardrails and rollback hints | Audit + partition APIs |
+| 8 | P1 | Server Health Command Center | Unified operational status and diagnostic bundle | Battlegroup + DB status |
+| 9 | P2 | RMQ Operations Dashboard | Queue/exchange/consumer diagnostics | Read-only RMQ helpers |
+| 10 | P2 | Journey / Progression Manager | Safer quest/progression support | Audit + journey commands |
+| 11 | P2 | Guild / Faction Admin | Guild/faction support tooling | Audit + DB procedures |
+| 12 | P2 | Augment Preset Manager | Better augmented item creation and reverse-engineering | Inventory Studio v2 |
+| 13 | P2 | Maintenance Mode Assistant | Guided downtime, broadcasts, health snapshots | Broadcast + Health Center |
+| 14 | P3 | Settings Diff / Config Manager | Read-only config baseline and future safe writes | Health + RMQ format research |
+| 15 | P3 | Chat Moderation / Intercept Viewer | Moderation evidence and chat diagnostics | RMQ dashboard foundation |
+| 16 | P3 | Safe Stored Procedure Runner | Typed allowlisted admin procedure execution | Audit + safety framework |
 
 ## P0 foundation features
 
