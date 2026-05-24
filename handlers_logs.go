@@ -18,26 +18,34 @@ type logPod struct {
 }
 
 func handleLogPods(w http.ResponseWriter, r *http.Request) {
-	out, err := sshExec(fmt.Sprintf(
-		"%s %s %s %s %s %s %s %s",
-		"sudo", "kubectl", "get", "pods", "-n", globalPodNS, "--no-headers", "-o custom-columns=NAME:.metadata.name 2>&1"))
+	cmd := runtimeLogPodsCommand()
+	out, err := sshExec(cmd)
 	if err != nil {
-		jsonErr(w, fmt.Errorf("kubectl: %w", err), 500)
+		jsonErr(w, fmt.Errorf("runtime %s log target discovery failed: %w — output: %s", normalizeRuntime(serverRuntime), err, out), 500)
 		return
 	}
-	out2, _ := sshExec("sudo kubectl get pods -n funcom-operators --no-headers -o custom-columns=NAME:.metadata.name 2>&1")
 
 	var pods []logPod
-	for _, line := range splitLines(out) {
-		name := strings.TrimSpace(line)
-		if name != "" && isValidK8sName(name) && !strings.Contains(name, "db-dbdepl") {
-			pods = append(pods, logPod{Namespace: globalPodNS, Name: name})
+	if runtimeUsesDockerCommands() {
+		for _, line := range splitLines(out) {
+			id := strings.TrimSpace(line)
+			if id != "" && isValidRuntimeLogTarget("docker", id) {
+				pods = append(pods, logPod{Namespace: normalizeRuntime(serverRuntime), Name: id})
+			}
 		}
-	}
-	for _, line := range splitLines(out2) {
-		name := strings.TrimSpace(line)
-		if name != "" && isValidK8sName(name) {
-			pods = append(pods, logPod{Namespace: "funcom-operators", Name: name})
+	} else {
+		for _, line := range splitLines(out) {
+			name := strings.TrimSpace(line)
+			if name != "" && isValidK8sName(name) && !strings.Contains(name, "db-dbdepl") {
+				pods = append(pods, logPod{Namespace: globalPodNS, Name: name})
+			}
+		}
+		out2, _ := sshExec("sudo kubectl get pods -n funcom-operators --no-headers -o custom-columns=NAME:.metadata.name 2>&1")
+		for _, line := range splitLines(out2) {
+			name := strings.TrimSpace(line)
+			if name != "" && isValidK8sName(name) {
+				pods = append(pods, logPod{Namespace: "funcom-operators", Name: name})
+			}
 		}
 	}
 	if pods == nil {
@@ -53,7 +61,7 @@ func handleLogStream(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "ns and pod required", 400)
 		return
 	}
-	if !isAllowedLogTarget(ns, pod) {
+	if !isValidRuntimeLogTarget(ns, pod) {
 		http.Error(w, "invalid log stream target", 400)
 		return
 	}
@@ -64,7 +72,7 @@ func handleLogStream(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	cmd := strings.Join([]string{"sudo", "kubectl", "logs", "-f", "-n", ns, pod}, " ") + " 2>&1"
+	cmd := runtimeLogStreamCommand(ns, pod)
 	ch, cancel, err := sshStream(cmd)
 	if err != nil {
 		conn.WriteMessage(websocket.TextMessage, []byte("error: "+err.Error()))
