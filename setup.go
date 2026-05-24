@@ -37,7 +37,7 @@ func runSetup() {
 	if _, err := os.Stat(keyPath); err != nil {
 		fail("SSH key not found (checked ./sshKey, ~/.ssh/dune, ~/.ssh/id_ed25519, ~/.ssh/id_rsa)")
 		fmt.Println()
-		sshKeyPath = expandLocalPath(task("Path to SSH private key", ""))
+		sshKeyPath = expandLocalPath(ask("Path to SSH private key", ""))
 		if sshKeyPath == "" {
 			fmt.Fprintln(os.Stderr, "SSH key is required. Aborting.")
 			os.Exit(1)
@@ -54,8 +54,8 @@ func runSetup() {
 	fmt.Println()
 
 	fmt.Println("SSH connection:")
-	sshHost = task("VM host:port", sshHost)
-	sshUser = task("SSH user", sshUser)
+	sshHost = ask("VM host:port", sshHost)
+	sshUser = ask("SSH user", sshUser)
 	fmt.Println()
 
 	fmt.Printf("Connecting via SSH to %s...\n", sshHost)
@@ -115,7 +115,7 @@ func runSetup() {
 				fmt.Printf("    [%d] %s\n", i+1, bg)
 			}
 			fmt.Println()
-			idxStr := task(fmt.Sprintf("Which battlegroup? [1-%d]", len(battlegroups)), "1")
+			idxStr := ask(fmt.Sprintf("Which battlegroup? [1-%d]", len(battlegroups)), "1")
 			idx := 1
 			fmt.Sscanf(idxStr, "%d", &idx)
 			if idx >= 1 && idx <= len(battlegroups) {
@@ -134,8 +134,8 @@ func runSetup() {
 	if discoveredPass == "" {
 		fmt.Println()
 		fmt.Println("  Could not auto-discover the database password.")
-		discoveredUser = task("Database user", "postgres")
-		discoveredPass = task("Database password", "")
+		discoveredUser = ask("Database user", "postgres")
+		discoveredPass = ask("Database password", "")
 		if discoveredPass == "" {
 			fmt.Fprintln(os.Stderr, "Database password is required. Aborting.")
 			os.Exit(1)
@@ -158,7 +158,7 @@ func runSetup() {
 	fmt.Println()
 
 	fmt.Println("Server config:")
-	listenAddr = task("HTTP listen address", listenAddr)
+	listenAddr = ask("HTTP listen address", listenAddr)
 	fmt.Println()
 
 	if err := writeSetupEnv(true); err != nil {
