@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"strings"
 	"sync"
@@ -59,6 +60,7 @@ func newManagedTunnel(client *ssh.Client, name, localHost string, localPort int,
 	managedTunnelsMu.Lock()
 	managedTunnels = append(managedTunnels, tunnel)
 	managedTunnelsMu.Unlock()
+	log.Printf("ssh tunnel active: %s %s -> %s", tunnel.name, tunnel.localAddr, tunnel.remoteAddr)
 	return tunnel, nil
 }
 
