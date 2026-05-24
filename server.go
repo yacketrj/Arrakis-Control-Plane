@@ -39,6 +39,7 @@ func startServer(addr string) {
 	mux.HandleFunc("GET /api/v1/audit/events", handleAdminAuditEvents)
 
 	mux.HandleFunc("GET /api/v1/battlegroup/status", handleBGStatus)
+	mux.HandleFunc("GET /api/v1/battlegroup/health", handleBGHealth)
 	mux.HandleFunc("POST /api/v1/battlegroup/exec", handleBGExec)
 	mux.HandleFunc("GET /api/v1/battlegroup/pods", handleBGPods)
 
