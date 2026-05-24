@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Added SSH tunnel management foundation with managed local forwarding for game-management database access.
+- Added SSH tunnel mode configuration for managed, existing, and direct troubleshooting paths.
+- Added managed tunnel lifecycle cleanup during reconnect and shutdown.
+- Added SSH tunnel normalization tests and empty-status test coverage.
+- Added `docs/ssh-tunnel-management.md` with tunnel modes, runtime behavior, operator guidance, and validation steps.
 - Added Battlegroup Health Diagnostics with protected read-only Kubernetes diagnostics for pods, services, statefulsets, deployments, PVCs, recent events, nodes, and pod metrics.
 - Added Battlegroup Health Diagnostics UI cards with diagnostic descriptions, executed commands, output, and per-section errors.
 - Added raw and redacted Battlegroup Health support-bundle exports for local review and safer developer/support handoff.
@@ -41,6 +46,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Routed PostgreSQL game-management access through the configured SSH tunnel policy instead of the previous inline SSH dial function.
 - Updated Battlegroup tab navigation with separate `Pods` and `Health Diagnostics` views.
 - Updated Battlegroup support-bundle workflow with separate raw and redacted export actions.
 - Clarified that Claim Rewards Queue grants are not the same as crafting, looting, finding an item, or authoritative gameplay inventory mutation.
@@ -63,6 +69,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Fixed managed SSH tunnel cleanup so repeated close paths are idempotent.
 - Fixed Battlegroup view button variants to use supported HeroUI values.
 - Fixed missing/stale `go.sum` risk by adding CI validation that runs `go mod tidy`, verifies `go.mod`/`go.sum` have no diff, verifies module checksums, and runs Go tests.
 - Fixed Give Item operator confusion by documenting that the live reward path is a claim queue, not a universal instant inventory mutation system.
@@ -81,6 +88,8 @@ All notable changes to this project will be documented in this file.
 
 ### Security
 
+- Reduced direct infrastructure exposure by routing supported game-management database access through managed SSH tunnels by default.
+- Reduced reconnect risk by cleaning managed tunnels before reopening SSH and database sessions.
 - Reduced diagnostic handoff risk by adding redacted Battlegroup Health bundle export for common infrastructure identifiers.
 - Reduced infrastructure mutation risk by keeping Battlegroup Health Diagnostics read-only with fixed server-side commands.
 - Reduced support exposure risk by documenting redaction limits and requiring operator review before external sharing.
