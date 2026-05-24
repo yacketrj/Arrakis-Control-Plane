@@ -25,16 +25,50 @@ type dbEndpointDiscovery struct {
 }
 
 func discoverDatabaseEndpoint(client *ssh.Client) (dbEndpointDiscovery, error) {
-	if endpoint, err := discoverKubernetesDBEndpoint(client); err == nil {
+	requested := normalizeRuntime(serverRuntime)
+	switch requested {
+	case runtimeModeKubernetes, runtimeModeHyperV:
+		endpoint, err := discoverKubernetesDBEndpoint(client)
+		if err != nil {
+			return dbEndpointDiscovery{}, err
+		}
 		return endpoint, nil
-	}
-	if endpoint, err := discoverDockerDBEndpoint(client); err == nil {
+	case runtimeModeDocker, runtimeModeDockerCompose:
+		endpoint, err := discoverDockerDBEndpoint(client)
+		if err != nil {
+			return dbEndpointDiscovery{}, err
+		}
 		return endpoint, nil
+	case runtimeModeAuto:
+		if endpoint, err := discoverKubernetesDBEndpoint(client); err == nil {
+			return endpoint, nil
+		}
+		if endpoint, err := discoverDockerDBEndpoint(client); err == nil {
+			return endpoint, nil
+		}
+		return dbEndpointDiscovery{}, fmt.Errorf("database endpoint not found through Kubernetes or Docker")
+	default:
+		return dbEndpointDiscovery{}, fmt.Errorf("unsupported SERVER_RUNTIME %q", serverRuntime)
 	}
-	return dbEndpointDiscovery{}, fmt.Errorf("database endpoint not found via kubectl or docker")
+}
+
+func applyDetectedRuntime(runtime runtimeKind) {
+	if normalizeRuntime(serverRuntime) == runtimeModeAuto {
+		switch runtime {
+		case runtimeKubernetes:
+			serverRuntime = runtimeModeKubernetes
+		case runtimeDockerCompose:
+			serverRuntime = runtimeModeDockerCompose
+		case runtimeDocker:
+			serverRuntime = runtimeModeDocker
+		}
+	}
 }
 
 func discoverKubernetesDBEndpoint(client *ssh.Client) (dbEndpointDiscovery, error) {
+	if out, err := sshCombined(client, `command -v kubectl >/dev/null 2>&1 && echo ok`); err != nil || strings.TrimSpace(out) != "ok" {
+		return dbEndpointDiscovery{}, fmt.Errorf("kubectl not available")
+	}
 	out, err := sshCombined(client, `sudo kubectl get pods -A -o jsonpath='{range .items[*]}{.metadata.namespace}{" "}{.metadata.name}{" "}{.status.podIP}{"\n"}{end}' 2>/dev/null | grep db-dbdepl-sts | head -1`)
 	if err != nil {
 		return dbEndpointDiscovery{}, fmt.Errorf("kubectl: %w", err)
