@@ -11,7 +11,21 @@ import (
 func runSetup() {
 	r := bufio.NewReader(os.Stdin)
 
-	ask := func(label, def string) string {
+	task := func(label, def string) string {
+		if def != "" {
+			fmt.Printf("  %s [%s]: ", label, def)
+		} else {
+			fmt.Printf("  %s: ", label)
+		}
+		line, _ := r.ReadString('\n')
+		line = strings.TrimSpace(line)
+		if line == "" {
+			return def
+		}
+		return line
+	}
+	ask = task
+	ask = func(label, def string) string {
 		if def != "" {
 			fmt.Printf("  %s [%s]: ", label, def)
 		} else {
@@ -37,7 +51,7 @@ func runSetup() {
 	if _, err := os.Stat(keyPath); err != nil {
 		fail("SSH key not found (checked ./sshKey, ~/.ssh/dune, ~/.ssh/id_ed25519, ~/.ssh/id_rsa)")
 		fmt.Println()
-		sshKeyPath = expandLocalPath(ask("Path to SSH private key", ""))
+		sshKeyPath = expandLocalPath(task("Path to SSH private key", ""))
 		if sshKeyPath == "" {
 			fmt.Fprintln(os.Stderr, "SSH key is required. Aborting.")
 			os.Exit(1)
@@ -54,8 +68,8 @@ func runSetup() {
 	fmt.Println()
 
 	fmt.Println("SSH connection:")
-	sshHost = ask("VM host:port", sshHost)
-	sshUser = ask("SSH user", sshUser)
+	sshHost = task("VM host:port", sshHost)
+	sshUser = task("SSH user", sshUser)
 	fmt.Println()
 
 	fmt.Printf("Connecting via SSH to %s...\n", sshHost)
@@ -115,7 +129,7 @@ func runSetup() {
 				fmt.Printf("    [%d] %s\n", i+1, bg)
 			}
 			fmt.Println()
-			idxStr := ask(fmt.Sprintf("Which battlegroup? [1-%d]", len(battlegroups)), "1")
+			idxStr := task(fmt.Sprintf("Which battlegroup? [1-%d]", len(battlegroups)), "1")
 			idx := 1
 			fmt.Sscanf(idxStr, "%d", &idx)
 			if idx >= 1 && idx <= len(battlegroups) {
@@ -134,8 +148,8 @@ func runSetup() {
 	if discoveredPass == "" {
 		fmt.Println()
 		fmt.Println("  Could not auto-discover the database password.")
-		discoveredUser = ask("Database user", "postgres")
-		discoveredPass = ask("Database password", "")
+		discoveredUser = task("Database user", "postgres")
+		discoveredPass = task("Database password", "")
 		if discoveredPass == "" {
 			fmt.Fprintln(os.Stderr, "Database password is required. Aborting.")
 			os.Exit(1)
@@ -158,7 +172,7 @@ func runSetup() {
 	fmt.Println()
 
 	fmt.Println("Server config:")
-	listenAddr = ask("HTTP listen address", listenAddr)
+	listenAddr = task("HTTP listen address", listenAddr)
 	fmt.Println()
 
 	if err := writeSetupEnv(true); err != nil {
