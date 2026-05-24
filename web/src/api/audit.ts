@@ -5,6 +5,9 @@ export type AdminAuditEvent = {
   method: string
   path: string
   action: string
+  risk?: string
+  reason?: string
+  target?: Record<string, string>
   status: number
   duration_ms: number
   result: string
