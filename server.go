@@ -17,7 +17,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 				w.Header().Set("Vary", "Origin")
 			}
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Admin-Token")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Admin-Token, X-Admin-Reason")
 		}
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
@@ -59,6 +59,7 @@ func startServer(addr string) {
 	mux.HandleFunc("GET /api/v1/status", handleStatus)
 	mux.HandleFunc("POST /api/v1/reconnect", handleReconnect)
 	mux.HandleFunc("GET /api/v1/audit/events", handleAdminAuditEvents)
+	mux.HandleFunc("GET /api/v1/mutation-safety/classify", handleMutationSafetyClassify)
 
 	mux.HandleFunc("GET /api/v1/battlegroup/status", handleBGStatus)
 	mux.HandleFunc("GET /api/v1/battlegroup/health", handleBGHealth)
