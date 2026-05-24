@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Button, Modal, Spinner, toast } from '@heroui/react'
-import { api } from '../api/client'
+import { api, type BGHealthSection } from '../api/client'
 
 type PodRow = { name: string; ready: string; status: string; restarts: string; age: string }
+type BattlegroupView = 'pods' | 'health'
 
 function parseKubectlOutput(raw: string): PodRow[] {
   const lines = raw.trim().split('\n').filter(Boolean)
@@ -40,8 +41,13 @@ const ACTIONS = [
 type ActionDef = typeof ACTIONS[0]
 
 export default function BattlegroupTab() {
+  const [view, setView] = useState<BattlegroupView>('pods')
   const [pods, setPods] = useState<PodRow[]>([])
+  const [healthSections, setHealthSections] = useState<BGHealthSection[]>([])
+  const [healthNamespace, setHealthNamespace] = useState('')
+  const [healthCheckedAt, setHealthCheckedAt] = useState('')
   const [statusLoading, setStatusLoading] = useState(false)
+  const [healthLoading, setHealthLoading] = useState(false)
   const [runningCmd, setRunningCmd] = useState<string | null>(null)
   const [cmdOutput, setCmdOutput] = useState<string | null>(null)
   const [cmdDone, setCmdDone] = useState(false)
@@ -60,7 +66,27 @@ export default function BattlegroupTab() {
     }
   }, [])
 
+  const fetchHealth = useCallback(async () => {
+    setHealthLoading(true)
+    try {
+      const res = await api.battlegroup.health()
+      setHealthSections(res.sections)
+      setHealthNamespace(res.namespace)
+      setHealthCheckedAt(res.checked_at)
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e)
+      toast.danger(`Health diagnostics failed: ${msg}`)
+    } finally {
+      setHealthLoading(false)
+    }
+  }, [])
+
   useEffect(() => { fetchStatus() }, [fetchStatus])
+
+  const openHealth = () => {
+    setView('health')
+    if (healthSections.length === 0) fetchHealth()
+  }
 
   const runCmd = async (action: ActionDef) => {
     setConfirmCmd(null)
@@ -73,6 +99,7 @@ export default function BattlegroupTab() {
       setCmdDone(true)
       toast.success(`${action.label} completed`)
       fetchStatus()
+      if (healthSections.length > 0) fetchHealth()
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e)
       setCmdOutput(`Error: ${msg}`)
@@ -83,55 +110,39 @@ export default function BattlegroupTab() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '16px', gap: '0' }}>
-      {/* Pod Status — scrollable */}
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <h2 className="text-base font-semibold" style={{ color: 'var(--color-primary)' }}>
-            Pod Status
+            Battlegroup Status
           </h2>
-          <Button size="sm" variant="ghost" onPress={fetchStatus} isDisabled={statusLoading}>
-            {statusLoading ? <Spinner size="sm" color="current" /> : '↻ Refresh'}
-          </Button>
+          <Button size="sm" variant={view === 'pods' ? 'solid' : 'ghost'} onPress={() => setView('pods')}>Pods</Button>
+          <Button size="sm" variant={view === 'health' ? 'solid' : 'ghost'} onPress={openHealth}>Health Diagnostics</Button>
+          {view === 'pods' ? (
+            <Button size="sm" variant="ghost" onPress={fetchStatus} isDisabled={statusLoading}>
+              {statusLoading ? <Spinner size="sm" color="current" /> : '↻ Refresh'}
+            </Button>
+          ) : (
+            <Button size="sm" variant="ghost" onPress={fetchHealth} isDisabled={healthLoading}>
+              {healthLoading ? <Spinner size="sm" color="current" /> : '↻ Run Diagnostics'}
+            </Button>
+          )}
+          {view === 'health' && healthNamespace && (
+            <span className="text-xs" style={{ color: 'var(--color-text-dim)' }}>
+              ns: {healthNamespace}{healthCheckedAt ? ` · ${healthCheckedAt}` : ''}
+            </span>
+          )}
         </div>
 
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-          {statusLoading && pods.length === 0 ? (
-            <div className="flex items-center gap-2 py-4" style={{ color: 'var(--color-text-dim)' }}>
-              <Spinner size="sm" color="current" />
-              <span className="text-sm">Loading pod status...</span>
-            </div>
-          ) : pods.length === 0 ? (
-            <p className="text-sm" style={{ color: 'var(--color-text-dim)' }}>No pods found. Click Refresh to try again.</p>
-          ) : (
-            <div className="overflow-auto rounded-lg" style={{ border: '1px solid #2a2418' }}>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ background: '#1a1610', borderBottom: '1px solid #2a2418' }}>
-                    {['Name', 'Ready', 'Status', 'Restarts', 'Age'].map(h => (
-                      <th key={h} className="text-left px-4 py-2 font-semibold text-xs uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {pods.map((pod, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #1a1610', background: i % 2 === 0 ? '#0d0b07' : '#111009' }}>
-                      <td className="px-4 py-2 font-mono text-xs" style={{ color: 'var(--color-text)' }}>{pod.name}</td>
-                      <td className="px-4 py-2 text-xs" style={{ color: 'var(--color-text-dim)' }}>{pod.ready}</td>
-                      <td className="px-4 py-2 text-xs font-semibold" style={{ color: STATUS_COLOR[pod.status] ?? 'var(--color-text)' }}>{pod.status}</td>
-                      <td className="px-4 py-2 text-xs" style={{ color: 'var(--color-text-dim)' }}>{pod.restarts}</td>
-                      <td className="px-4 py-2 text-xs" style={{ color: 'var(--color-text-dim)' }}>{pod.age}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          {view === 'pods' && (
+            <PodStatusTable pods={pods} loading={statusLoading} />
+          )}
+          {view === 'health' && (
+            <HealthDiagnostics sections={healthSections} loading={healthLoading} />
           )}
         </div>
       </div>
 
-      {/* Action buttons — sticky footer */}
       <div
         className="shrink-0"
         style={{ borderTop: '1px solid #2a2418', paddingTop: '12px', marginTop: '12px' }}
@@ -154,7 +165,6 @@ export default function BattlegroupTab() {
         </div>
       </div>
 
-      {/* Confirm dialog */}
       <Modal>
         <Modal.Backdrop isOpen={confirmCmd !== null} onOpenChange={v => { if (!v) setConfirmCmd(null) }}>
           <Modal.Container>
@@ -180,7 +190,6 @@ export default function BattlegroupTab() {
         </Modal.Backdrop>
       </Modal>
 
-      {/* Running command modal — closes when done */}
       <Modal>
         <Modal.Backdrop
           isOpen={runningCmd !== null}
@@ -219,6 +228,90 @@ export default function BattlegroupTab() {
           </Modal.Container>
         </Modal.Backdrop>
       </Modal>
+    </div>
+  )
+}
+
+function PodStatusTable({ pods, loading }: { pods: PodRow[]; loading: boolean }) {
+  if (loading && pods.length === 0) {
+    return (
+      <div className="flex items-center gap-2 py-4" style={{ color: 'var(--color-text-dim)' }}>
+        <Spinner size="sm" color="current" />
+        <span className="text-sm">Loading pod status...</span>
+      </div>
+    )
+  }
+  if (pods.length === 0) {
+    return <p className="text-sm" style={{ color: 'var(--color-text-dim)' }}>No pods found. Click Refresh to try again.</p>
+  }
+  return (
+    <div className="overflow-auto rounded-lg" style={{ border: '1px solid #2a2418' }}>
+      <table className="w-full text-sm">
+        <thead>
+          <tr style={{ background: '#1a1610', borderBottom: '1px solid #2a2418' }}>
+            {['Name', 'Ready', 'Status', 'Restarts', 'Age'].map(h => (
+              <th key={h} className="text-left px-4 py-2 font-semibold text-xs uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {pods.map((pod, i) => (
+            <tr key={`${pod.name}-${i}`} style={{ borderBottom: '1px solid #1a1610', background: i % 2 === 0 ? '#0d0b07' : '#111009' }}>
+              <td className="px-4 py-2 font-mono text-xs" style={{ color: 'var(--color-text)' }}>{pod.name}</td>
+              <td className="px-4 py-2 text-xs" style={{ color: 'var(--color-text-dim)' }}>{pod.ready}</td>
+              <td className="px-4 py-2 text-xs font-semibold" style={{ color: STATUS_COLOR[pod.status] ?? 'var(--color-text)' }}>{pod.status}</td>
+              <td className="px-4 py-2 text-xs" style={{ color: 'var(--color-text-dim)' }}>{pod.restarts}</td>
+              <td className="px-4 py-2 text-xs" style={{ color: 'var(--color-text-dim)' }}>{pod.age}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function HealthDiagnostics({ sections, loading }: { sections: BGHealthSection[]; loading: boolean }) {
+  if (loading && sections.length === 0) {
+    return (
+      <div className="flex items-center gap-2 py-4" style={{ color: 'var(--color-text-dim)' }}>
+        <Spinner size="sm" color="current" />
+        <span className="text-sm">Running read-only health diagnostics...</span>
+      </div>
+    )
+  }
+  if (sections.length === 0) {
+    return <p className="text-sm" style={{ color: 'var(--color-text-dim)' }}>No diagnostics loaded. Click Run Diagnostics.</p>
+  }
+  return (
+    <div className="flex flex-col gap-3">
+      {sections.map(section => (
+        <HealthSectionCard key={section.name} section={section} />
+      ))}
+    </div>
+  )
+}
+
+function HealthSectionCard({ section }: { section: BGHealthSection }) {
+  return (
+    <div className="rounded-lg overflow-hidden" style={{ border: '1px solid #2a2418', background: 'var(--color-surface)' }}>
+      <div className="px-3 py-2" style={{ borderBottom: '1px solid #2a2418', background: '#1a1610' }}>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-semibold text-sm" style={{ color: 'var(--color-primary)' }}>{section.name}</span>
+          {section.error && <span className="text-xs" style={{ color: '#ff8c7a' }}>command returned an error</span>}
+        </div>
+        <p className="text-xs mt-1" style={{ color: 'var(--color-text-dim)' }}>{section.description}</p>
+        <code className="text-[10px] block mt-1" style={{ color: 'var(--color-text-dim)' }}>{section.command}</code>
+      </div>
+      {section.error && (
+        <div className="px-3 py-2 text-xs" style={{ color: '#ff8c7a', borderBottom: '1px solid #2a2418' }}>
+          {section.error}
+        </div>
+      )}
+      <pre className="p-3 text-xs overflow-auto" style={{ margin: 0, color: 'var(--color-text)', background: '#0a0806', maxHeight: '260px', whiteSpace: 'pre-wrap' }}>
+        {section.output || '(no output)'}
+      </pre>
     </div>
   )
 }
