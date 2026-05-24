@@ -2,7 +2,10 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"sort"
@@ -12,20 +15,29 @@ import (
 )
 
 const defaultAdminAuditPath = "admin-audit.jsonl"
+const maxAuditInspectableBodyBytes int64 = 1 << 20
 
 type adminAuditEvent struct {
-	Timestamp  string `json:"timestamp"`
-	Method     string `json:"method"`
-	Path       string `json:"path"`
-	Action     string `json:"action"`
-	Status     int    `json:"status"`
-	DurationMS int64  `json:"duration_ms"`
-	Result     string `json:"result"`
+	Timestamp  string            `json:"timestamp"`
+	Method     string            `json:"method"`
+	Path       string            `json:"path"`
+	Action     string            `json:"action"`
+	Risk       string            `json:"risk"`
+	Reason     string            `json:"reason,omitempty"`
+	Target     map[string]string `json:"target,omitempty"`
+	Status     int               `json:"status"`
+	DurationMS int64             `json:"duration_ms"`
+	Result     string            `json:"result"`
 }
 
 type statusCaptureWriter struct {
 	http.ResponseWriter
 	status int
+}
+
+type mutationAuditMetadata struct {
+	Reason string
+	Target map[string]string
 }
 
 var adminAuditMu sync.Mutex
@@ -49,6 +61,7 @@ func auditMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
+		metadata := extractMutationAuditMetadata(r)
 		started := time.Now()
 		capture := &statusCaptureWriter{ResponseWriter: w}
 		next.ServeHTTP(capture, r)
@@ -62,6 +75,9 @@ func auditMiddleware(next http.Handler) http.Handler {
 			Method:     r.Method,
 			Path:       r.URL.Path,
 			Action:     auditActionName(r.Method, r.URL.Path),
+			Risk:       mutationRiskForRequest(r.Method, r.URL.Path),
+			Reason:     metadata.Reason,
+			Target:     metadata.Target,
 			Status:     status,
 			DurationMS: time.Since(started).Milliseconds(),
 			Result:     auditResultForStatus(status),
@@ -89,6 +105,19 @@ func auditActionName(method, path string) string {
 		name = "root"
 	}
 	return strings.ToLower(method) + ":" + name
+}
+
+func mutationRiskForRequest(method, path string) string {
+	if method == http.MethodDelete || strings.Contains(path, "/wipe") || strings.Contains(path, "/delete") || strings.Contains(path, "/blueprints/import") {
+		return "destructive"
+	}
+	if strings.Contains(path, "/give-item") || strings.Contains(path, "/grant-live") || strings.Contains(path, "/teleport") || strings.Contains(path, "/journey/") || strings.Contains(path, "/set-faction") {
+		return "high"
+	}
+	if method == http.MethodPost || method == http.MethodPut || method == http.MethodPatch {
+		return "medium"
+	}
+	return "low"
 }
 
 func auditResultForStatus(status int) string {
@@ -153,6 +182,81 @@ func readAdminAuditEvents(limit int) ([]adminAuditEvent, error) {
 		events = events[:limit]
 	}
 	return events, nil
+}
+
+func extractMutationAuditMetadata(r *http.Request) mutationAuditMetadata {
+	metadata := mutationAuditMetadata{Target: map[string]string{}}
+	if r.Body == nil || r.ContentLength > maxAuditInspectableBodyBytes {
+		return metadata
+	}
+
+	body, err := io.ReadAll(io.LimitReader(r.Body, maxAuditInspectableBodyBytes+1))
+	if err != nil {
+		r.Body = io.NopCloser(bytes.NewReader(body))
+		return metadata
+	}
+	r.Body = io.NopCloser(bytes.NewReader(body))
+	if int64(len(body)) > maxAuditInspectableBodyBytes || len(bytes.TrimSpace(body)) == 0 {
+		return metadata
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return metadata
+	}
+
+	metadata.Reason = sanitizedAuditString(payloadString(payload, "reason"), 256)
+	for _, key := range []string{"player_id", "account_id", "actor_id", "controller_id", "item_id", "faction_id", "storage_id"} {
+		if value, ok := auditScalar(payload[key]); ok {
+			metadata.Target[key] = value
+		}
+	}
+	if len(metadata.Target) == 0 {
+		metadata.Target = nil
+	}
+	return metadata
+}
+
+func payloadString(payload map[string]any, key string) string {
+	if raw, ok := payload[key]; ok {
+		if value, ok := raw.(string); ok {
+			return value
+		}
+	}
+	return ""
+}
+
+func auditScalar(value any) (string, bool) {
+	switch v := value.(type) {
+	case nil:
+		return "", false
+	case string:
+		trimmed := sanitizedAuditString(v, 128)
+		if trimmed == "" {
+			return "", false
+		}
+		return trimmed, true
+	case float64:
+		return fmt.Sprintf("%.0f", v), true
+	case bool:
+		return fmt.Sprintf("%t", v), true
+	default:
+		return "", false
+	}
+}
+
+func sanitizedAuditString(value string, maxLen int) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	value = strings.ReplaceAll(value, "\n", " ")
+	value = strings.ReplaceAll(value, "\r", " ")
+	value = strings.Join(strings.Fields(value), " ")
+	if len(value) > maxLen {
+		return value[:maxLen]
+	}
+	return value
 }
 
 func handleAdminAuditEvents(w http.ResponseWriter, r *http.Request) {

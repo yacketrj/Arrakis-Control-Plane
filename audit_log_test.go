@@ -1,9 +1,11 @@
 package main
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -35,6 +37,9 @@ func TestAuditMiddlewareCapturesMutatingRequests(t *testing.T) {
 	if event.Action != "post:players.give-item" {
 		t.Fatalf("unexpected action: %q", event.Action)
 	}
+	if event.Risk != "high" {
+		t.Fatalf("expected high risk classification, got %q", event.Risk)
+	}
 	if event.Status != http.StatusCreated {
 		t.Fatalf("expected status 201, got %d", event.Status)
 	}
@@ -64,8 +69,51 @@ func TestAuditMiddlewareCapturesFailureStatus(t *testing.T) {
 	if events[0].Result != "failure" {
 		t.Fatalf("expected failure result, got %q", events[0].Result)
 	}
+	if events[0].Risk != "destructive" {
+		t.Fatalf("expected destructive risk, got %q", events[0].Risk)
+	}
 	if events[0].Status != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d", events[0].Status)
+	}
+}
+
+func TestAuditMiddlewareCapturesReasonAndTargetMetadata(t *testing.T) {
+	t.Setenv("ADMIN_AUDIT_LOG", filepath.Join(t.TempDir(), "audit.jsonl"))
+
+	var downstreamBody string
+	handler := auditMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("downstream read body: %v", err)
+		}
+		downstreamBody = string(body)
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	body := `{"player_id":42,"account_id":77,"reason":" support grant\nverified by admin ","admin_token":"must-not-log"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/players/give-item", strings.NewReader(body))
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if downstreamBody != body {
+		t.Fatalf("audit middleware did not restore request body, got %q", downstreamBody)
+	}
+	events, err := readAdminAuditEvents(10)
+	if err != nil {
+		t.Fatalf("readAdminAuditEvents returned error: %v", err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("expected one audit event, got %d", len(events))
+	}
+	event := events[0]
+	if event.Reason != "support grant verified by admin" {
+		t.Fatalf("unexpected sanitized reason: %q", event.Reason)
+	}
+	if event.Target["player_id"] != "42" || event.Target["account_id"] != "77" {
+		t.Fatalf("unexpected target metadata: %#v", event.Target)
+	}
+	if _, exists := event.Target["admin_token"]; exists {
+		t.Fatalf("secret-like field should not be included in target metadata: %#v", event.Target)
 	}
 }
 
