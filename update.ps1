@@ -1,3 +1,8 @@
+param(
+  [switch]$CleanWebDependencies,
+  [switch]$SkipWebInstall
+)
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -21,6 +26,15 @@ function Run-Step {
   if ($null -ne $stepExitCode -and $stepExitCode -ne 0) {
     throw "$Name failed with exit code $stepExitCode"
   }
+}
+
+function Show-NpmLockHelp {
+  Write-Host ""
+  Write-Host 'NPM dependency update failed.' -ForegroundColor Red
+  Write-Host 'On Windows this is commonly caused by a locked native .node file in node_modules.' -ForegroundColor Yellow
+  Write-Host 'Close any running frontend dev server, node.exe process, editor terminal, or antivirus scan that may be holding web\node_modules files open, then re-run the script.' -ForegroundColor Yellow
+  Write-Host 'Normal updates now use npm install instead of npm ci to avoid deleting locked native dependencies.' -ForegroundColor Yellow
+  Write-Host 'Use .\update.ps1 -CleanWebDependencies only when you intentionally want a clean npm ci install.' -ForegroundColor Yellow
 }
 
 try {
@@ -48,11 +62,19 @@ try {
     Write-Host "Web folder: $(Get-Location)"
 
     if (Test-Path 'package.json') {
-      if (Test-Path 'package-lock.json') {
-        Run-Step 'NPM install clean' { npm ci }
+      node --version
+      npm --version
+
+      if (-not $SkipWebInstall) {
+        if ($CleanWebDependencies) {
+          Run-Step 'NPM clean install' { npm ci }
+        } else {
+          Run-Step 'NPM install' { npm install }
+        }
       } else {
-        Run-Step 'NPM install' { npm install }
+        Write-Host 'Skipping npm install because -SkipWebInstall was supplied.' -ForegroundColor Yellow
       }
+
       Run-Step 'Web build' { npm run build }
     } else {
       Write-Host 'package.json not found; skipping web build' -ForegroundColor Yellow
@@ -68,6 +90,11 @@ catch {
   Write-Host ""
   Write-Host 'Update failed.' -ForegroundColor Red
   Write-Host $_.Exception.Message -ForegroundColor Red
+
+  $message = $_.Exception.Message
+  if ($message -match 'NPM|npm|EPERM|unlink|node_modules') {
+    Show-NpmLockHelp
+  }
 }
 finally {
   if (Test-Path $RepoRoot) {
