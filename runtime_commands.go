@@ -57,12 +57,16 @@ func dockerContainerIDsCommand() string {
 	return `docker ps -a -q 2>&1`
 }
 
-func dockerContainerNamesCommand() string {
-	return `docker ps -a --format '{{.Names}}' 2>&1`
+func dockerLogTargetsCommand() string {
+	return `docker ps -a --format '{{.Names}}|{{.ID}}' 2>&1`
 }
 
 func dockerStatusCommand() string {
-	return `docker ps -a --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' 2>&1`
+	return `docker ps -a --format 'table {{.Names}}\t{{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' 2>&1`
+}
+
+func dockerStatsCommand() string {
+	return `docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.NetIO}}\t{{.BlockIO}}\t{{.PIDs}}' 2>&1`
 }
 
 func runtimeBGStatusCommand() string {
@@ -81,7 +85,7 @@ func runtimeBGPodsCommand() string {
 
 func runtimeLogPodsCommand() string {
 	if runtimeUsesDockerCommands() {
-		return dockerContainerIDsCommand()
+		return dockerLogTargetsCommand()
 	}
 	return fmt.Sprintf("sudo kubectl get pods -n %s --no-headers -o custom-columns=NAME:.metadata.name 2>&1", globalPodNS)
 }
@@ -96,9 +100,8 @@ func runtimeLogStreamCommand(ns, target string) string {
 func runtimeHealthSpecs(namespace string) []battlegroupHealthSpec {
 	if runtimeUsesDockerCommands() {
 		return []battlegroupHealthSpec{
-			{Name: "containers", Description: "All Docker containers with ID, name, image, status, and ports.", Command: dockerStatusCommand()},
-			{Name: "container_ids", Description: "All Docker container IDs. This is the primary Docker target list used instead of Kubernetes pods.", Command: dockerContainerIDsCommand()},
-			{Name: "container_names", Description: "All Docker container names for human-readable diagnostics.", Command: dockerContainerNamesCommand()},
+			{Name: "container_overview", Description: "Combined Docker container view: name, ID, image, status, and ports.", Command: dockerStatusCommand()},
+			{Name: "container_metrics", Description: "One-shot Docker resource snapshot per container: CPU, memory, network I/O, block I/O, and PID count.", Command: dockerStatsCommand()},
 		}
 	}
 	return []battlegroupHealthSpec{
