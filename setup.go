@@ -87,8 +87,8 @@ func runSetup() {
 		fmt.Println("  SSH settings were saved. Run the commands below on the VM to inspect services:")
 		fmt.Println("    sudo kubectl get pods -A -o wide")
 		fmt.Println("    sudo kubectl get svc -A -o wide")
-		fmt.Println("    docker compose ps")
-		fmt.Println("    docker ps")
+		fmt.Println("    docker compose ps --format '{{.Name}}'")
+		fmt.Println("    docker ps --format '{{.Names}}'")
 		os.Exit(1)
 	}
 	globalSSH = client
