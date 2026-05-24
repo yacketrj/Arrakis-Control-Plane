@@ -59,6 +59,7 @@ func runSetup() {
 	fmt.Println()
 
 	fmt.Println("Database connection:")
+	dbName = prompt("DB name", dbName)
 	dbUser = prompt("DB user", dbUser)
 	newDBPass := prompt("DB password", "")
 	if newDBPass != "" {
