@@ -136,12 +136,7 @@ func handlePublicStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleStatus(w http.ResponseWriter, r *http.Request) {
-	jsonOK(w, map[string]any{
-		"ssh_connected": globalSSH != nil,
-		"db_connected":  globalDB != nil,
-		"pod_ns":        globalPodNS,
-		"ssh_host":      sshHost,
-	})
+	jsonOK(w, buildStatusPayload())
 }
 
 func handleReconnect(w http.ResponseWriter, r *http.Request) {
@@ -149,6 +144,7 @@ func handleReconnect(w http.ResponseWriter, r *http.Request) {
 		globalDB.Close()
 		globalDB = nil
 	}
+	closeManagedTunnels()
 	if globalSSH != nil {
 		globalSSH.Close()
 		globalSSH = nil
