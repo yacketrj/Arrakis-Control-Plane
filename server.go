@@ -27,6 +27,28 @@ func corsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func logStartupSummary(addr string) {
+	log.Printf("dune-admin listening on %s", addr)
+	log.Printf("runtime: %s", normalizeRuntime(serverRuntime))
+	log.Printf("ssh: %s@%s", sshUser, sshHost)
+
+	mode := normalizedTunnelMode()
+	tunnels := tunnelStatus()
+	if len(tunnels) == 0 {
+		log.Printf("ssh tunnel: none active (mode=%s)", mode)
+		return
+	}
+
+	log.Printf("ssh tunnel mode: %s", mode)
+	for _, tunnel := range tunnels {
+		name := tunnel["name"]
+		if name == "" {
+			name = "unnamed"
+		}
+		log.Printf("ssh tunnel %s: %s -> %s", name, tunnel["local_addr"], tunnel["remote_addr"])
+	}
+}
+
 func startServer(addr string) {
 	addr = normalizeListenAddr(addr)
 	warnIfExternallyBound(addr)
@@ -101,7 +123,7 @@ func startServer(addr string) {
 	mux.HandleFunc("GET /api/v1/blueprints/{id}/export", handleExportBlueprint)
 	mux.HandleFunc("POST /api/v1/blueprints/import", handleImportBlueprint)
 
-	log.Printf("dune-admin listening on %s", addr)
+	logStartupSummary(addr)
 	server := &http.Server{
 		Addr:              addr,
 		Handler:           corsMiddleware(auditMiddleware(authMiddleware(mux))),
