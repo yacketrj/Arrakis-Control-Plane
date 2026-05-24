@@ -7,11 +7,9 @@ import (
 )
 
 const (
-	runtimeModeAuto          = "auto"
-	runtimeModeKubernetes    = "kubernetes"
-	runtimeModeDockerCompose = "docker-compose"
-	runtimeModeDocker        = "docker"
-	runtimeModeHyperV        = "hyperv"
+	runtimeModeAuto       = "auto"
+	runtimeModeKubernetes = "kubernetes"
+	runtimeModeDocker     = "docker"
 )
 
 var dockerNamePattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]*$`)
@@ -21,14 +19,10 @@ func normalizeRuntime(value string) string {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "", "auto":
 		return runtimeModeAuto
-	case "k8s", "kubernetes":
+	case "k8", "k8s", "kubectl", "kubernetes", "hyper-v", "hyperv", "hyper_v":
 		return runtimeModeKubernetes
-	case "compose", "docker-compose", "docker_compose", "docker compose":
-		return runtimeModeDockerCompose
-	case "docker":
+	case "docker", "compose", "docker-compose", "docker_compose", "docker compose":
 		return runtimeModeDocker
-	case "hyper-v", "hyperv", "hyper_v":
-		return runtimeModeHyperV
 	default:
 		return strings.ToLower(strings.TrimSpace(value))
 	}
@@ -36,7 +30,7 @@ func normalizeRuntime(value string) string {
 
 func supportedRuntime(value string) bool {
 	switch normalizeRuntime(value) {
-	case runtimeModeAuto, runtimeModeKubernetes, runtimeModeDockerCompose, runtimeModeDocker, runtimeModeHyperV:
+	case runtimeModeAuto, runtimeModeKubernetes, runtimeModeDocker:
 		return true
 	default:
 		return false
@@ -44,13 +38,11 @@ func supportedRuntime(value string) bool {
 }
 
 func runtimeUsesKubernetesCommands() bool {
-	mode := normalizeRuntime(serverRuntime)
-	return mode == runtimeModeKubernetes || mode == runtimeModeHyperV
+	return normalizeRuntime(serverRuntime) == runtimeModeKubernetes
 }
 
 func runtimeUsesDockerCommands() bool {
-	mode := normalizeRuntime(serverRuntime)
-	return mode == runtimeModeDocker || mode == runtimeModeDockerCompose
+	return normalizeRuntime(serverRuntime) == runtimeModeDocker
 }
 
 func dockerContainerIDsCommand() string {
