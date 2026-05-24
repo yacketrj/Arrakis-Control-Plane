@@ -19,7 +19,7 @@ var k8sNamePattern = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
 var listenPortPattern = regexp.MustCompile(`^[0-9]{1,5}$`)
 var sqlDangerPattern = regexp.MustCompile(`(?i)\b(insert|update|delete|drop|alter|truncate|create|grant|revoke|copy|call|do|execute|merge|vacuum|analyze)\b`)
 var adminToken string
-var allowedOrigins = "http://localhost:5173,https://dune-admin.layout.tools"
+var allowedOrigins = "http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:4173,http://localhost:4173"
 
 func init() {
 	if v := os.Getenv("ADMIN_TOKEN"); v != "" {
