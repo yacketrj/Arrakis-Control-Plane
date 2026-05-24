@@ -46,6 +46,7 @@ func discoverDBPod(client *ssh.Client) (ns, pod, podIP string, err error) {
 	if err != nil {
 		return "", "", "", err
 	}
+	applyDetectedRuntime(endpoint.Runtime)
 	if endpoint.Port > 0 {
 		dbPort = endpoint.Port
 	}
