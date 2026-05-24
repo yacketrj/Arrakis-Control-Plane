@@ -10,10 +10,9 @@ import (
 type runtimeKind string
 
 const (
-	runtimeKubernetes    runtimeKind = "kubernetes"
-	runtimeDockerCompose runtimeKind = "docker-compose"
-	runtimeDocker        runtimeKind = "docker"
-	runtimeUnknown       runtimeKind = "unknown"
+	runtimeKubernetes runtimeKind = "kubernetes"
+	runtimeDocker     runtimeKind = "docker"
+	runtimeUnknown    runtimeKind = "unknown"
 )
 
 type dbEndpointDiscovery struct {
@@ -27,13 +26,13 @@ type dbEndpointDiscovery struct {
 func discoverDatabaseEndpoint(client *ssh.Client) (dbEndpointDiscovery, error) {
 	requested := normalizeRuntime(serverRuntime)
 	switch requested {
-	case runtimeModeKubernetes, runtimeModeHyperV:
+	case runtimeModeKubernetes:
 		endpoint, err := discoverKubernetesDBEndpoint(client)
 		if err != nil {
 			return dbEndpointDiscovery{}, err
 		}
 		return endpoint, nil
-	case runtimeModeDocker, runtimeModeDockerCompose:
+	case runtimeModeDocker:
 		endpoint, err := discoverDockerDBEndpoint(client)
 		if err != nil {
 			return dbEndpointDiscovery{}, err
@@ -57,8 +56,6 @@ func applyDetectedRuntime(runtime runtimeKind) {
 		switch runtime {
 		case runtimeKubernetes:
 			serverRuntime = runtimeModeKubernetes
-		case runtimeDockerCompose:
-			serverRuntime = runtimeModeDockerCompose
 		case runtimeDocker:
 			serverRuntime = runtimeModeDocker
 		}
