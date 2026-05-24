@@ -22,6 +22,7 @@ type sshTunnel struct {
 	listener   net.Listener
 	client     *ssh.Client
 	done       chan struct{}
+	closeOnce  sync.Once
 }
 
 func normalizedTunnelMode() string {
@@ -86,8 +87,10 @@ func (t *sshTunnel) proxy(localConn net.Conn) {
 }
 
 func (t *sshTunnel) close() {
-	_ = t.listener.Close()
-	<-t.done
+	t.closeOnce.Do(func() {
+		_ = t.listener.Close()
+		<-t.done
+	})
 }
 
 func closeManagedTunnels() {
