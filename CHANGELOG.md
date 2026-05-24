@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Added Go Module Integrity workflow to enforce committed `go.sum` and prevent missing or stale module checksum drift.
 - Added redacted unauthenticated public status endpoint at `/api/v1/public/status` for the future player-safe user portal.
 - Added feature design and priority roadmap at `docs/admin-feature-design-and-priorities.md`, including the item delivery architecture distinction between gameplay inventory, direct inventory writes, and claim reward queue grants.
 - Added Live Claim Rewards delivery mode to the augmented Give Item modal for online-friendly plain item grants through the existing live grant endpoint.
@@ -56,6 +57,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Fixed missing/stale `go.sum` risk by adding CI validation that runs `go mod tidy`, verifies `go.mod`/`go.sum` have no diff, verifies module checksums, and runs Go tests.
 - Fixed Give Item operator confusion by documenting that the live reward path is a claim queue, not a universal instant inventory mutation system.
 - Fixed Give Item operator confusion by exposing the existing live grant mechanism as an explicit delivery mode rather than hiding it behind a separate action.
 - Fixed Go Quality run `26326549538` by aligning template merge test expectations with the hybrid database-plus-JSON merge behavior.
@@ -72,72 +74,10 @@ All notable changes to this project will be documented in this file.
 
 ### Security
 
+- Reduced supply-chain drift risk by making `go.sum` integrity a dedicated CI gate.
 - Reduced design risk by distinguishing full-fidelity inventory writes from plain claim-queue grants in the feature roadmap.
 - Reduced live-operation risk by blocking Live Claim Rewards mode for graded or augmented rows that require direct inventory/stat writes.
 - Increased test coverage around augmented item roll defaults, explicit roll arrays, grade aliases, and template serialization before generated item stats are written.
 - Increased CI coverage for both Go and frontend quality gates before changes are treated as production-ready.
 - Reduced mutation risk by isolating augment validation and serialization into a focused backend model file.
 - Reduced operator error by adding preset-driven augment defaults and payload preview before submission.
-- Reduced UI drift risk by removing the unused legacy Give Item modal code path.
-- Reduced unsafe item-edit risk by validating augment names, augment counts, grade bounds, roll bounds, and roll array limits before writing `dune.items.stats`.
-- Avoided database load amplification by documenting cached template discovery instead of per-keystroke database search.
-- Preserved item template correctness by recommending a hybrid live database plus curated JSON model.
-- Reduced frontend script execution risk by keeping script directives self-only.
-- Reduced frontend style injection surface by removing inline allowance from style elements.
-- Preserved style-attribute compatibility required by the current UI while retaining DAST visibility.
-- Added Linux systemd hardening defaults including `NoNewPrivileges`, `PrivateTmp`, `ProtectSystem`, and constrained write paths.
-- Added automated Linux helper tests for shell syntax, documentation coverage, build helper behavior, run-dev first-run bootstrap, and run-dev process-launch behavior.
-- Documented Linux operational controls for loopback binding, admin token handling, SSH key protection, and reverse-proxy/TLS requirements.
-
-### Operational Notes
-
-- The Give Item modal now has two delivery modes: Inventory Write for full augmented/graded item creation and Live Claim Rewards for online-friendly plain grants.
-- Live Claim Rewards uses a reward queue/claim flow; it is not equivalent to crafting, looting, finding an item, or exact direct inventory placement.
-- The Players tab Give Item button now opens only the augmented Give Item modal.
-- Item templates can now be refreshed through `POST /api/v1/players/templates/refresh`; database search remains cached and operator-controlled rather than per-keystroke.
-- Frontend quality now runs through GitHub Actions; local validation is still `cd web && npm install && npm audit --audit-level=high && npm run typecheck && npm run lint && npm run build`.
-- Linux helper scripts are committed as text files. Run `chmod +x scripts/linux/*.sh` in local clones before execution.
-- Regenerate `web/package-lock.json` locally from the current `web/package.json` with `npm install` and recommit it once confirmed clean with `npm audit --audit-level=high` and `npm run build`.
-
----
-
-## [Security Hardening, Security Scanning, and Multi-Item Administration Update] - 2026-05-21
-
-### Added
-
-- Added backend admin-token authentication for all API routes.
-- Added explicit browser origin allowlisting through `ALLOWED_ORIGINS`.
-- Added safer listen-address normalization for local loopback use.
-- Added HTTP server timeouts and request-size limits.
-- Added read-only SQL enforcement for the database SQL endpoint.
-- Added Kubernetes namespace and pod-name validation for log streaming.
-- Added WebSocket route-specific query-token support for browser log streaming.
-- Added frontend security headers for Vite dev and preview responses.
-- Added multi-item Give Items workflow and batch item grant support.
-- Added Go unit tests for batch item request normalization.
-- Added GitHub Actions security scanning workflow covering SCA, SAST, secret scanning, DCA, and DAST.
-- Added ZAP baseline rule policy in `.zap/rules.tsv`.
-- Added blueprint import bounds checks.
-
-### Changed
-
-- Changed batch item grant semantics so `qty` means stack count and `stack_size` means items per stack.
-- Changed status endpoint behavior to avoid returning pod IP information.
-- Changed DAST workflow to scan Vite preview output.
-- Changed gosec CI gate to focus on higher-signal findings.
-
-### Fixed
-
-- Fixed backend startup for bare port listen addresses.
-- Fixed WebSocket log streaming authentication.
-- Fixed cheats log SQL lookup.
-- Fixed stack-size behavior for batch grants.
-- Fixed Trivy, ZAP, Go SCA, gosec, Node SCA, and frontend build workflow failures found during security scan stabilization.
-
-### Security
-
-- Enforced backend authorization as the primary control for administrative endpoints.
-- Reduced CORS exposure and accidental network exposure.
-- Removed hardcoded credential material from source.
-- Hardened frontend security headers and CSP.
-- Established continuous security scanning coverage.
