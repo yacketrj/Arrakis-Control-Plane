@@ -85,8 +85,8 @@ func runSetup() {
 	ok("SSH connected")
 	fmt.Println()
 
-	if err := writeSetupEnv(false); err != nil {
-		fail("Failed to write SSH config to .env: " + err.Error())
+	if err := writeSetupEnv(true); err != nil {
+		fail("Failed to write SSH and DB config to .env: " + err.Error())
 	} else {
 		ok("SSH and DB config saved to .env")
 	}
@@ -129,7 +129,7 @@ func runSetup() {
 		fail("Failed to write .env: " + err.Error())
 		os.Exit(1)
 	}
-	ok(".env written (chmod 600)")
+	ok(".env written with saved credentials")
 	fmt.Println()
 
 	fmt.Println("Setup complete.")
