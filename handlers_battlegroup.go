@@ -22,6 +22,7 @@ type battlegroupHealthSection struct {
 
 type battlegroupHealthResponse struct {
 	Namespace string                     `json:"namespace"`
+	Runtime   string                     `json:"runtime"`
 	CheckedAt string                     `json:"checked_at"`
 	Sections  []battlegroupHealthSection `json:"sections"`
 }
@@ -33,67 +34,28 @@ type battlegroupHealthSpec struct {
 }
 
 func battlegroupHealthSpecs(namespace string) []battlegroupHealthSpec {
-	return []battlegroupHealthSpec{
-		{
-			Name:        "pods",
-			Description: "All namespace pods with node placement, pod IPs, readiness, restarts, and age.",
-			Command:     fmt.Sprintf("sudo kubectl get pods -n %s -o wide 2>&1", namespace),
-		},
-		{
-			Name:        "services",
-			Description: "Namespace services and NodePort/ClusterIP exposure for BGD, RMQ, DB, and related components.",
-			Command:     fmt.Sprintf("sudo kubectl get svc -n %s -o wide 2>&1", namespace),
-		},
-		{
-			Name:        "statefulsets",
-			Description: "Stateful service readiness, especially PostgreSQL and RabbitMQ stateful workloads.",
-			Command:     fmt.Sprintf("sudo kubectl get statefulsets -n %s -o wide 2>&1", namespace),
-		},
-		{
-			Name:        "deployments",
-			Description: "Deployment rollout readiness for BGD, Text Router, gateway, and operator-managed services.",
-			Command:     fmt.Sprintf("sudo kubectl get deployments -n %s -o wide 2>&1", namespace),
-		},
-		{
-			Name:        "persistent_volumes",
-			Description: "Persistent volume claims for database and stateful service storage health checks.",
-			Command:     fmt.Sprintf("sudo kubectl get pvc -n %s -o wide 2>&1", namespace),
-		},
-		{
-			Name:        "recent_events",
-			Description: "Recent namespace events sorted by timestamp for crash, scheduling, image, storage, or readiness issues.",
-			Command:     fmt.Sprintf("sudo kubectl get events -n %s --sort-by=.lastTimestamp 2>&1", namespace),
-		},
-		{
-			Name:        "nodes",
-			Description: "Cluster node readiness, version, and age. This is cluster-scope and intentionally read-only.",
-			Command:     "sudo kubectl get nodes -o wide 2>&1",
-		},
-		{
-			Name:        "pod_metrics",
-			Description: "Pod CPU and memory usage when metrics-server is available. Errors here are informational.",
-			Command:     fmt.Sprintf("sudo kubectl top pods -n %s 2>&1", namespace),
-		},
-	}
+	return runtimeHealthSpecs(namespace)
 }
 
 func handleBGStatus(w http.ResponseWriter, r *http.Request) {
-	out, err := sshExec(fmt.Sprintf("sudo kubectl get pods -n %s -o wide 2>&1", globalPodNS))
+	cmd := runtimeBGStatusCommand()
+	out, err := sshExec(cmd)
 	if err != nil {
-		jsonErr(w, fmt.Errorf("kubectl: %w — output: %s", err, out), 500)
+		jsonErr(w, fmt.Errorf("runtime %s status failed: %w — output: %s", normalizeRuntime(serverRuntime), err, out), 500)
 		return
 	}
-	jsonOK(w, map[string]string{"output": out})
+	jsonOK(w, map[string]string{"output": out, "runtime": normalizeRuntime(serverRuntime)})
 }
 
 func handleBGHealth(w http.ResponseWriter, r *http.Request) {
-	if !isValidK8sName(globalPodNS) {
+	if runtimeUsesKubernetesCommands() && !isValidK8sName(globalPodNS) {
 		jsonErr(w, fmt.Errorf("invalid namespace %q", globalPodNS), http.StatusBadRequest)
 		return
 	}
 
 	response := battlegroupHealthResponse{
 		Namespace: globalPodNS,
+		Runtime:   normalizeRuntime(serverRuntime),
 		CheckedAt: time.Now().UTC().Format(time.RFC3339),
 	}
 	for _, spec := range battlegroupHealthSpecs(globalPodNS) {
@@ -113,6 +75,11 @@ func handleBGHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleBGExec(w http.ResponseWriter, r *http.Request) {
+	if runtimeUsesDockerCommands() {
+		jsonErr(w, fmt.Errorf("battlegroup script commands are not supported for Docker runtimes yet"), http.StatusNotImplemented)
+		return
+	}
+
 	var req struct {
 		Cmd string `json:"cmd"`
 	}
@@ -133,11 +100,15 @@ func handleBGExec(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleBGPods(w http.ResponseWriter, r *http.Request) {
-	out, err := sshExec(fmt.Sprintf("sudo kubectl get pods -n %s --no-headers 2>&1", globalPodNS))
+	cmd := runtimeBGPodsCommand()
+	out, err := sshExec(cmd)
 	if err != nil {
-		jsonErr(w, fmt.Errorf("kubectl: %w", err), 500)
+		jsonErr(w, fmt.Errorf("runtime %s container/pod list failed: %w", normalizeRuntime(serverRuntime), err), 500)
 		return
 	}
 	lines := strings.Split(strings.TrimSpace(out), "\n")
-	jsonOK(w, map[string]any{"pods": lines, "namespace": globalPodNS})
+	if len(lines) == 1 && lines[0] == "" {
+		lines = []string{}
+	}
+	jsonOK(w, map[string]any{"pods": lines, "namespace": globalPodNS, "runtime": normalizeRuntime(serverRuntime)})
 }
