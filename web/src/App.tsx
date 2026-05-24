@@ -1,5 +1,4 @@
 import { Suspense, lazy, useState, type ReactNode } from 'react'
-import { Toast } from '@heroui/react'
 import { useStatus } from './hooks/useStatus'
 import { getAdminToken, setAdminToken } from './api/client'
 
@@ -48,8 +47,6 @@ export default function App() {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden" style={{ background: 'var(--color-background)' }}>
-      <Toast.Provider />
-
       <div
         className="flex items-center justify-between px-6 py-3 border-b shrink-0"
         style={{ borderColor: '#2a2418', background: 'var(--color-surface)' }}
@@ -238,7 +235,7 @@ function TabFallback() {
   )
 }
 
-function ConnectionBadge({ label, connected }: { label: string; connected: boolean }) {
+function ConnectionBadge({ label, connected }: { label: boolean extends never ? never : string; connected: boolean }) {
   return (
     <div className="flex items-center gap-1.5">
       <div className="w-2 h-2 rounded-full" style={{ background: connected ? 'var(--color-success)' : '#555' }} />
