@@ -1,16 +1,17 @@
-import { useState } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import { Toast } from '@heroui/react'
 import { Tabs } from '@heroui/react'
 import { useStatus } from './hooks/useStatus'
 import { getAdminToken, setAdminToken } from './api/client'
-import AuditTab from './tabs/AuditTab'
-import BattlegroupTab from './tabs/BattlegroupTab'
-import PlayersTab from './tabs/PlayersTab'
-import DatabaseTab from './tabs/DatabaseTab'
-import DbRoutinesTab from './tabs/DbRoutinesTab'
-import LogsTab from './tabs/LogsTab'
-import BlueprintsTab from './tabs/BlueprintsTab'
-import StorageTab from './tabs/StorageTab'
+
+const AuditTab = lazy(() => import('./tabs/AuditTab'))
+const BattlegroupTab = lazy(() => import('./tabs/BattlegroupTab'))
+const PlayersTab = lazy(() => import('./tabs/PlayersTab'))
+const DatabaseTab = lazy(() => import('./tabs/DatabaseTab'))
+const DbRoutinesTab = lazy(() => import('./tabs/DbRoutinesTab'))
+const LogsTab = lazy(() => import('./tabs/LogsTab'))
+const BlueprintsTab = lazy(() => import('./tabs/BlueprintsTab'))
+const StorageTab = lazy(() => import('./tabs/StorageTab'))
 
 export default function App() {
   const status = useStatus()
@@ -156,16 +157,32 @@ export default function App() {
               <Tabs.Tab id="storage">Storage<Tabs.Indicator /></Tabs.Tab>
             </Tabs.List>
           </Tabs.ListContainer>
-          <Tabs.Panel id="battlegroup" className="flex-1 overflow-hidden flex flex-col"><BattlegroupTab /></Tabs.Panel>
-          <Tabs.Panel id="players" className="flex-1 overflow-auto p-4"><PlayersTab /></Tabs.Panel>
-          <Tabs.Panel id="database" className="flex-1 overflow-auto p-4"><DatabaseTab /></Tabs.Panel>
-          <Tabs.Panel id="db-routines" className="flex-1 overflow-hidden flex flex-col p-4"><DbRoutinesTab /></Tabs.Panel>
-          <Tabs.Panel id="audit" className="flex-1 overflow-hidden flex flex-col p-4"><AuditTab /></Tabs.Panel>
-          <Tabs.Panel id="logs" className="flex-1 overflow-hidden flex flex-col"><LogsTab /></Tabs.Panel>
-          <Tabs.Panel id="blueprints" className="flex-1 overflow-hidden flex flex-col p-4"><BlueprintsTab /></Tabs.Panel>
-          <Tabs.Panel id="storage" className="flex-1 overflow-hidden flex flex-col p-4"><StorageTab /></Tabs.Panel>
+          <Tabs.Panel id="battlegroup" className="flex-1 overflow-hidden flex flex-col"><LazyTab><BattlegroupTab /></LazyTab></Tabs.Panel>
+          <Tabs.Panel id="players" className="flex-1 overflow-auto p-4"><LazyTab><PlayersTab /></LazyTab></Tabs.Panel>
+          <Tabs.Panel id="database" className="flex-1 overflow-auto p-4"><LazyTab><DatabaseTab /></LazyTab></Tabs.Panel>
+          <Tabs.Panel id="db-routines" className="flex-1 overflow-hidden flex flex-col p-4"><LazyTab><DbRoutinesTab /></LazyTab></Tabs.Panel>
+          <Tabs.Panel id="audit" className="flex-1 overflow-hidden flex flex-col p-4"><LazyTab><AuditTab /></LazyTab></Tabs.Panel>
+          <Tabs.Panel id="logs" className="flex-1 overflow-hidden flex flex-col"><LazyTab><LogsTab /></LazyTab></Tabs.Panel>
+          <Tabs.Panel id="blueprints" className="flex-1 overflow-hidden flex flex-col p-4"><LazyTab><BlueprintsTab /></LazyTab></Tabs.Panel>
+          <Tabs.Panel id="storage" className="flex-1 overflow-hidden flex flex-col p-4"><LazyTab><StorageTab /></LazyTab></Tabs.Panel>
         </Tabs>
       </div>
+    </div>
+  )
+}
+
+function LazyTab({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<TabFallback />}>
+      {children}
+    </Suspense>
+  )
+}
+
+function TabFallback() {
+  return (
+    <div className="flex-1 flex items-center justify-center p-6" style={{ color: 'var(--color-text-dim)' }}>
+      Loading section...
     </div>
   )
 }
