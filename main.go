@@ -16,19 +16,22 @@ var version = "dev" // set by goreleaser ldflags
 // ── config ────────────────────────────────────────────────────────────────────
 
 var (
-	captureMode     bool
-	setupMode       bool
-	sshHost         string
-	sshUser         string
-	sshKeyPath      string
-	itemDataPath    string
-	scripCurrencyID int
-	dbPort          int
-	dbUser          string
-	dbPass          string
-	dbName          string
-	dbSchema        string
-	listenAddr      string
+	captureMode       bool
+	setupMode         bool
+	sshHost           string
+	sshUser           string
+	sshKeyPath        string
+	sshTunnelMode     string
+	sshTunnelHost     string
+	dbTunnelLocalPort int
+	itemDataPath      string
+	scripCurrencyID   int
+	dbPort            int
+	dbUser            string
+	dbPass            string
+	dbName            string
+	dbSchema          string
+	listenAddr        string
 )
 
 func loadDotEnv() {
@@ -79,6 +82,9 @@ func init() {
 	flag.StringVar(&sshHost, "host", envOr("SSH_HOST", "192.168.0.72:22"), "SSH host:port")
 	flag.StringVar(&sshUser, "user", envOr("SSH_USER", "dune"), "SSH user")
 	flag.StringVar(&sshKeyPath, "key", envOr("SSH_KEY", ""), "SSH private key path (auto-detected if empty)")
+	flag.StringVar(&sshTunnelMode, "sshtunnel", envOr("SSH_TUNNEL_MODE", "auto"), "SSH tunnel mode for game-management traffic: auto, existing, or off")
+	flag.StringVar(&sshTunnelHost, "tunnelhost", envOr("SSH_TUNNEL_LOCAL_HOST", "127.0.0.1"), "Local bind host for SSH tunnels")
+	flag.IntVar(&dbTunnelLocalPort, "dbtunnelport", envIntOr("DB_TUNNEL_LOCAL_PORT", 0), "Local DB tunnel port; 0 chooses an available port in auto mode")
 	flag.StringVar(&itemDataPath, "itemdata", envOr("ITEM_DATA", ""), "Item data JSON path")
 	flag.IntVar(&scripCurrencyID, "scripcurrency", envIntOr("SCRIP_CURRENCY", 1), "Scrip currency id")
 	flag.IntVar(&dbPort, "dbport", envIntOr("DB_PORT", 15432), "PostgreSQL port inside the cluster")
@@ -199,6 +205,7 @@ func main() {
 		if globalDB != nil {
 			globalDB.Close()
 		}
+		closeManagedTunnels()
 		if globalSSH != nil {
 			globalSSH.Close()
 		}
