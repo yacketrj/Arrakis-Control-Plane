@@ -18,6 +18,7 @@ var version = "dev" // set by goreleaser ldflags
 var (
 	captureMode       bool
 	setupMode         bool
+	serverRuntime     string
 	sshHost           string
 	sshUser           string
 	sshKeyPath        string
@@ -79,6 +80,7 @@ func envIntOr(key string, def int) int {
 
 func init() {
 	loadDotEnv()
+	flag.StringVar(&serverRuntime, "runtime", envOr("SERVER_RUNTIME", "auto"), "Server runtime mode: auto, kubernetes, docker-compose, docker, or hyperv")
 	flag.StringVar(&sshHost, "host", envOr("SSH_HOST", "192.168.0.72:22"), "SSH host:port")
 	flag.StringVar(&sshUser, "user", envOr("SSH_USER", "dune"), "SSH user")
 	flag.StringVar(&sshKeyPath, "key", envOr("SSH_KEY", ""), "SSH private key path (auto-detected if empty)")
@@ -87,14 +89,14 @@ func init() {
 	flag.IntVar(&dbTunnelLocalPort, "dbtunnelport", envIntOr("DB_TUNNEL_LOCAL_PORT", 0), "Local DB tunnel port; 0 chooses an available port in auto mode")
 	flag.StringVar(&itemDataPath, "itemdata", envOr("ITEM_DATA", ""), "Item data JSON path")
 	flag.IntVar(&scripCurrencyID, "scripcurrency", envIntOr("SCRIP_CURRENCY", 1), "Scrip currency id")
-	flag.IntVar(&dbPort, "dbport", envIntOr("DB_PORT", 15432), "PostgreSQL port inside the cluster")
+	flag.IntVar(&dbPort, "dbport", envIntOr("DB_PORT", 15432), "PostgreSQL port inside the selected runtime")
 	flag.StringVar(&dbUser, "dbuser", envOr("DB_USER", "dune"), "PostgreSQL user")
 	flag.StringVar(&dbPass, "dbpass", envOr("DB_PASS", ""), "PostgreSQL password")
 	flag.StringVar(&dbName, "dbname", envOr("DB_NAME", "dune"), "PostgreSQL database name")
 	flag.StringVar(&dbSchema, "schema", envOr("DB_SCHEMA", "dune"), "PostgreSQL schema")
 	flag.StringVar(&listenAddr, "addr", envOr("LISTEN_ADDR", ":8080"), "HTTP listen address")
 	flag.BoolVar(&captureMode, "capture", false, "Capture RabbitMQ messages (grant + notifications) and print to stdout")
-	flag.BoolVar(&setupMode, "setup", false, "Interactive setup wizard — writes .env from SSH autodiscovery")
+	flag.BoolVar(&setupMode, "setup", false, "Interactive setup wizard — writes .env")
 }
 
 func resolveKeyPath() string {
@@ -184,6 +186,7 @@ func printConfigErrors(errs []string) {
 
 func main() {
 	flag.Parse()
+	serverRuntime = normalizeRuntime(serverRuntime)
 
 	// Explicit -setup flag: reconfigure and exit (don't start server).
 	if setupMode {
