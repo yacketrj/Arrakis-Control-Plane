@@ -63,8 +63,9 @@ func discoverDBPod(client *ssh.Client) (ns, pod, podIP string, err error) {
 	return parts[0], parts[1], parts[2], nil
 }
 
-// cmdConnect dials SSH, discovers the DB pod, then opens a pgx connection tunnelled through SSH.
+// cmdConnect dials SSH, discovers the DB pod, then opens database access through the configured SSH tunnel mode.
 func cmdConnect() Msg {
+	closeManagedTunnels()
 	keyPath := resolveKeyPath()
 	client, err := dialSSH(keyPath)
 	if err != nil {
@@ -83,6 +84,7 @@ func cmdConnect() Msg {
 
 	pool, err := connectDB(context.Background(), dbUser, dbPass)
 	if err != nil {
+		closeManagedTunnels()
 		client.Close()
 		globalSSH = nil
 		return msgConnect{err: fmt.Errorf("DB connect: %w", err)}
@@ -92,9 +94,38 @@ func cmdConnect() Msg {
 }
 
 func connectDB(ctx context.Context, user, pass string) (*pgxpool.Pool, error) {
+	mode := normalizedTunnelMode()
+	host := sshTunnelHost
+	port := dbPort
+	remoteAddr := fmt.Sprintf("%s:%d", globalPodIP, dbPort)
+
+	switch mode {
+	case "auto":
+		tunnel, err := newManagedTunnel(globalSSH, "postgres", sshTunnelHost, dbTunnelLocalPort, remoteAddr)
+		if err != nil {
+			return nil, err
+		}
+		parsedHost, parsedPort, err := net.SplitHostPort(tunnel.localAddr)
+		if err != nil {
+			return nil, fmt.Errorf("parse tunnel address: %w", err)
+		}
+		parsedPortNumber, err := net.LookupPort("tcp", parsedPort)
+		if err != nil {
+			return nil, fmt.Errorf("parse tunnel port: %w", err)
+		}
+		host = parsedHost
+		port = parsedPortNumber
+	case "existing":
+		if dbTunnelLocalPort > 0 {
+			port = dbTunnelLocalPort
+		}
+	case "off":
+		host = globalPodIP
+	}
+
 	connStr := fmt.Sprintf(
-		"host=127.0.0.1 port=%d user=%s password=%s dbname=%s sslmode=disable",
-		dbPort, user, pass, dbName)
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		host, port, user, pass, dbName)
 	poolCfg, err := pgxpool.ParseConfig(connStr)
 	if err != nil {
 		return nil, err
@@ -102,12 +133,6 @@ func connectDB(ctx context.Context, user, pass string) (*pgxpool.Pool, error) {
 	poolCfg.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
 		_, err := conn.Exec(ctx, fmt.Sprintf(`SET search_path TO %s, public`, pgx.Identifier{dbSchema}.Sanitize()))
 		return err
-	}
-	poolCfg.ConnConfig.LookupFunc = func(_ context.Context, _ string) ([]string, error) {
-		return []string{globalPodIP}, nil
-	}
-	poolCfg.ConnConfig.DialFunc = func(_ context.Context, _, _ string) (net.Conn, error) {
-		return globalSSH.Dial("tcp", fmt.Sprintf("%s:%d", globalPodIP, dbPort))
 	}
 	pool, err := pgxpool.NewWithConfig(ctx, poolCfg)
 	if err != nil {
