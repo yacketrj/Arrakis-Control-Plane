@@ -21,7 +21,6 @@ var (
 	globalPod   string
 )
 
-// dialSSH opens an SSH connection using current sshUser/sshHost globals.
 func dialSSH(keyPath string) (*ssh.Client, error) {
 	keyData, err := os.ReadFile(keyPath)
 	if err != nil {
@@ -42,28 +41,17 @@ func dialSSH(keyPath string) (*ssh.Client, error) {
 	return client, nil
 }
 
-// discoverDBPod uses kubectl to find the DB pod and returns (namespace, podName, podIP).
 func discoverDBPod(client *ssh.Client) (ns, pod, podIP string, err error) {
-	sess, err := client.NewSession()
+	endpoint, err := discoverDatabaseEndpoint(client)
 	if err != nil {
-		return "", "", "", fmt.Errorf("SSH session: %w", err)
+		return "", "", "", err
 	}
-	// Use jsonpath to extract namespace + podIP directly — avoids awk column
-	// miscount when RESTARTS shows "1 (32m ago)" instead of "0".
-	out, err := sess.CombinedOutput(
-		`sudo kubectl get pods -A -o jsonpath='{range .items[*]}{.metadata.namespace}{" "}{.metadata.name}{" "}{.status.podIP}{"\n"}{end}' 2>/dev/null | grep db-dbdepl-sts | head -1`)
-	sess.Close()
-	if err != nil {
-		return "", "", "", fmt.Errorf("kubectl: %w", err)
+	if endpoint.Port > 0 {
+		dbPort = endpoint.Port
 	}
-	parts := strings.Fields(strings.TrimSpace(string(out)))
-	if len(parts) < 3 {
-		return "", "", "", fmt.Errorf("database pod not found in cluster")
-	}
-	return parts[0], parts[1], parts[2], nil
+	return endpoint.Namespace, endpoint.Name, endpoint.Host, nil
 }
 
-// cmdConnect dials SSH, discovers the DB pod, then opens database access through the configured SSH tunnel mode.
 func cmdConnect() Msg {
 	closeManagedTunnels()
 	keyPath := resolveKeyPath()
@@ -123,9 +111,7 @@ func connectDB(ctx context.Context, user, pass string) (*pgxpool.Pool, error) {
 		host = globalPodIP
 	}
 
-	connStr := fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		host, port, user, pass, dbName)
+	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, pass, dbName)
 	poolCfg, err := pgxpool.ParseConfig(connStr)
 	if err != nil {
 		return nil, err
@@ -151,8 +137,6 @@ func shellQuote(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'"
 }
 
-// battlegroupFromPod extracts the battlegroup name from a pod name.
-// Pod naming pattern: <battlegroup>-db-dbdepl-sts-<N>
 func battlegroupFromPod(pod string) string {
 	const suffix = "-db-dbdepl-sts-"
 	if idx := strings.LastIndex(pod, suffix); idx != -1 {
@@ -161,8 +145,6 @@ func battlegroupFromPod(pod string) string {
 	return ""
 }
 
-// listBattlegroups returns battlegroup names by running `battlegroup list` via
-// a login shell (so PATH includes the battlegroup binary).
 func listBattlegroups(client *ssh.Client) []string {
 	sess, err := client.NewSession()
 	if err != nil {
@@ -185,18 +167,14 @@ func listBattlegroups(client *ssh.Client) []string {
 	return names
 }
 
-// extractPasswordFromYAML reads the DB user and password from a battlegroup YAML file
-// via SSH. Credentials live at spec.database.template.spec.deployment.spec.{user,password}.
 func extractPasswordFromYAML(client *ssh.Client, filePath string) (user, pass string) {
 	sess, err := client.NewSession()
 	if err != nil {
 		return "", ""
 	}
 	defer sess.Close()
-	// Expand ~ on the remote side so the path resolves correctly.
 	out, err := sess.CombinedOutput(fmt.Sprintf("cat %s 2>/dev/null", shellQuote(filePath)))
 	if err != nil || len(out) == 0 {
-		// Try with shell expansion for the tilde.
 		sess2, err2 := client.NewSession()
 		if err2 != nil {
 			return "", ""
@@ -210,7 +188,6 @@ func extractPasswordFromYAML(client *ssh.Client, filePath string) (user, pass st
 	return parseDeploymentCredentials(out)
 }
 
-// sshExec runs a command on the remote VM and returns combined stdout+stderr.
 func sshExec(cmd string) (string, error) {
 	if globalSSH == nil {
 		return "", fmt.Errorf("not connected")
@@ -224,9 +201,6 @@ func sshExec(cmd string) (string, error) {
 	return strings.TrimSpace(string(out)), err
 }
 
-// sshStream opens a remote command and returns a channel that receives one
-// line per send, plus a cancel func that closes the session. The caller must
-// return listenForLogLine(ch) from Update to keep reading.
 func sshStream(cmd string) (<-chan string, func(), error) {
 	if globalSSH == nil {
 		return nil, func() {}, fmt.Errorf("not connected")
