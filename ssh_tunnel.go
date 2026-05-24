@@ -62,6 +62,19 @@ func newManagedTunnel(client *ssh.Client, name, localHost string, localPort int,
 	return tunnel, nil
 }
 
+func dialManagedTunnel(client *ssh.Client, name, remoteAddr string) (net.Conn, error) {
+	tunnel, err := newManagedTunnel(client, name, sshTunnelHost, 0, remoteAddr)
+	if err != nil {
+		return nil, err
+	}
+	conn, err := net.Dial("tcp", tunnel.localAddr)
+	if err != nil {
+		tunnel.close()
+		return nil, err
+	}
+	return conn, nil
+}
+
 func (t *sshTunnel) serve() {
 	defer close(t.done)
 	for {
