@@ -15,6 +15,7 @@ const (
 )
 
 var dockerNamePattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]*$`)
+var dockerIDPattern = regexp.MustCompile(`^[a-fA-F0-9]{12,64}$`)
 
 func normalizeRuntime(value string) string {
 	switch strings.ToLower(strings.TrimSpace(value)) {
@@ -52,18 +53,16 @@ func runtimeUsesDockerCommands() bool {
 	return mode == runtimeModeDocker || mode == runtimeModeDockerCompose
 }
 
+func dockerContainerIDsCommand() string {
+	return `docker ps -a -q 2>&1`
+}
+
 func dockerContainerNamesCommand() string {
-	if normalizeRuntime(serverRuntime) == runtimeModeDockerCompose {
-		return `docker ps --filter label=com.docker.compose.project --format '{{.Names}}' 2>&1`
-	}
-	return `docker ps --format '{{.Names}}' 2>&1`
+	return `docker ps -a --format '{{.Names}}' 2>&1`
 }
 
 func dockerStatusCommand() string {
-	if normalizeRuntime(serverRuntime) == runtimeModeDockerCompose {
-		return `docker ps --filter label=com.docker.compose.project --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' 2>&1`
-	}
-	return `docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' 2>&1`
+	return `docker ps -a --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' 2>&1`
 }
 
 func runtimeBGStatusCommand() string {
@@ -75,14 +74,14 @@ func runtimeBGStatusCommand() string {
 
 func runtimeBGPodsCommand() string {
 	if runtimeUsesDockerCommands() {
-		return dockerContainerNamesCommand()
+		return dockerContainerIDsCommand()
 	}
 	return fmt.Sprintf("sudo kubectl get pods -n %s --no-headers 2>&1", globalPodNS)
 }
 
 func runtimeLogPodsCommand() string {
 	if runtimeUsesDockerCommands() {
-		return dockerContainerNamesCommand()
+		return dockerContainerIDsCommand()
 	}
 	return fmt.Sprintf("sudo kubectl get pods -n %s --no-headers -o custom-columns=NAME:.metadata.name 2>&1", globalPodNS)
 }
@@ -97,9 +96,9 @@ func runtimeLogStreamCommand(ns, target string) string {
 func runtimeHealthSpecs(namespace string) []battlegroupHealthSpec {
 	if runtimeUsesDockerCommands() {
 		return []battlegroupHealthSpec{
-			{Name: "containers", Description: "Container names, images, status, and published ports.", Command: dockerStatusCommand()},
-			{Name: "container_names", Description: "Detected Docker container names only.", Command: dockerContainerNamesCommand()},
-			{Name: "compose_projects", Description: "Docker Compose project and service labels when available.", Command: `docker ps --filter label=com.docker.compose.project --format '{{.Names}}\t{{.Label "com.docker.compose.project"}}\t{{.Label "com.docker.compose.service"}}' 2>&1`},
+			{Name: "containers", Description: "All Docker containers with ID, name, image, status, and ports.", Command: dockerStatusCommand()},
+			{Name: "container_ids", Description: "All Docker container IDs. This is the primary Docker target list used instead of Kubernetes pods.", Command: dockerContainerIDsCommand()},
+			{Name: "container_names", Description: "All Docker container names for human-readable diagnostics.", Command: dockerContainerNamesCommand()},
 		}
 	}
 	return []battlegroupHealthSpec{
@@ -116,7 +115,7 @@ func runtimeHealthSpecs(namespace string) []battlegroupHealthSpec {
 
 func isValidRuntimeLogTarget(ns, target string) bool {
 	if runtimeUsesDockerCommands() {
-		return dockerNamePattern.MatchString(target)
+		return dockerIDPattern.MatchString(target) || dockerNamePattern.MatchString(target)
 	}
 	return isAllowedLogTarget(ns, target)
 }
