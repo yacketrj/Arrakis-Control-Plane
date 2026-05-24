@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Added Battlegroup Health Diagnostics with protected read-only Kubernetes diagnostics for pods, services, statefulsets, deployments, PVCs, recent events, nodes, and pod metrics.
+- Added Battlegroup Health Diagnostics UI cards with diagnostic descriptions, executed commands, output, and per-section errors.
+- Added raw and redacted Battlegroup Health support-bundle exports for local review and safer developer/support handoff.
+- Added `docs/battlegroup-health-diagnostics.md` with endpoint, UI, security, validation, troubleshooting, export, and redaction guidance.
 - Added Go Module Integrity workflow to enforce committed `go.sum` and prevent missing or stale module checksum drift.
 - Added redacted unauthenticated public status endpoint at `/api/v1/public/status` for the future player-safe user portal.
 - Added feature design and priority roadmap at `docs/admin-feature-design-and-priorities.md`, including the item delivery architecture distinction between gameplay inventory, direct inventory writes, and claim reward queue grants.
@@ -37,6 +41,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Updated Battlegroup tab navigation with separate `Pods` and `Health Diagnostics` views.
+- Updated Battlegroup support-bundle workflow with separate raw and redacted export actions.
 - Clarified that Claim Rewards Queue grants are not the same as crafting, looting, finding an item, or authoritative gameplay inventory mutation.
 - Updated `GiveItemModalAugmented.tsx` so Inventory Write remains the full-featured grade/augment/stat path while Live Claim Rewards is clearly limited to plain template-and-amount grants.
 - Updated `GiveItemModalAugmented.tsx` to use the shared Give Item payload helper module instead of duplicating clamping, preset, roll parsing, and payload mapping logic inline.
@@ -57,6 +63,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Fixed Battlegroup view button variants to use supported HeroUI values.
 - Fixed missing/stale `go.sum` risk by adding CI validation that runs `go mod tidy`, verifies `go.mod`/`go.sum` have no diff, verifies module checksums, and runs Go tests.
 - Fixed Give Item operator confusion by documenting that the live reward path is a claim queue, not a universal instant inventory mutation system.
 - Fixed Give Item operator confusion by exposing the existing live grant mechanism as an explicit delivery mode rather than hiding it behind a separate action.
@@ -74,6 +81,9 @@ All notable changes to this project will be documented in this file.
 
 ### Security
 
+- Reduced diagnostic handoff risk by adding redacted Battlegroup Health bundle export for common infrastructure identifiers.
+- Reduced infrastructure mutation risk by keeping Battlegroup Health Diagnostics read-only with fixed server-side commands.
+- Reduced support exposure risk by documenting redaction limits and requiring operator review before external sharing.
 - Reduced supply-chain drift risk by making `go.sum` integrity a dedicated CI gate.
 - Reduced design risk by distinguishing full-fidelity inventory writes from plain claim-queue grants in the feature roadmap.
 - Reduced live-operation risk by blocking Live Claim Rewards mode for graded or augmented rows that require direct inventory/stat writes.
