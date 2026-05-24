@@ -15,6 +15,7 @@ var wsUpgrader = websocket.Upgrader{
 type logPod struct {
 	Namespace string `json:"namespace"`
 	Name      string `json:"name"`
+	Display   string `json:"display,omitempty"`
 }
 
 func handleLogPods(w http.ResponseWriter, r *http.Request) {
@@ -28,23 +29,33 @@ func handleLogPods(w http.ResponseWriter, r *http.Request) {
 	var pods []logPod
 	if runtimeUsesDockerCommands() {
 		for _, line := range splitLines(out) {
-			id := strings.TrimSpace(line)
-			if id != "" && isValidRuntimeLogTarget("docker", id) {
-				pods = append(pods, logPod{Namespace: normalizeRuntime(serverRuntime), Name: id})
+			parts := strings.SplitN(strings.TrimSpace(line), "|", 2)
+			if len(parts) != 2 {
+				continue
 			}
+			name := strings.TrimSpace(parts[0])
+			id := strings.TrimSpace(parts[1])
+			if id == "" || !isValidRuntimeLogTarget("docker", id) {
+				continue
+			}
+			display := id
+			if name != "" {
+				display = fmt.Sprintf("%s (%s)", name, id)
+			}
+			pods = append(pods, logPod{Namespace: normalizeRuntime(serverRuntime), Name: id, Display: display})
 		}
 	} else {
 		for _, line := range splitLines(out) {
 			name := strings.TrimSpace(line)
 			if name != "" && isValidK8sName(name) && !strings.Contains(name, "db-dbdepl") {
-				pods = append(pods, logPod{Namespace: globalPodNS, Name: name})
+				pods = append(pods, logPod{Namespace: globalPodNS, Name: name, Display: name})
 			}
 		}
 		out2, _ := sshExec("sudo kubectl get pods -n funcom-operators --no-headers -o custom-columns=NAME:.metadata.name 2>&1")
 		for _, line := range splitLines(out2) {
 			name := strings.TrimSpace(line)
 			if name != "" && isValidK8sName(name) {
-				pods = append(pods, logPod{Namespace: "funcom-operators", Name: name})
+				pods = append(pods, logPod{Namespace: "funcom-operators", Name: name, Display: name})
 			}
 		}
 	}
