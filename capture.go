@@ -92,7 +92,14 @@ func sshDial(addr string) (net.Conn, error) {
 	if globalSSH == nil {
 		return nil, fmt.Errorf("SSH not connected")
 	}
-	return globalSSH.Dial("tcp", addr)
+	switch normalizedTunnelMode() {
+	case "auto":
+		return dialManagedTunnelConn(globalSSH, "amqp", addr)
+	case "off":
+		return net.Dial("tcp", addr)
+	default:
+		return globalSSH.Dial("tcp", addr)
+	}
 }
 
 func dialAMQP(internalAddr, user, pass string, useTLS bool) (*amqp.Connection, error) {
