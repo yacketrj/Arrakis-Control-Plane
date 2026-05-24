@@ -80,7 +80,7 @@ func envIntOr(key string, def int) int {
 
 func init() {
 	loadDotEnv()
-	flag.StringVar(&serverRuntime, "runtime", envOr("SERVER_RUNTIME", "auto"), "Server runtime mode: auto, kubernetes, docker-compose, docker, or hyperv")
+	flag.StringVar(&serverRuntime, "runtime", envOr("SERVER_RUNTIME", "auto"), "Server runtime mode: auto, kubernetes, or docker")
 	flag.StringVar(&sshHost, "host", envOr("SSH_HOST", "192.168.0.72:22"), "SSH host:port")
 	flag.StringVar(&sshUser, "user", envOr("SSH_USER", "dune"), "SSH user")
 	flag.StringVar(&sshKeyPath, "key", envOr("SSH_KEY", ""), "SSH private key path (auto-detected if empty)")
