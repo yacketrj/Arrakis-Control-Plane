@@ -18,16 +18,22 @@ const defaultAdminAuditPath = "admin-audit.jsonl"
 const maxAuditInspectableBodyBytes int64 = 1 << 20
 
 type adminAuditEvent struct {
-	Timestamp  string            `json:"timestamp"`
-	Method     string            `json:"method"`
-	Path       string            `json:"path"`
-	Action     string            `json:"action"`
-	Risk       string            `json:"risk"`
-	Reason     string            `json:"reason,omitempty"`
-	Target     map[string]string `json:"target,omitempty"`
-	Status     int               `json:"status"`
-	DurationMS int64             `json:"duration_ms"`
-	Result     string            `json:"result"`
+	Timestamp        string            `json:"timestamp"`
+	Method           string            `json:"method"`
+	Path             string            `json:"path"`
+	Action           string            `json:"action"`
+	Risk             string            `json:"risk"`
+	Reason           string            `json:"reason,omitempty"`
+	Target           map[string]string `json:"target,omitempty"`
+	Status           int               `json:"status"`
+	DurationMS       int64             `json:"duration_ms"`
+	Result           string            `json:"result"`
+	RequiresReason   bool              `json:"requires_reason,omitempty"`
+	RequiresPreview  bool              `json:"requires_preview,omitempty"`
+	Destructive      bool              `json:"destructive,omitempty"`
+	RollbackHint     string            `json:"rollback_hint,omitempty"`
+	OperatorWarnings []string          `json:"operator_warnings,omitempty"`
+	RecommendedPath  string            `json:"recommended_path,omitempty"`
 }
 
 type statusCaptureWriter struct {
@@ -62,6 +68,7 @@ func auditMiddleware(next http.Handler) http.Handler {
 		}
 
 		metadata := extractMutationAuditMetadata(r)
+		safety := mutationSafetyForPath(r.Method, r.URL.Path)
 		started := time.Now()
 		capture := &statusCaptureWriter{ResponseWriter: w}
 		next.ServeHTTP(capture, r)
@@ -71,16 +78,22 @@ func auditMiddleware(next http.Handler) http.Handler {
 			status = http.StatusOK
 		}
 		_ = appendAdminAuditEvent(adminAuditEvent{
-			Timestamp:  started.UTC().Format(time.RFC3339Nano),
-			Method:     r.Method,
-			Path:       r.URL.Path,
-			Action:     auditActionName(r.Method, r.URL.Path),
-			Risk:       mutationRiskForRequest(r.Method, r.URL.Path),
-			Reason:     metadata.Reason,
-			Target:     metadata.Target,
-			Status:     status,
-			DurationMS: time.Since(started).Milliseconds(),
-			Result:     auditResultForStatus(status),
+			Timestamp:        started.UTC().Format(time.RFC3339Nano),
+			Method:           r.Method,
+			Path:             r.URL.Path,
+			Action:           safety.Action,
+			Risk:             safety.Risk,
+			Reason:           metadata.Reason,
+			Target:           metadata.Target,
+			Status:           status,
+			DurationMS:       time.Since(started).Milliseconds(),
+			Result:           auditResultForStatus(status),
+			RequiresReason:   safety.RequiresReason,
+			RequiresPreview:  safety.RequiresPreview,
+			Destructive:      safety.Destructive,
+			RollbackHint:     safety.RollbackHint,
+			OperatorWarnings: safety.OperatorWarnings,
+			RecommendedPath:  safety.RecommendedPath,
 		})
 	})
 }
@@ -186,7 +199,11 @@ func readAdminAuditEvents(limit int) ([]adminAuditEvent, error) {
 
 func extractMutationAuditMetadata(r *http.Request) mutationAuditMetadata {
 	metadata := mutationAuditMetadata{Target: map[string]string{}}
+	metadata.Reason = sanitizedAuditString(r.Header.Get("X-Admin-Reason"), 256)
 	if r.Body == nil || r.ContentLength > maxAuditInspectableBodyBytes {
+		if len(metadata.Target) == 0 {
+			metadata.Target = nil
+		}
 		return metadata
 	}
 
@@ -205,7 +222,9 @@ func extractMutationAuditMetadata(r *http.Request) mutationAuditMetadata {
 		return metadata
 	}
 
-	metadata.Reason = sanitizedAuditString(payloadString(payload, "reason"), 256)
+	if metadata.Reason == "" {
+		metadata.Reason = sanitizedAuditString(payloadString(payload, "reason"), 256)
+	}
 	for _, key := range []string{"player_id", "account_id", "actor_id", "controller_id", "item_id", "faction_id", "storage_id"} {
 		if value, ok := auditScalar(payload[key]); ok {
 			metadata.Target[key] = value
