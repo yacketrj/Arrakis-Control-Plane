@@ -1,6 +1,5 @@
-import { Suspense, lazy, useState } from 'react'
+import { Suspense, lazy, useState, type ReactNode } from 'react'
 import { Toast } from '@heroui/react'
-import { Tabs } from '@heroui/react'
 import { useStatus } from './hooks/useStatus'
 import { getAdminToken, setAdminToken } from './api/client'
 
@@ -13,11 +12,25 @@ const LogsTab = lazy(() => import('./tabs/LogsTab'))
 const BlueprintsTab = lazy(() => import('./tabs/BlueprintsTab'))
 const StorageTab = lazy(() => import('./tabs/StorageTab'))
 
+type TabId = 'battlegroup' | 'players' | 'database' | 'db-routines' | 'audit' | 'logs' | 'blueprints' | 'storage'
+
+const tabs: Array<{ id: TabId; label: string }> = [
+  { id: 'battlegroup', label: 'Battlegroup' },
+  { id: 'players', label: 'Players' },
+  { id: 'database', label: 'Database' },
+  { id: 'db-routines', label: 'DB Routines' },
+  { id: 'audit', label: 'Audit' },
+  { id: 'logs', label: 'Logs' },
+  { id: 'blueprints', label: 'Blueprints' },
+  { id: 'storage', label: 'Storage' },
+]
+
 export default function App() {
   const status = useStatus()
   const [showBackendConfig, setShowBackendConfig] = useState(false)
   const [backendUrl, setBackendUrl] = useState(() => localStorage.getItem('dune_admin_backend') || '')
   const [tokenInput, setTokenInput] = useState(() => getAdminToken())
+  const [activeTab, setActiveTab] = useState<TabId>('battlegroup')
 
   const saveBackendSettings = () => {
     const trimmedUrl = backendUrl.trim()
@@ -144,34 +157,72 @@ export default function App() {
       )}
 
       <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-        <Tabs className="flex-1 flex flex-col overflow-hidden min-h-0">
-          <Tabs.ListContainer className="px-4 pt-2 shrink-0">
-            <Tabs.List aria-label="Admin sections" className="gap-1">
-              <Tabs.Tab id="battlegroup">Battlegroup<Tabs.Indicator /></Tabs.Tab>
-              <Tabs.Tab id="players">Players<Tabs.Indicator /></Tabs.Tab>
-              <Tabs.Tab id="database">Database<Tabs.Indicator /></Tabs.Tab>
-              <Tabs.Tab id="db-routines">DB Routines<Tabs.Indicator /></Tabs.Tab>
-              <Tabs.Tab id="audit">Audit<Tabs.Indicator /></Tabs.Tab>
-              <Tabs.Tab id="logs">Logs<Tabs.Indicator /></Tabs.Tab>
-              <Tabs.Tab id="blueprints">Blueprints<Tabs.Indicator /></Tabs.Tab>
-              <Tabs.Tab id="storage">Storage<Tabs.Indicator /></Tabs.Tab>
-            </Tabs.List>
-          </Tabs.ListContainer>
-          <Tabs.Panel id="battlegroup" className="flex-1 overflow-hidden flex flex-col"><LazyTab><BattlegroupTab /></LazyTab></Tabs.Panel>
-          <Tabs.Panel id="players" className="flex-1 overflow-auto p-4"><LazyTab><PlayersTab /></LazyTab></Tabs.Panel>
-          <Tabs.Panel id="database" className="flex-1 overflow-auto p-4"><LazyTab><DatabaseTab /></LazyTab></Tabs.Panel>
-          <Tabs.Panel id="db-routines" className="flex-1 overflow-hidden flex flex-col p-4"><LazyTab><DbRoutinesTab /></LazyTab></Tabs.Panel>
-          <Tabs.Panel id="audit" className="flex-1 overflow-hidden flex flex-col p-4"><LazyTab><AuditTab /></LazyTab></Tabs.Panel>
-          <Tabs.Panel id="logs" className="flex-1 overflow-hidden flex flex-col"><LazyTab><LogsTab /></LazyTab></Tabs.Panel>
-          <Tabs.Panel id="blueprints" className="flex-1 overflow-hidden flex flex-col p-4"><LazyTab><BlueprintsTab /></LazyTab></Tabs.Panel>
-          <Tabs.Panel id="storage" className="flex-1 overflow-hidden flex flex-col p-4"><LazyTab><StorageTab /></LazyTab></Tabs.Panel>
-        </Tabs>
+        <div className="px-4 pt-2 shrink-0" style={{ background: 'var(--color-background)' }}>
+          <div role="tablist" aria-label="Admin sections" className="flex gap-1 overflow-x-auto">
+            {tabs.map(tab => {
+              const selected = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  role="tab"
+                  aria-selected={selected}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    background: selected ? 'var(--color-surface)' : 'transparent',
+                    border: '1px solid #2a2418',
+                    borderBottomColor: selected ? 'var(--color-primary)' : '#2a2418',
+                    borderRadius: '6px 6px 0 0',
+                    color: selected ? 'var(--color-primary)' : 'var(--color-text-dim)',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: selected ? 600 : 400,
+                    padding: '8px 12px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {tab.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+        <div className={panelClass(activeTab)}>
+          <LazyTab>{renderTab(activeTab)}</LazyTab>
+        </div>
       </div>
     </div>
   )
 }
 
-function LazyTab({ children }: { children: React.ReactNode }) {
+function renderTab(tab: TabId) {
+  switch (tab) {
+    case 'battlegroup': return <BattlegroupTab />
+    case 'players': return <PlayersTab />
+    case 'database': return <DatabaseTab />
+    case 'db-routines': return <DbRoutinesTab />
+    case 'audit': return <AuditTab />
+    case 'logs': return <LogsTab />
+    case 'blueprints': return <BlueprintsTab />
+    case 'storage': return <StorageTab />
+  }
+}
+
+function panelClass(tab: TabId) {
+  switch (tab) {
+    case 'battlegroup':
+    case 'db-routines':
+    case 'audit':
+    case 'logs':
+    case 'blueprints':
+    case 'storage':
+      return 'flex-1 overflow-hidden flex flex-col p-4'
+    case 'players':
+    case 'database':
+      return 'flex-1 overflow-auto p-4'
+  }
+}
+
+function LazyTab({ children }: { children: ReactNode }) {
   return (
     <Suspense fallback={<TabFallback />}>
       {children}
