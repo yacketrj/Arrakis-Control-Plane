@@ -79,6 +79,29 @@ func runSetup() {
 	}
 	fmt.Println()
 
+	fmt.Println("Admin security:")
+	if strings.TrimSpace(adminToken) == "" {
+		provided := prompt("ADMIN_TOKEN (press Enter to generate)", "")
+		if strings.TrimSpace(provided) == "" {
+			adminToken = generateAdminToken()
+			ok("Generated ADMIN_TOKEN and will save it to .env")
+		} else {
+			adminToken = provided
+			ok("Using provided ADMIN_TOKEN")
+		}
+	} else {
+		ok("ADMIN_TOKEN already configured")
+	}
+	fmt.Println()
+
+	if errs := requiredConfigErrors(); len(errs) > 0 {
+		fail("Configuration validation failed:")
+		for _, err := range errs {
+			fmt.Println("    - " + err)
+		}
+		os.Exit(1)
+	}
+
 	fmt.Printf("Connecting via SSH to %s...\n", sshHost)
 	client, err := dialSSH(keyPath)
 	if err != nil {
@@ -96,7 +119,7 @@ func runSetup() {
 	if err := writeSetupEnv(true); err != nil {
 		fail("Failed to write SSH and DB config to .env: " + err.Error())
 	} else {
-		ok("SSH and DB config saved to .env")
+		ok("SSH, DB, and ADMIN_TOKEN config saved to .env")
 	}
 	fmt.Println()
 
@@ -133,17 +156,26 @@ func runSetup() {
 	listenAddr = prompt("HTTP listen address", listenAddr)
 	fmt.Println()
 
+	if errs := requiredConfigErrors(); len(errs) > 0 {
+		fail("Configuration validation failed:")
+		for _, err := range errs {
+			fmt.Println("    - " + err)
+		}
+		os.Exit(1)
+	}
+
 	if err := writeSetupEnv(true); err != nil {
 		fail("Failed to write .env: " + err.Error())
 		os.Exit(1)
 	}
-	ok(".env written with saved credentials")
+	ok(".env written with saved credentials and ADMIN_TOKEN")
 	fmt.Println()
 
 	fmt.Println("Setup complete.")
 	fmt.Println()
 	fmt.Println("  Build and run:  make build && ./dune-admin")
 	fmt.Println("  Run (no build): go run .")
+	fmt.Println("  Frontend token: paste ADMIN_TOKEN from .env into the frontend settings gear")
 	fmt.Println()
 }
 
@@ -177,6 +209,8 @@ func writeSetupEnv(includeDatabasePassword bool) error {
 		"DB_SCHEMA="+quote(dbSchema),
 		"",
 		fmt.Sprintf("SCRIP_CURRENCY=%d", scripCurrencyID),
+		"ADMIN_TOKEN="+quote(effectiveAdminToken()),
+		"ALLOWED_ORIGINS="+quote(allowedOrigins),
 		"LISTEN_ADDR="+quote(listenAddr),
 	)
 	return os.WriteFile(".env", []byte(strings.Join(lines, "\n")+"\n"), 0600)
