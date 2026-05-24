@@ -65,9 +65,10 @@ func inspectDockerDBEndpoint(client *ssh.Client, containerID, fallbackName strin
 
 	host, _ := sshCombined(client, `docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' `+shellQuote(containerID)+` 2>/dev/null`)
 	host = strings.TrimSpace(host)
-	port := dockerDBPort(client, containerID)
+	port := 5432
 	if host == "" {
 		host = "127.0.0.1"
+		port = dockerDBPort(client, containerID)
 	}
 	if port == 0 {
 		port = 5432
