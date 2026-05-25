@@ -30,6 +30,7 @@ Every feature task must update:
 | P0 | Public-safe vs protected admin portal design | In Progress | `docs/portal-separation-design.md` | Go + frontend validation |
 | P0 | Admin Action Audit Log | Done | `docs/admin-audit-log.md` | Go tests |
 | P0 | Mutation Safety Framework | In Progress | `docs/mutation-safety-framework.md` | Go + frontend tests |
+| P0 | Active Players-table mutation confirmation migration | Done | `docs/mutation-safety-framework.md` | Windows `update.ps1` validation |
 | P1 | Player 360 Profile | Done | `docs/player-360-profile.md` | Go + frontend validation clean |
 | P1 | Inventory Studio v2 | Planned | `docs/inventory-studio.md` required | Go + frontend tests |
 | P1 | Battlegroup Status v2 | Planned | `docs/battlegroup-status-v2.md` required | Go + frontend tests |
@@ -47,17 +48,33 @@ Every feature task must update:
 
 ## Current implementation focus
 
-### 1. Wire shared mutation confirmation into existing high-risk workflows
+### 1. Clean up legacy PlayersTab inline modal debt
 
-- Shared frontend mutation confirmation now exists at `web/src/hooks/useMutationConfirmation.tsx`.
-- Keep Player 360 read-only until existing high-risk Players, Inventory, Give Item, Journey, Teleport, Storage, Database SQL, and Battlegroup Exec workflows are migrated to the shared confirmation flow.
-- Use the confirmation hook to display backend mutation-safety classification, operator warnings, rollback guidance, target context, and admin reason capture before the mutation request is sent.
+- The active Players-table mutation path is now routed through extracted confirmed modals:
+  - `GiveItemModalAugmented.tsx`
+  - `InventoryModal.tsx`
+  - `PlayerActionsModalConfirmed.tsx`
+  - `PlayerTeleportModal.tsx`
+  - `PlayerAdminActionsModal.tsx`
+- `PlayersTab.tsx` still contains legacy inline modal code that should be removed only after a careful cleanup slice.
+- Prefer extracted workflow components over further expansion of `PlayersTab.tsx`.
 
-### 2. Preserve Player 360 validated state
+### 2. Continue shared mutation confirmation beyond Players
+
+Remaining shared-confirmation review targets:
+
+- Storage mutations.
+- Database SQL mutation flow.
+- Battlegroup Exec flow.
+- Blueprint import flow.
+- Future Inventory Studio v2 workflows.
+- Future Player 360 quick actions.
+
+### 3. Preserve Player 360 validated state
 
 - Keep the standalone `Player 360` tab available.
 - Keep the Players-table `360` launcher read-only.
-- Keep existing Players, Inventory, Give Item, and Actions workflows behaviorally unchanged until a later validated slice explicitly migrates them to the shared confirmation hook.
+- Do not add Player 360 quick actions until they are implemented as confirmed workflows with reason capture, target metadata, and audit visibility.
 
 ## Validation command set
 
@@ -71,6 +88,12 @@ npm audit --audit-level=high
 npm run typecheck
 npm run lint
 npm run build
+```
+
+On Windows, use:
+
+```powershell
+.\update.ps1
 ```
 
 ## Notes
