@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Added admin audit documentation sync covering the current audit event model, protected event review endpoint, local JSONL audit path, captured fields, reason capture, and operational limitations.
+- Added implementation tracker updates so Admin Action Audit Log is marked complete and Player 360 Profile is identified as the next feature slice.
 - Added SSH tunnel management foundation with managed local forwarding for game-management database access.
 - Added SSH tunnel mode configuration for managed, existing, and direct troubleshooting paths.
 - Added managed tunnel lifecycle cleanup during reconnect and shutdown.
@@ -46,6 +48,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Updated `docs/admin-implementation-tasks.md` to reflect landed audit work, active mutation-safety work, and Player 360 Profile as the next feature slice.
+- Updated `PATCH_NOTES.md` so the current release note matches the latest DA Manager documentation sync instead of the older SSH tunnel-only focus.
 - Routed PostgreSQL game-management access through the configured SSH tunnel policy instead of the previous inline SSH dial function.
 - Updated Battlegroup tab navigation with separate `Pods` and `Health Diagnostics` views.
 - Updated Battlegroup support-bundle workflow with separate raw and redacted export actions.
@@ -69,6 +73,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Fixed stale admin implementation tracker statuses that still described Admin Action Audit Log and Mutation Safety Framework as future-only work.
 - Fixed managed SSH tunnel cleanup so repeated close paths are idempotent.
 - Fixed Battlegroup view button variants to use supported HeroUI values.
 - Fixed missing/stale `go.sum` risk by adding CI validation that runs `go mod tidy`, verifies `go.mod`/`go.sum` have no diff, verifies module checksums, and runs Go tests.
@@ -88,6 +93,8 @@ All notable changes to this project will be documented in this file.
 
 ### Security
 
+- Improved operator accountability by documenting the current audit event capture fields, reason capture, and protected review path.
+- Reinforced that future Player 360 quick actions should reuse the audit and mutation-safety foundation before adding new mutation workflows.
 - Reduced direct infrastructure exposure by routing supported game-management database access through managed SSH tunnels by default.
 - Reduced reconnect risk by cleaning managed tunnels before reopening SSH and database sessions.
 - Reduced diagnostic handoff risk by adding redacted Battlegroup Health bundle export for common infrastructure identifiers.
