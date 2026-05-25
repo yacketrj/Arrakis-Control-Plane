@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Added shared frontend mutation confirmation hook at `web/src/hooks/useMutationConfirmation.tsx`.
+- Added mutation confirmation support for backend classification lookup, conservative fallback classification, risk/warning display, target context, rollback guidance, and admin reason capture.
 - Added validated Player 360 v1 read-only profile workflow with backend endpoint, standalone tab, and Players-table launcher.
 - Added Player 360 row launcher from the Players table through `web/src/tabs/PlayersTabWith360Launcher.tsx`.
 - Added automatic Player 360 profile loading when opened from a selected Players table row.
@@ -59,6 +61,9 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Updated `docs/mutation-safety-framework.md` with the shared frontend confirmation hook, integration pattern, limitations, and follow-up migration tasks.
+- Updated `docs/admin-implementation-tasks.md` so the active focus is migrating existing high-risk workflows to the shared confirmation hook before Player 360 quick actions.
+- Updated `PATCH_NOTES.md` with the shared frontend mutation confirmation foundation status.
 - Marked Player 360 Profile as validated and Done in implementation tracking after clean compile validation.
 - Updated `PATCH_NOTES.md` with the validated Player 360 v1 status.
 - Updated `web/src/App.tsx` so the Players tab uses the Player 360 launcher wrapper.
@@ -119,6 +124,8 @@ All notable changes to this project will be documented in this file.
 
 ### Security
 
+- Added shared frontend confirmation support so future high-risk UI actions can display mutation safety metadata and capture an admin reason before sending the mutation request.
+- Kept Player 360 quick actions blocked until existing high-risk workflows are migrated to shared confirmation and reason capture.
 - Validated Player 360 v1 as a protected read-only support surface with no new player mutation paths.
 - Added a read-only Player 360 launcher from Players without changing existing mutation workflows.
 - Added a read-only Player 360 frontend path without adding new player mutation workflows.
