@@ -16,6 +16,7 @@ The workflow is split by **hosting platform** and **runtime/orchestration layer*
 
 ## Platform Guides
 
+- [AMP-controlled hosting](./platforms/amp-control-panel.md)
 - [Linux local or Linux VM](./platforms/linux-local-or-vm.md)
 - [Windows / Hyper-V](./platforms/windows-hyper-v.md)
 - [Proxmox](./platforms/proxmox.md)
@@ -35,6 +36,7 @@ The workflow is split by **hosting platform** and **runtime/orchestration layer*
 ## Focused Runbooks
 
 - [Failed travel capture](./runbooks/failed-travel-capture.md)
+- [Server startup failure](./runbooks/server-startup-failure.md)
 - [Port and network listener validation](./runbooks/port-and-network-listener-validation.md)
 - [Log collection and redaction](./runbooks/log-collection-and-redaction.md)
 - [RabbitMQ or messaging checks](./runbooks/rabbitmq-or-messaging-checks.md)
