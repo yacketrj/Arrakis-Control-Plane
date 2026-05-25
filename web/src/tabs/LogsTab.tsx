@@ -4,11 +4,20 @@ import { api, getAdminToken, getWsBase } from '../api/client'
 import type { LogPod, CheatEntry } from '../api/client'
 
 type ActiveView = 'pod' | 'cheats'
+type LogTarget = LogPod & { display?: string }
+
+function logTargetLabel(target?: LogTarget | null): string {
+  return target?.display || target?.name || ''
+}
+
+function safeFilename(value: string): string {
+  return value.replace(/[^a-zA-Z0-9_.-]+/g, '_').replace(/^_+|_+$/g, '') || 'logs'
+}
 
 export default function LogsTab() {
-  const [pods, setPods] = useState<LogPod[]>([])
+  const [pods, setPods] = useState<LogTarget[]>([])
   const [podsLoading, setPodsLoading] = useState(false)
-  const [selectedPod, setSelectedPod] = useState<LogPod | null>(null)
+  const [selectedPod, setSelectedPod] = useState<LogTarget | null>(null)
   const [connected, setConnected] = useState(false)
   const [autoScroll, setAutoScroll] = useState(true)
   const [displayLines, setDisplayLines] = useState<string[]>([])
@@ -21,26 +30,27 @@ export default function LogsTab() {
   const flushTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const logContainerRef = useRef<HTMLPreElement | null>(null)
 
-  // Load pods on mount
-  useEffect(() => {
+  const refreshPods = useCallback(() => {
     setPodsLoading(true)
     api.logs.pods()
-      .then(setPods)
+      .then(rows => setPods(rows as LogTarget[]))
       .catch((e: unknown) => {
         const msg = e instanceof Error ? e.message : String(e)
-        toast.danger(`Failed to load pods: ${msg}`)
+        toast.danger(`Failed to load log targets: ${msg}`)
       })
       .finally(() => setPodsLoading(false))
   }, [])
 
-  // Flush log lines to display every 200ms
+  useEffect(() => {
+    refreshPods()
+  }, [refreshPods])
+
   const startFlush = useCallback(() => {
     if (flushTimerRef.current) return
     flushTimerRef.current = setInterval(() => {
       if (linesRef.current.length > 0) {
         setDisplayLines(prev => {
           const combined = [...prev, ...linesRef.current]
-          // Keep last 5000 lines
           return combined.length > 5000 ? combined.slice(combined.length - 5000) : combined
         })
         linesRef.current = []
@@ -55,15 +65,13 @@ export default function LogsTab() {
     }
   }, [])
 
-  // Auto-scroll
   useEffect(() => {
     if (autoScroll && logContainerRef.current) {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight
     }
   }, [displayLines, autoScroll])
 
-  const connectPod = useCallback((pod: LogPod) => {
-    // Close existing connection
+  const connectPod = useCallback((pod: LogTarget) => {
     if (wsRef.current) {
       wsRef.current.close()
       wsRef.current = null
@@ -78,7 +86,7 @@ export default function LogsTab() {
     const token = getAdminToken()
     const params = new URLSearchParams({ ns: pod.namespace, pod: pod.name })
     if (token) params.set('ws_token', token)
-      const url = `${getWsBase()}/logs/stream?${params.toString()}`
+    const url = `${getWsBase()}/logs/stream?${params.toString()}`
     const ws = new WebSocket(url)
     wsRef.current = ws
 
@@ -98,7 +106,6 @@ export default function LogsTab() {
     ws.onclose = () => {
       setConnected(false)
       stopFlush()
-      // Flush remaining lines
       if (linesRef.current.length > 0) {
         setDisplayLines(prev => [...prev, ...linesRef.current])
         linesRef.current = []
@@ -115,12 +122,7 @@ export default function LogsTab() {
     setConnected(false)
   }, [stopFlush])
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      disconnect()
-    }
-  }, [disconnect])
+  useEffect(() => () => disconnect(), [disconnect])
 
   const exportLogs = () => {
     const content = displayLines.join('\n')
@@ -128,7 +130,7 @@ export default function LogsTab() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${selectedPod?.name ?? 'logs'}-${new Date().toISOString()}.txt`
+    a.download = `${safeFilename(logTargetLabel(selectedPod))}-${new Date().toISOString()}.txt`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -152,30 +154,17 @@ export default function LogsTab() {
 
   return (
     <div className="flex h-full overflow-hidden">
-      {/* Pod list */}
       <div
-        className="w-56 shrink-0 flex flex-col gap-1 p-2 overflow-y-auto"
+        className="w-72 shrink-0 flex flex-col gap-1 p-2 overflow-y-auto"
         style={{ background: 'var(--color-surface)', borderRight: '1px solid #2a2418' }}
       >
         <div className="flex items-center justify-between px-2 py-1 mb-1">
-          <span className="text-xs font-semibold uppercase" style={{ color: 'var(--color-text-dim)' }}>Pods</span>
-          <Button
-            size="sm"
-            variant="ghost"
-            isDisabled={podsLoading}
-            onPress={() => {
-              setPodsLoading(true)
-              api.logs.pods()
-                .then(setPods)
-                .catch(() => { /* ignore */ })
-                .finally(() => setPodsLoading(false))
-            }}
-          >
+          <span className="text-xs font-semibold uppercase" style={{ color: 'var(--color-text-dim)' }}>Log Targets</span>
+          <Button size="sm" variant="ghost" isDisabled={podsLoading} onPress={refreshPods}>
             {podsLoading ? <Spinner size="sm" color="current" /> : '↻'}
           </Button>
         </div>
 
-        {/* Cheats entry */}
         <button
           onClick={handleSelectCheats}
           className="text-left px-2 py-1.5 rounded text-xs transition-colors"
@@ -192,80 +181,55 @@ export default function LogsTab() {
         <div style={{ borderBottom: '1px solid #2a2418', marginBottom: '4px' }} />
 
         {pods.length === 0 && !podsLoading && (
-          <p className="text-xs px-2" style={{ color: 'var(--color-text-dim)' }}>No pods found</p>
+          <p className="text-xs px-2" style={{ color: 'var(--color-text-dim)' }}>No log targets found</p>
         )}
-        {pods.map(pod => (
-          <button
-            key={`${pod.namespace}/${pod.name}`}
-            onClick={() => connectPod(pod)}
-            className="text-left px-2 py-1.5 rounded text-xs transition-colors"
-            style={{
-              background: activeView === 'pod' && selectedPod?.name === pod.name ? 'var(--color-primary)' : 'transparent',
-              color: activeView === 'pod' && selectedPod?.name === pod.name ? '#fff' : 'var(--color-text)',
-            }}
-          >
-            <div className="font-mono truncate">{pod.name}</div>
-            <div className="text-[10px] opacity-60">{pod.namespace}</div>
-          </button>
-        ))}
+        {pods.map(pod => {
+          const selected = activeView === 'pod' && selectedPod?.name === pod.name && selectedPod?.namespace === pod.namespace
+          return (
+            <button
+              key={`${pod.namespace}/${pod.name}`}
+              onClick={() => connectPod(pod)}
+              className="text-left px-2 py-1.5 rounded text-xs transition-colors"
+              style={{
+                background: selected ? 'var(--color-primary)' : 'transparent',
+                color: selected ? '#fff' : 'var(--color-text)',
+              }}
+            >
+              <div className="font-mono truncate">{logTargetLabel(pod)}</div>
+              <div className="text-[10px] opacity-60">{pod.namespace}</div>
+            </button>
+          )
+        })}
       </div>
 
-      {/* Main area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {activeView === 'cheats' ? (
           <>
-            {/* Cheats toolbar */}
-            <div
-              className="flex items-center gap-3 px-4 py-2 shrink-0"
-              style={{ background: 'var(--color-surface)', borderBottom: '1px solid #2a2418' }}
-            >
-              <span className="text-xs font-semibold" style={{ color: 'var(--color-primary)' }}>
-                Anti-Cheat Events (7d)
-              </span>
+            <div className="flex items-center gap-3 px-4 py-2 shrink-0" style={{ background: 'var(--color-surface)', borderBottom: '1px solid #2a2418' }}>
+              <span className="text-xs font-semibold" style={{ color: 'var(--color-primary)' }}>Anti-Cheat Events (7d)</span>
               <div className="flex-1" />
-              <Button size="sm" variant="outline" onPress={loadCheats} isDisabled={cheatsLoading}>
-                {cheatsLoading ? <Spinner size="sm" color="current" /> : '↻ Refresh'}
-              </Button>
-              <span className="text-xs" style={{ color: 'var(--color-text-dim)' }}>
-                {cheats.length} events
-              </span>
+              <Button size="sm" variant="outline" onPress={loadCheats} isDisabled={cheatsLoading}>{cheatsLoading ? <Spinner size="sm" color="current" /> : '↻ Refresh'}</Button>
+              <span className="text-xs" style={{ color: 'var(--color-text-dim)' }}>{cheats.length} events</span>
             </div>
 
-            {/* Cheats table */}
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', background: '#0a0806' }}>
               {cheatsLoading ? (
-                <div className="flex justify-center py-12">
-                  <Spinner size="lg" />
-                </div>
+                <div className="flex justify-center py-12"><Spinner size="lg" /></div>
               ) : cheats.length === 0 ? (
-                <p className="text-xs p-4" style={{ color: 'var(--color-text-dim)' }}>
-                  No cheat events found in the last 7 days.
-                </p>
+                <p className="text-xs p-4" style={{ color: 'var(--color-text-dim)' }}>No cheat events found in the last 7 days.</p>
               ) : (
                 <table className="w-full text-xs">
                   <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#1a1610' }}>
-                    <tr style={{ borderBottom: '1px solid #2a2418' }}>
-                      {['Time', 'Character', 'Cheat Type'].map(h => (
-                        <th key={h} className="text-left px-4 py-2 font-semibold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
+                    <tr style={{ borderBottom: '1px solid #2a2418' }}>{['Time', 'Character', 'Cheat Type'].map(h => <th key={h} className="text-left px-4 py-2 font-semibold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>{h}</th>)}</tr>
                   </thead>
                   <tbody>
                     {cheats.map((entry, i) => {
                       const isSuspicious = /dup|negative/i.test(entry.cheat_type)
                       return (
                         <tr key={i} style={{ borderBottom: '1px solid #1a1610', background: i % 2 === 0 ? '#0d0b07' : '#0f0d09' }}>
-                          <td className="px-4 py-1.5 font-mono" style={{ color: 'var(--color-text-dim)', whiteSpace: 'nowrap' }}>
-                            {entry.event_time}
-                          </td>
-                          <td className="px-4 py-1.5" style={{ color: 'var(--color-text)' }}>
-                            {entry.character_name}
-                          </td>
-                          <td className="px-4 py-1.5 font-mono" style={{ color: isSuspicious ? '#e88' : 'var(--color-text)' }}>
-                            {entry.cheat_type}
-                          </td>
+                          <td className="px-4 py-1.5 font-mono" style={{ color: 'var(--color-text-dim)', whiteSpace: 'nowrap' }}>{entry.event_time}</td>
+                          <td className="px-4 py-1.5" style={{ color: 'var(--color-text)' }}>{entry.character_name}</td>
+                          <td className="px-4 py-1.5 font-mono" style={{ color: isSuspicious ? '#e88' : 'var(--color-text)' }}>{entry.cheat_type}</td>
                         </tr>
                       )
                     })}
@@ -276,77 +240,22 @@ export default function LogsTab() {
           </>
         ) : (
           <>
-            {/* Log toolbar */}
-            <div
-              className="flex items-center gap-3 px-4 py-2 shrink-0"
-              style={{ background: 'var(--color-surface)', borderBottom: '1px solid #2a2418' }}
-            >
+            <div className="flex items-center gap-3 px-4 py-2 shrink-0" style={{ background: 'var(--color-surface)', borderBottom: '1px solid #2a2418' }}>
               <div className="flex items-center gap-2 text-xs">
-                <div
-                  className="w-2 h-2 rounded-full"
-                  style={{ background: connected ? 'var(--color-success)' : '#555' }}
-                />
-                <span style={{ color: 'var(--color-text-dim)' }}>
-                  {connected ? `Connected to ${selectedPod?.name}` : selectedPod ? 'Disconnected' : 'Select a pod'}
-                </span>
+                <div className="w-2 h-2 rounded-full" style={{ background: connected ? 'var(--color-success)' : '#555' }} />
+                <span style={{ color: 'var(--color-text-dim)' }}>{connected ? `Connected to ${logTargetLabel(selectedPod)}` : selectedPod ? 'Disconnected' : 'Select a log target'}</span>
               </div>
               <div className="flex-1" />
-              <label className="flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: 'var(--color-text-dim)' }}>
-                <input
-                  type="checkbox"
-                  checked={autoScroll}
-                  onChange={e => setAutoScroll(e.target.checked)}
-                  className="w-3 h-3"
-                />
-                Auto-scroll
-              </label>
-              {selectedPod && connected && (
-                <Button size="sm" variant="danger-soft" onPress={disconnect}>
-                  Stop
-                </Button>
-              )}
-              {selectedPod && !connected && (
-                <Button size="sm" variant="outline" onPress={() => connectPod(selectedPod)}>
-                  Reconnect
-                </Button>
-              )}
-              {displayLines.length > 0 && (
-                <Button size="sm" variant="ghost" onPress={exportLogs}>
-                  Export
-                </Button>
-              )}
-              {displayLines.length > 0 && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onPress={() => { setDisplayLines([]); linesRef.current = [] }}
-                >
-                  Clear
-                </Button>
-              )}
-              <span className="text-xs" style={{ color: 'var(--color-text-dim)' }}>
-                {displayLines.length} lines
-              </span>
+              <label className="flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: 'var(--color-text-dim)' }}><input type="checkbox" checked={autoScroll} onChange={e => setAutoScroll(e.target.checked)} className="w-3 h-3" />Auto-scroll</label>
+              {selectedPod && connected && <Button size="sm" variant="danger-soft" onPress={disconnect}>Stop</Button>}
+              {selectedPod && !connected && <Button size="sm" variant="outline" onPress={() => connectPod(selectedPod)}>Reconnect</Button>}
+              {displayLines.length > 0 && <Button size="sm" variant="ghost" onPress={exportLogs}>Export</Button>}
+              {displayLines.length > 0 && <Button size="sm" variant="ghost" onPress={() => { setDisplayLines([]); linesRef.current = [] }}>Clear</Button>}
+              <span className="text-xs" style={{ color: 'var(--color-text-dim)' }}>{displayLines.length} lines</span>
             </div>
 
-            {/* Log output */}
-            <pre
-              ref={logContainerRef}
-              className="flex-1 overflow-auto p-4 text-xs font-mono"
-              style={{
-                background: '#0a0806',
-                color: '#a8d8a8',
-                margin: 0,
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-all',
-              }}
-            >
-              {displayLines.length === 0
-                ? (selectedPod
-                  ? (connected ? 'Waiting for log lines...' : 'Disconnected.')
-                  : 'Select a pod from the left panel to start streaming logs.')
-                : displayLines.join('\n')
-              }
+            <pre ref={logContainerRef} className="flex-1 overflow-auto p-4 text-xs font-mono" style={{ background: '#0a0806', color: '#a8d8a8', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+              {displayLines.length === 0 ? (selectedPod ? (connected ? 'Waiting for log lines...' : 'Disconnected.') : 'Select a log target from the left panel to start streaming logs.') : displayLines.join('\n')}
             </pre>
           </>
         )}
