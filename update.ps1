@@ -11,6 +11,7 @@ param(
   [switch]$SkipWebTypecheck,
   [switch]$SkipWebLint,
   [switch]$SkipWebBuild,
+  [switch]$SkipNpmRepair,
   [switch]$SkipAutoCommit,
   [switch]$AllowDirtyWorktree
 )
@@ -86,10 +87,6 @@ function Get-GitStatusLines {
     throw 'Unable to check git working tree status.'
   }
   return $status
-}
-
-function Test-GitHasChanges {
-  return (@(Get-GitStatusLines).Count -gt 0)
 }
 
 function Write-GitStatusPreview {
@@ -179,14 +176,87 @@ function Resolve-OutputDirectory {
   return (Join-Path $Root $RequestedOutputDir)
 }
 
+function Get-NodeProcessSummary {
+  $processes = @(Get-Process -Name 'node' -ErrorAction SilentlyContinue)
+  if ($processes.Count -eq 0) {
+    Write-Host 'No running node.exe processes were detected.' -ForegroundColor Yellow
+    return
+  }
+
+  Write-Host 'Running node.exe processes detected:' -ForegroundColor Yellow
+  foreach ($process in $processes | Select-Object -First 12) {
+    $path = 'unknown path'
+    try {
+      if ($process.Path) { $path = $process.Path }
+    } catch {
+      $path = 'access denied reading process path'
+    }
+    Write-Host ("  PID {0}: {1}" -f $process.Id, $path) -ForegroundColor Yellow
+  }
+  if ($processes.Count -gt 12) {
+    Write-Host "  ... $($processes.Count - 12) more node.exe processes" -ForegroundColor Yellow
+  }
+}
+
+function Remove-NodeModulesForRepair {
+  param([Parameter(Mandatory = $true)][string]$WebRootPath)
+
+  $nodeModules = Join-Path $WebRootPath 'node_modules'
+  if (-not (Test-Path $nodeModules)) {
+    Write-Host 'node_modules is not present; repair will perform a fresh install.' -ForegroundColor Yellow
+    return
+  }
+
+  Write-Host 'Removing web node_modules for automatic dependency repair...' -ForegroundColor Yellow
+  try {
+    Remove-Item -LiteralPath $nodeModules -Recurse -Force -ErrorAction Stop
+  } catch {
+    Get-NodeProcessSummary
+    throw "Unable to remove web node_modules automatically. A process or security scanner is probably locking files under node_modules. Original error: $($_.Exception.Message)"
+  }
+}
+
+function Invoke-NpmInstallWithRepair {
+  param([switch]$Clean)
+
+  $installLabel = if ($Clean) { 'NPM clean install' } else { 'NPM install' }
+  $installArgs = if ($Clean) { @('ci') } else { @('install') }
+
+  try {
+    Invoke-Step $installLabel { Invoke-Native 'npm' $installArgs }
+    return
+  } catch {
+    $firstError = $_.Exception.Message
+    Write-Host "Initial $installLabel failed: $firstError" -ForegroundColor Yellow
+  }
+
+  if ($SkipNpmRepair) {
+    throw "$installLabel failed and automatic npm repair is disabled by -SkipNpmRepair."
+  }
+
+  Write-Host 'Attempting npm recovery: cache verify, retry, then dependency repair if needed.' -ForegroundColor Yellow
+
+  try {
+    Invoke-Step 'NPM cache verify' { Invoke-Native 'npm' @('cache', 'verify') }
+    Invoke-Step "$installLabel retry" { Invoke-Native 'npm' $installArgs }
+    return
+  } catch {
+    Write-Host "NPM retry failed: $($_.Exception.Message)" -ForegroundColor Yellow
+  }
+
+  Get-NodeProcessSummary
+  Remove-NodeModulesForRepair -WebRootPath $WebRoot
+
+  Invoke-Step "$installLabel after dependency repair" { Invoke-Native 'npm' $installArgs }
+}
+
 function Show-NpmLockHelp {
   Write-Host ""
-  Write-Host 'NPM dependency update failed.' -ForegroundColor Red
-  Write-Host 'On Windows this is commonly caused by a locked native .node file in node_modules.' -ForegroundColor Yellow
-  Write-Host 'Close any running frontend dev server, node.exe process, editor terminal, or antivirus scan that may be holding web\node_modules files open, then re-run the script.' -ForegroundColor Yellow
-  Write-Host 'Normal updates use npm install instead of npm ci to avoid deleting locked native dependencies.' -ForegroundColor Yellow
-  Write-Host 'Use .\update.ps1 -CleanWebDependencies only when you intentionally want a clean npm ci install.' -ForegroundColor Yellow
-  Write-Host 'Use .\update.ps1 -SkipWebInstall when dependencies are already installed and locked files are expected.' -ForegroundColor Yellow
+  Write-Host 'NPM dependency update failed after automatic recovery attempts.' -ForegroundColor Red
+  Write-Host 'The script already retried npm and attempted node_modules repair unless -SkipNpmRepair was supplied.' -ForegroundColor Yellow
+  Write-Host 'If removal failed, a running process or security scanner is still locking web\node_modules files.' -ForegroundColor Yellow
+  Write-Host 'Check the node.exe process list printed above, then close the listed process or pause the scanner and rerun the script.' -ForegroundColor Yellow
+  Write-Host 'You can bypass dependency installation only when dependencies are already valid by running: .\update.ps1 -SkipWebInstall' -ForegroundColor Yellow
 }
 
 try {
@@ -244,11 +314,7 @@ try {
       Invoke-Step 'NPM version' { Invoke-Native 'npm' @('--version') }
 
       if (-not $SkipWebInstall) {
-        if ($CleanWebDependencies) {
-          Invoke-Step 'NPM clean install' { Invoke-Native 'npm' @('ci') }
-        } else {
-          Invoke-Step 'NPM install' { Invoke-Native 'npm' @('install') }
-        }
+        Invoke-NpmInstallWithRepair -Clean:$CleanWebDependencies
       } else {
         Write-Host 'Skipping npm install because -SkipWebInstall was supplied.' -ForegroundColor Yellow
       }
@@ -294,7 +360,7 @@ catch {
   Write-Host $_.Exception.Message -ForegroundColor Red
 
   $message = $_.Exception.Message
-  if ($message -match 'NPM|npm|EPERM|unlink|node_modules') {
+  if ($message -match 'npm install|npm ci|EPERM|EBUSY|ENOTEMPTY|unlink|rmdir|node_modules') {
     Show-NpmLockHelp
   }
 }
