@@ -4,6 +4,8 @@ This folder contains a discovery-first, end-to-end troubleshooting workflow for 
 
 The workflow is split by **hosting platform**, **runtime/orchestration layer**, and **focused issue runbook** so support staff do not run Docker, AMP, Hyper-V, cloud, Linux, or Windows commands unless that environment has actually been discovered.
 
+Case-specific incident evidence does not belong in this troubleshooting guide. Reusable lessons learned from incidents are promoted here only after removing personal data, account identifiers, credentials, and environment-specific values that are not needed for general troubleshooting.
+
 ## Workflow
 
 1. Start with [Start Here](./00-start-here-troubleshooting-guide.md).
@@ -17,6 +19,8 @@ The workflow is split by **hosting platform**, **runtime/orchestration layer**, 
 9. Package evidence with the [Escalation Package Template](./05-escalation-package-template.md) and [Standard Evidence Bundle](./06-standard-evidence-bundle.md).
 10. Write final analysis with the [RCA Report Template](./07-rca-report-template.md) only after evidence supports the conclusion.
 11. Use [Project Continuity Notes](./08-project-continuity-notes.md) when continuing the work in a new chat or handoff.
+12. Review [Documentation Maintenance and QA Checklist](./09-documentation-maintenance-and-qa-checklist.md) before publishing or handing off updates.
+13. Promote generalized findings through [Lessons Learned From Incidents](./10-lessons-learned-from-incidents.md).
 
 ## Core Workflow Documents
 
@@ -29,6 +33,8 @@ The workflow is split by **hosting platform**, **runtime/orchestration layer**, 
 - [Standard Evidence Bundle](./06-standard-evidence-bundle.md)
 - [RCA Report Template](./07-rca-report-template.md)
 - [Project Continuity Notes](./08-project-continuity-notes.md)
+- [Documentation Maintenance and QA Checklist](./09-documentation-maintenance-and-qa-checklist.md)
+- [Lessons Learned From Incidents](./10-lessons-learned-from-incidents.md)
 
 ## Platform Guides
 
@@ -56,6 +62,7 @@ The workflow is split by **hosting platform**, **runtime/orchestration layer**, 
 - [Server visibility and listing](./runbooks/server-visibility-and-listing.md)
 - [Failed travel capture](./runbooks/failed-travel-capture.md)
 - [Map travel and instancing failure](./runbooks/map-travel-and-instancing-failure.md)
+- [Dynamic instancing and handoff validation](./runbooks/dynamic-instancing-and-handoff-validation.md)
 - [Login and authentication failure](./runbooks/login-and-authentication-failure.md)
 - [Server startup failure](./runbooks/server-startup-failure.md)
 - [Crash, hang, and process exit analysis](./runbooks/crash-hang-and-process-exit-analysis.md)
@@ -73,4 +80,4 @@ The workflow is split by **hosting platform**, **runtime/orchestration layer**, 
 
 ## Rule for Support Staff
 
-Do not assume the environment. If a value is unknown, write `unknown`, then use discovery steps to find it.
+Do not assume the environment. If a value is unknown, write `unknown`, then use discovery steps to find it. Do not add case-specific personal data, credentials, or unrelated environment details to the reusable troubleshooting guide.
