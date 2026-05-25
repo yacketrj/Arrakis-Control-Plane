@@ -32,6 +32,10 @@ Every feature task must update:
 | P0 | Mutation Safety Framework | In Progress | `docs/mutation-safety-framework.md` | Go + frontend tests |
 | P0 | Active Players-table mutation confirmation migration | Done | `docs/mutation-safety-framework.md` | Windows `update.ps1` validation |
 | P0 | PlayersTab inline modal cleanup | Done | `docs/mutation-safety-framework.md` | Windows `update.ps1` validation |
+| P0 | Storage mutation confirmation migration | Done | `docs/mutation-safety-framework.md` | Windows `update.ps1` validation |
+| P0 | Database SQL confirmation migration | Done | `docs/mutation-safety-framework.md` | Windows `update.ps1` validation |
+| P0 | Battlegroup Exec confirmation migration | Done | `docs/mutation-safety-framework.md` | Windows `update.ps1` validation |
+| P0 | Blueprint import confirmation migration | Done | `docs/mutation-safety-framework.md` | Windows `update.ps1` validation |
 | P1 | Player 360 Profile | Done | `docs/player-360-profile.md` | Go + frontend validation clean |
 | P1 | Inventory Studio v2 | Planned | `docs/inventory-studio.md` required | Go + frontend tests |
 | P1 | Battlegroup Status v2 | Planned | `docs/battlegroup-status-v2.md` required | Go + frontend tests |
@@ -45,22 +49,26 @@ Every feature task must update:
 | P2 | Maintenance Mode Assistant | Planned | `docs/maintenance-mode-assistant.md` required | Go + frontend tests |
 | P3 | Settings Diff / Config Manager | Planned | `docs/settings-diff-config-manager.md` required | Research + tests |
 | P3 | Chat Moderation / Intercept Viewer | Planned | `docs/chat-moderation-intercept-viewer.md` required | Research + tests |
-| P3 | Safe Stored Procedure Runner | Blocked | `docs/safe-stored-procedure-runner.md` required | Requires audit + mutation safety |
+| P3 | Safe Stored Procedure Runner | Planned | `docs/safe-stored-procedure-runner.md` required | Requires typed wrappers and snapshots |
 
 ## Current implementation focus
 
-### 1. Continue shared mutation confirmation beyond Players
+### 1. Harden Mutation Safety Framework v1
 
-The active Players-table mutation path is now routed through extracted confirmed modals, and legacy inline Inventory/Actions modal code has been removed from `PlayersTab.tsx`.
+The explicit current mutation-confirmation migration set is complete for:
 
-Remaining shared-confirmation review targets:
+- Active Players-table mutation workflows.
+- Storage add/remove item operations.
+- Database SQL execution.
+- Battlegroup Exec server-control operations.
+- Blueprint import.
 
-- Storage mutations.
-- Database SQL mutation flow.
-- Battlegroup Exec flow.
-- Blueprint import flow.
-- Future Inventory Studio v2 workflows.
-- Future Player 360 quick actions.
+Next framework hardening tasks:
+
+- Typed backend mutation wrappers.
+- Before-change snapshot helpers.
+- Audit export and filtering.
+- UI visibility for reason-enforcement state.
 
 ### 2. Preserve extracted workflow architecture
 
