@@ -1,38 +1,47 @@
 # Dune Admin Release Notes
 
-## Current update: Inventory repair/delete shared mutation confirmation migration
+## Current update: Player resource/action shared mutation confirmation migration
 
 ### Why this update was made
 
-Inventory repair and delete actions are high-impact player inventory mutations. This update routes the active Players inventory workflow through an extracted inventory modal that uses the shared mutation-confirmation hook and required admin reason capture.
+The active Players Actions workflow still allowed high-impact player resource, XP, specialization, and faction reputation mutations to flow through local action handlers. This update adds a confirmed Player Actions modal for the non-destructive/high-impact player action slice and routes the active Actions button through that modal.
 
 ### What changed
 
-- Added `web/src/tabs/InventoryModal.tsx` as an extracted inventory modal.
-- Wired inventory repair/delete through `useMutationConfirmation`.
-- Added required admin reason capture for repair and delete operations.
-- Passed captured reasons into `api.players.repairItem` and `api.players.deleteItem`.
-- Added player/item target metadata to confirmation dialogs.
-- Preserved online-player desync warnings in confirmation details.
-- Updated `web/src/tabs/PlayersTabWith360Launcher.tsx` so active Players-table Inventory clicks open the extracted confirmed modal.
+- Added `web/src/tabs/PlayerActionsModalConfirmed.tsx` for confirmed player resource and specialization actions.
+- Wired the active Players-table Actions button through `PlayersTabWith360Launcher.tsx`.
+- Added shared mutation confirmation and required admin reason capture for:
+  - Give Currency
+  - Give Scrip
+  - Award Intel
+  - Award Character XP
+  - Give Faction Reputation
+  - Set Specialization XP
+- Added player target metadata and online-state warnings to confirmation details.
+- Passed captured reasons into the matching `api.players.*` mutation calls.
 - Avoided direct large-file replacement of `web/src/tabs/PlayersTab.tsx` in this slice.
 
 ### Security and operator impact
 
-- Inventory repair/delete now use the same shared confirmation foundation as Give Item.
-- Admin reason capture is required before inventory mutation requests are sent.
+- Active resource, XP, specialization, and faction reputation actions now use the same shared confirmation foundation as Give Item and Inventory repair/delete.
+- Admin reason capture is required before these mutation requests are sent.
 - Player 360 remains read-only.
 - No Player 360 quick actions were added.
-- The old inline `InventoryModal` remains in `PlayersTab.tsx` as cleanup debt, but active app routing now uses the extracted confirmed modal through the wrapper.
-- Remaining PlayersTab action migrations are resource grants, XP/spec changes, journey reset/wipe, admin wipes, kick, and teleport.
+- Remaining action migrations are journey complete/reset/wipe, tutorial deletion, codex wipe, kick, and teleport.
 
 ### Validation
 
-Validated in the Windows development environment with:
+Validation required in the Windows development environment:
 
 ```powershell
 .\update.ps1
 ```
+
+---
+
+## Previous update: Inventory repair/delete shared mutation confirmation migration
+
+Inventory repair/delete was migrated to the extracted confirmed inventory modal with required admin reason capture.
 
 ---
 
