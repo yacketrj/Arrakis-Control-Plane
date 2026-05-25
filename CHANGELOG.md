@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Added standalone Player 360 frontend tab and main app navigation entry for read-only profile lookup by PlayerCharacter actor ID.
+- Added `web/src/api/playerProfile.ts` frontend response types and protected fetch helper for `GET /api/v1/players/{id}/profile`.
 - Added Player 360 backend profile foundation with `GET /api/v1/players/{id}/profile`.
 - Added `player_profile.go` for protected read-only Player 360 aggregation, response modeling, section-level safe errors, inventory summaries, journey summaries, online-state matching, and ID helper behavior.
 - Added `routes.go` to centralize backend HTTP route registration and include the Player 360 profile endpoint.
@@ -54,14 +56,15 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Updated Player 360 to fetch specialization tracks by controller ID when available, matching the existing player action flow.
+- Updated `docs/player-360-profile.md` with current frontend tab status, validation requirements, and follow-up work.
+- Updated `docs/admin-implementation-tasks.md` so Player 360 validation is the active implementation focus.
+- Updated `PATCH_NOTES.md` with the Player 360 read-only frontend tab update.
 - Refactored `server.go` to call shared route registration through `registerRoutes`.
-- Updated `docs/player-360-profile.md` with current backend implementation status and remaining validation/frontend work.
-- Updated `docs/admin-implementation-tasks.md` so Player 360 Profile is now in progress.
 - Updated `PATCH_NOTES.md` with the Player 360 backend profile foundation update.
 - Updated `docs/admin-feature-design-and-priorities.md` so the next implementation slice is Player 360 Profile read-only foundation instead of the already-completed audit foundation.
 - Updated the Player 360 roadmap entry to fold Currency and Online Status into Player Info.
 - Clarified Battlegroup Status v2 as future Prometheus/Grafana graph and diagnostic improvement work.
-- Updated `docs/admin-implementation-tasks.md` to reflect landed audit work, active mutation-safety work, and Player 360 Profile as the next feature slice.
 - Routed PostgreSQL game-management access through the configured SSH tunnel policy instead of the previous inline SSH dial function.
 - Updated Battlegroup tab navigation with separate `Pods` and `Health Diagnostics` views.
 - Updated Battlegroup support-bundle workflow with separate raw and redacted export actions.
@@ -85,6 +88,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Fixed Player 360 specialization lookup so it uses the controller ID when the player identity is available.
 - Fixed stale roadmap text that still pointed to the completed audit log as the next implementation slice.
 - Fixed the Player 360 roadmap typo from Currency wording and corrected the malformed Battlegroup Status v2 roadmap row.
 - Fixed stale admin implementation tracker statuses that still described Admin Action Audit Log and Mutation Safety Framework as future-only work.
@@ -107,6 +111,7 @@ All notable changes to this project will be documented in this file.
 
 ### Security
 
+- Added a read-only Player 360 frontend path without adding new player mutation workflows.
 - Added safe section-level error wording to the read-only Player 360 backend response to avoid exposing raw backend details.
 - Reinforced that Player 360 Profile v1 must start as a protected read-only support surface with no new mutation paths.
 - Reinforced that future Player 360 quick actions should reuse the audit and mutation-safety foundation before adding new mutation workflows.
