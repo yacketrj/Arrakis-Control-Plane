@@ -1,6 +1,9 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Button, Spinner, toast } from '@heroui/react'
 import { getPlayerProfile, type PlayerProfile } from '../api/playerProfile'
+
+const player360EventName = 'dune-admin-open-player-360'
+const player360StorageKey = 'dune_admin_player_360_id'
 
 function fmt(value: unknown): string {
   if (value === null || value === undefined || value === '') return '—'
@@ -39,16 +42,18 @@ function PartialData({ profile }: { profile: PlayerProfile }) {
 }
 
 export default function Player360Tab() {
-  const [playerIdInput, setPlayerIdInput] = useState('')
+  const [playerIdInput, setPlayerIdInput] = useState(() => localStorage.getItem(player360StorageKey) ?? '')
   const [profile, setProfile] = useState<PlayerProfile | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const loadProfile = async () => {
-    const id = Number.parseInt(playerIdInput, 10)
+  const loadProfileById = useCallback(async (rawPlayerId: string) => {
+    const id = Number.parseInt(rawPlayerId, 10)
     if (!Number.isFinite(id) || id <= 0) {
       toast.danger('Enter a valid player actor ID')
       return
     }
+    setPlayerIdInput(String(id))
+    localStorage.setItem(player360StorageKey, String(id))
     setLoading(true)
     try {
       setProfile(await getPlayerProfile(id))
@@ -57,7 +62,27 @@ export default function Player360Tab() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  const loadProfile = () => loadProfileById(playerIdInput)
+
+  useEffect(() => {
+    const storedPlayerId = localStorage.getItem(player360StorageKey)
+    if (storedPlayerId) {
+      void loadProfileById(storedPlayerId)
+    }
+  }, [loadProfileById])
+
+  useEffect(() => {
+    const onOpenPlayer360 = (event: Event) => {
+      const playerId = event instanceof CustomEvent ? String(event.detail?.playerId ?? '') : localStorage.getItem(player360StorageKey) ?? ''
+      if (playerId) {
+        void loadProfileById(playerId)
+      }
+    }
+    window.addEventListener(player360EventName, onOpenPlayer360)
+    return () => window.removeEventListener(player360EventName, onOpenPlayer360)
+  }, [loadProfileById])
 
   const previewItems = useMemo(() => profile?.inventory_summary.preview_items ?? [], [profile])
   const previewJourney = useMemo(() => profile?.journey_summary.preview_nodes ?? [], [profile])
