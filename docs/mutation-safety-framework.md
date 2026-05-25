@@ -10,6 +10,8 @@ This is a P0 foundation layer for future features such as Player 360 quick actio
 
 - Risk classification for protected mutating requests.
 - Protected classification endpoint for frontend preview workflows.
+- Shared frontend mutation confirmation hook at `web/src/hooks/useMutationConfirmation.tsx`.
+- Frontend confirmation support for risk display, warnings, recommended path, rollback hint, target summary, operator details, and admin reason capture.
 - Optional `reason` capture from JSON request bodies.
 - Optional `X-Admin-Reason` header capture for admin workflows.
 - Environment-controlled reason enforcement for high-risk and destructive actions.
@@ -25,6 +27,31 @@ GET /api/v1/mutation-safety/classify?method=POST&path=/api/v1/players/give-item
 ```
 
 The response includes the normalized action name, risk level, reason requirement, preview requirement, destructive flag, and any available guidance fields.
+
+## Shared frontend confirmation hook
+
+`useMutationConfirmation` is the shared frontend integration point for high-impact operator actions.
+
+Expected use pattern:
+
+```tsx
+const { confirmMutation, confirmationDialog } = useMutationConfirmation()
+
+const reason = await confirmMutation({
+  method: 'POST',
+  path: '/players/give-currency',
+  title: 'Give currency',
+  summary: 'Give 100 Solari to the selected player.',
+  target: 'actor:12345',
+  details: ['Player must be the intended support target.'],
+})
+
+await api.players.giveCurrency(controllerId, 100, reason)
+
+return <>{confirmationDialog}</>
+```
+
+The hook calls the protected classification endpoint before displaying the dialog. If classification is unavailable, it falls back to conservative local classification so operators still see a confirmation and reason prompt for high-risk or destructive-looking paths.
 
 ## Risk levels
 
@@ -65,23 +92,25 @@ Reason enforcement is controlled by `ADMIN_REQUIRE_REASON`. When enabled, high-r
 - Keep audit records available only from protected admin routes.
 - Treat reason and target metadata as support metadata, not authorization.
 - Keep mutation preview metadata separate from actual authorization checks.
+- Keep Player 360 read-only until quick actions are explicitly wired through the shared confirmation hook.
 
 ## Current limitations
 
 - Operator identity is still based on shared admin-token access rather than named operator accounts.
-- Preview requirement is metadata only until a shared frontend confirmation component is added.
+- The shared frontend confirmation hook now exists, but existing mutation screens still need to be migrated to use it.
 - Rollback hints describe operator guidance, but the backend does not yet create automatic before-change snapshots.
 - Reason enforcement is environment-controlled and not yet configurable from the UI.
 - Typed mutation wrappers are still needed for workflow-specific before/after metadata.
 
 ## Follow-up tasks
 
-1. Add shared frontend mutation confirmation component.
-2. Add typed backend mutation wrappers per high-risk endpoint.
-3. Add before-change snapshot helpers for inventory, journey/progression, teleport, and storage operations.
-4. Add named operator identity when authentication supports individual users.
-5. Add audit export and filtering support.
-6. Add UI visibility for reason-enforcement state.
+1. Migrate existing high-risk Players, Inventory, Give Item, Journey, Teleport, Storage, Database SQL, and Battlegroup Exec UI actions to `useMutationConfirmation`.
+2. Add Player 360 quick actions only after the relevant action flows use shared confirmation and reason capture.
+3. Add typed backend mutation wrappers per high-risk endpoint.
+4. Add before-change snapshot helpers for inventory, journey/progression, teleport, and storage operations.
+5. Add named operator identity when authentication supports individual users.
+6. Add audit export and filtering support.
+7. Add UI visibility for reason-enforcement state.
 
 ## Validation
 
