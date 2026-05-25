@@ -18,7 +18,8 @@ The workflow is split by **hosting platform** and **runtime/orchestration layer*
 
 - [AMP-controlled hosting](./platforms/amp-control-panel.md)
 - [Linux local or Linux VM](./platforms/linux-local-or-vm.md)
-- [Windows / Hyper-V](./platforms/windows-hyper-v.md)
+- [Windows host or Windows VM](./platforms/windows-hyper-v.md)
+- [Hyper-V](./platforms/hyper-v.md)
 - [Proxmox](./platforms/proxmox.md)
 - [OCI](./platforms/oci.md)
 - [AWS](./platforms/aws.md)
