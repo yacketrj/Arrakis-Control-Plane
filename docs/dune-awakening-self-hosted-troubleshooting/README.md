@@ -47,14 +47,19 @@ The workflow is split by **hosting platform**, **runtime/orchestration layer**, 
 
 ## Focused Runbooks
 
+- [Client-reported symptoms](./runbooks/client-reported-symptoms.md)
+- [Server visibility and listing](./runbooks/server-visibility-and-listing.md)
 - [Failed travel capture](./runbooks/failed-travel-capture.md)
 - [Map travel and instancing failure](./runbooks/map-travel-and-instancing-failure.md)
 - [Login and authentication failure](./runbooks/login-and-authentication-failure.md)
 - [Server startup failure](./runbooks/server-startup-failure.md)
+- [Crash, hang, and process exit analysis](./runbooks/crash-hang-and-process-exit-analysis.md)
 - [Port and network listener validation](./runbooks/port-and-network-listener-validation.md)
 - [Firewall, NAT, and cloud networking](./runbooks/firewall-nat-and-cloud-networking.md)
 - [Resource and performance checks](./runbooks/resource-and-performance-checks.md)
+- [Time sync and timestamp correlation](./runbooks/time-sync-and-timestamp-correlation.md)
 - [Update, patch, and version validation](./runbooks/update-patch-and-version-validation.md)
+- [Configuration and launch argument review](./runbooks/configuration-and-launch-argument-review.md)
 - [Log collection and redaction](./runbooks/log-collection-and-redaction.md)
 - [RabbitMQ or messaging checks](./runbooks/rabbitmq-or-messaging-checks.md)
 - [Database and persistence checks](./runbooks/database-and-persistence-checks.md)
