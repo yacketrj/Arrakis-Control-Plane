@@ -31,7 +31,12 @@ archives:
     files:
       - item-data.json
       - README.md
+      - CHANGELOG.md
+      - PATCH_NOTES.md
       - .env.example
+      - docs/release-packaging.md
+      - src: web/dist/**
+        dst: web/dist
 
 checksum:
   name_template: checksums.txt
