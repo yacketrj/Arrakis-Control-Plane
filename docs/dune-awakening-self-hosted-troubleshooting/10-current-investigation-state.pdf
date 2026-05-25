@@ -1,0 +1,227 @@
+%PDF-1.4
+% ASCII PDF generated for repository documentation
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R 9 0 R 11 0 R] /Count 4 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 4009 >>
+stream
+BT /F2 16 Tf 54 732 Td (Current Investigation State) Tj ET
+BT /F1 9 Tf 54 704 Td (This document preserves the current working investigation state for the active Dune:) Tj ET
+BT /F1 9 Tf 54 692 Td (  Awakening self-hosted troubleshooting effort.) Tj ET
+BT /F2 13 Tf 54 670 Td (Evidence Boundary) Tj ET
+BT /F1 9 Tf 54 646 Td (Use only evidence from the uploaded `logs.zip`, files uploaded after that point, and user-) Tj ET
+BT /F1 9 Tf 54 634 Td (  provided prompts/messages after that upload. Do not import facts, assumptions, client) Tj ET
+BT /F1 9 Tf 54 622 Td (  details, player details, or conclusions from unrelated labels or older projects.) Tj ET
+BT /F2 13 Tf 54 600 Td (Known Environment From User-Provided Evidence) Tj ET
+BT /F1 9 Tf 54 576 Td (Hosting stack: Proxmox bare-metal host, Ubuntu 24.04 VM, AMP control panel, Docker behind) Tj ET
+BT /F1 9 Tf 54 564 Td (  AMP) Tj ET
+BT /F1 9 Tf 54 552 Td (CPU allocation: 16 CPU cores from AMD Ryzen 9 9950X3D) Tj ET
+BT /F1 9 Tf 54 540 Td (Memory allocation: 96 GB assigned to VM from 192 GB host memory) Tj ET
+BT /F1 9 Tf 54 528 Td (Network: data center hosting, 5 Gbps fiber, 5 static IPs) Tj ET
+BT /F1 9 Tf 54 516 Td (Example AMP instance path: /home/amp/.ampdata/instances/DuneAwakening01/) Tj ET
+BT /F2 13 Tf 54 494 Td (Prior Working Findings) Tj ET
+BT /F1 9 Tf 54 470 Td (The process-visible OS shown in game logs may reflect container or guest runtime context and) Tj ET
+BT /F1 9 Tf 54 458 Td (  should not be treated as proof of the physical host OS.) Tj ET
+BT /F1 9 Tf 54 446 Td (The environment owner confirmed the broader host stack separately: Proxmox bare metal,) Tj ET
+BT /F1 9 Tf 54 434 Td (  Ubuntu VM, AMP, Docker behind AMP.) Tj ET
+BT /F1 9 Tf 54 422 Td (A prior UID/GID mismatch caused UserEngine.ini write failures when host path ownership did) Tj ET
+BT /F1 9 Tf 54 410 Td (  not match the container's game user context.) Tj ET
+BT /F1 9 Tf 54 398 Td (RabbitMQ logs previously showed per-player queue delete failures where the queue was still) Tj ET
+BT /F1 9 Tf 54 386 Td (  in use.) Tj ET
+BT /F1 9 Tf 54 374 Td (Prior director logs showed many ClassicalInstancing groups with empty server lists, while) Tj ET
+BT /F1 9 Tf 54 362 Td (  known primary partitions such as Survival_1 and Overmap reported server IDs.) Tj ET
+BT /F2 13 Tf 54 340 Td (Latest Uploaded Evidence: 2026-05-25 Travel Attempt) Tj ET
+BT /F1 9 Tf 54 316 Td (A newly provided log excerpt shows a failed travel attempt from Overmap/Overland to) Tj ET
+BT /F1 9 Tf 54 304 Td (  `Story_ArtOfKanly` / partition 13.) Tj ET
+BT /F1 9 Tf 54 286 Td (Sensitive values from the uploaded log, including server password and player/account) Tj ET
+BT /F1 9 Tf 54 274 Td (  identifiers, are intentionally not reproduced here.) Tj ET
+BT /F2 11 Tf 54 254 Td (Observed Flow) Tj ET
+BT /F1 9 Tf 54 233 Td (06:49:00 - Player is reported on Overland / Overmap context.) Tj ET
+BT /F1 9 Tf 54 221 Td (06:49:00 - Travel initiated to Story_ArtOfKanly_DuelingRing_Lobby.) Tj ET
+BT /F1 9 Tf 54 209 Td (06:49:00 - Travel Initialize stage reports success.) Tj ET
+BT /F1 9 Tf 54 197 Td (06:49:01 - Travel Request stage reports success.) Tj ET
+BT /F1 9 Tf 54 185 Td (06:49:01 - TravelQueue Story_ArtOfKanly receives the request with DestinationPartitionId=13) Tj ET
+BT /F1 9 Tf 54 173 Td (  and OriginId=Overmap2.) Tj ET
+BT /F1 9 Tf 54 161 Td (06:49:01 - Director receives one-player travel request for Story_ArtOfKanly with) Tj ET
+BT /F1 9 Tf 54 149 Td (  instancingMode=ClassicalInstancing.) Tj ET
+BT /F1 9 Tf 54 137 Td (06:49:01 - Director creates a travel request and assigns queue token 5.) Tj ET
+BT /F1 9 Tf 54 125 Td (06:49:01 - Director returns TravelResponse Code=Queued, ServerState=Ready, ServerFull=True,) Tj ET
+BT /F1 9 Tf 54 113 Td (  DestinationPartitionId=null, ServerLoginToken empty, Queue length 1.) Tj ET
+BT /F1 9 Tf 54 101 Td (06:49:02 - Story_ArtOfKanly / partition 13 reports ready=true with no players.) Tj ET
+BT /F1 8 Tf 54 30 Td (Current Investigation State - Page 1 of 4) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 8 0 R >>
+endobj
+8 0 obj
+<< /Length 4174 >>
+stream
+BT /F1 9 Tf 54 738 Td (06:49:04 - Client/source-side travel fails with Bgd Travel Failed! Error:5.) Tj ET
+BT /F1 9 Tf 54 726 Td (06:49:04 - Same request ID appears again in TravelQueue Story_ArtOfKanly, but OriginId) Tj ET
+BT /F1 9 Tf 54 714 Td (  changes to Nowhere.) Tj ET
+BT /F2 11 Tf 54 694 Td (What This Proves) Tj ET
+BT /F1 9 Tf 54 673 Td (The source-side travel flow begins successfully.) Tj ET
+BT /F1 9 Tf 54 661 Td (The request reaches the Story_ArtOfKanly travel queue.) Tj ET
+BT /F1 9 Tf 54 649 Td (The director recognizes the request as ClassicalInstancing.) Tj ET
+BT /F1 9 Tf 54 637 Td (The director creates a queue token for the request.) Tj ET
+BT /F1 9 Tf 54 625 Td (The destination partition 13 reports ready=true shortly after the request.) Tj ET
+BT /F1 9 Tf 54 613 Td (The director does not return a usable destination handoff to the player.) Tj ET
+BT /F2 11 Tf 54 593 Td (What This Does Not Yet Prove) Tj ET
+BT /F1 9 Tf 54 572 Td (It does not prove the Story_ArtOfKanly game process received a player connection.) Tj ET
+BT /F1 9 Tf 54 560 Td (It does not prove a UDP/network failure because no destination listener or packet evidence) Tj ET
+BT /F1 9 Tf 54 548 Td (  was included in the latest upload.) Tj ET
+BT /F1 9 Tf 54 536 Td (It does not prove a database failure because no database/persistence error appears in the) Tj ET
+BT /F1 9 Tf 54 524 Td (  uploaded window.) Tj ET
+BT /F1 9 Tf 54 512 Td (It does not prove RabbitMQ is losing the request because the request is visible in the) Tj ET
+BT /F1 9 Tf 54 500 Td (  travel queue.) Tj ET
+BT /F1 9 Tf 54 488 Td (It does not prove the destination map binary is crashing because partition 13 reports server) Tj ET
+BT /F1 9 Tf 54 476 Td (  state ready=true.) Tj ET
+BT /F2 13 Tf 54 454 Td (Current Interpretation) Tj ET
+BT /F1 9 Tf 54 430 Td (The latest evidence strengthens the theory that the failure is occurring inside the) Tj ET
+BT /F1 9 Tf 54 418 Td (  director/instancing travel allocation path before a usable destination login handoff is) Tj ET
+BT /F1 9 Tf 54 406 Td (  issued to the player.) Tj ET
+BT /F1 9 Tf 54 388 Td (The most important anomaly is that the destination partition reports ready, but the travel) Tj ET
+BT /F1 9 Tf 54 376 Td (  response still returns `ServerFull=True`, `DestinationPartitionId=null`, and an empty) Tj ET
+BT /F1 9 Tf 54 364 Td (  `ServerLoginToken`. That means the source/client appears not to receive a concrete usable) Tj ET
+BT /F1 9 Tf 54 352 Td (  destination even though the destination's server state exists.) Tj ET
+BT /F1 9 Tf 54 334 Td (The second important anomaly is the repeated/same request ID appearing with) Tj ET
+BT /F1 9 Tf 54 322 Td (  `OriginId=Nowhere` after the source-side travel failure. This may indicate orphaned,) Tj ET
+BT /F1 9 Tf 54 310 Td (  retried, or cleanup-path queue handling after the original Overmap-originated request) Tj ET
+BT /F1 9 Tf 54 298 Td (  fails.) Tj ET
+BT /F2 13 Tf 54 276 Td (Current Leading Hypotheses) Tj ET
+BT /F1 9 Tf 54 252 Td (1. ClassicalInstancing allocation/capacity state mismatch:) Tj ET
+BT /F1 9 Tf 54 240 Td (   The director sees the destination server state as ready but still treats the destination as) Tj ET
+BT /F1 9 Tf 54 228 Td (     full or unavailable for handoff.) Tj ET
+BT /F1 9 Tf 54 210 Td (2. Travel queue handoff failure:) Tj ET
+BT /F1 9 Tf 54 198 Td (   The request reaches the correct queue and receives a queue token, but the director does not) Tj ET
+BT /F1 9 Tf 54 186 Td (     issue a destination partition and login token before the source travel request fails.) Tj ET
+BT /F1 9 Tf 54 168 Td (3. Stale or inconsistent instancing metadata:) Tj ET
+BT /F1 9 Tf 54 156 Td (   Prior evidence showed ClassicalInstancing groups with empty server lists. The latest) Tj ET
+BT /F1 9 Tf 54 144 Td (     evidence shows partition 13 reporting ready, but not being allocated as a usable) Tj ET
+BT /F1 9 Tf 54 132 Td (     destination.) Tj ET
+BT /F1 9 Tf 54 114 Td (4. Post-failure orphan/retry path:) Tj ET
+BT /F1 9 Tf 54 102 Td (   The same request ID reappearing with OriginId=Nowhere after Error:5 suggests cleanup or) Tj ET
+BT /F1 8 Tf 54 30 Td (Current Investigation State - Page 2 of 4) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 10 0 R >>
+endobj
+10 0 obj
+<< /Length 3710 >>
+stream
+BT /F1 9 Tf 54 738 Td (     retry logic may be re-queuing or re-processing the failed request without its original) Tj ET
+BT /F1 9 Tf 54 726 Td (     source context.) Tj ET
+BT /F1 9 Tf 54 708 Td (5. Capacity flag/path defect for specific ClassicalInstancing maps:) Tj ET
+BT /F1 9 Tf 54 696 Td (   ServerFull=True with no players in the destination state suggests that capacity may be) Tj ET
+BT /F1 9 Tf 54 684 Td (     calculated from stale queue/group state rather than active player count alone.) Tj ET
+BT /F2 13 Tf 54 662 Td (Current Confidence) Tj ET
+BT /F1 9 Tf 54 638 Td (Network/firewall root cause: low confidence from latest upload alone.) Tj ET
+BT /F1 9 Tf 54 626 Td (Destination map crash root cause: low confidence from latest upload alone.) Tj ET
+BT /F1 9 Tf 54 614 Td (RabbitMQ total message loss: low confidence because request is visible.) Tj ET
+BT /F1 9 Tf 54 602 Td (Director/instancing allocation or capacity mismatch: moderate-to-high confidence.) Tj ET
+BT /F1 9 Tf 54 590 Td (Destination login/prelogin never reached: likely, but not yet proven without destination) Tj ET
+BT /F1 9 Tf 54 578 Td (  logs.) Tj ET
+BT /F2 13 Tf 54 556 Td (Evidence Needed Next) Tj ET
+BT /F1 9 Tf 54 532 Td (1. Destination map logs for the Story_ArtOfKanly container/service covering) Tj ET
+BT /F1 9 Tf 54 520 Td (  06:48:45-06:49:15 UTC.) Tj ET
+BT /F1 9 Tf 54 508 Td (2. Director logs filtered by request ID around 06:48:45-06:49:15 UTC.) Tj ET
+BT /F1 9 Tf 54 496 Td (3. RabbitMQ queue/consumer state captured during a controlled retry.) Tj ET
+BT /F1 9 Tf 54 484 Td (4. Active UDP listener output before/during/after the retry.) Tj ET
+BT /F1 9 Tf 54 472 Td (5. Current director/partition metadata showing map, partition_id, server_id,) Tj ET
+BT /F1 9 Tf 54 460 Td (  dimension_index, blocked, and label.) Tj ET
+BT /F1 9 Tf 54 448 Td (6. Any director DB or config values related to ClassicalInstancing capacity, hard cap, queue) Tj ET
+BT /F1 9 Tf 54 436 Td (  size, and partition assignment for Story_ArtOfKanly.) Tj ET
+BT /F1 9 Tf 54 424 Td (7. A comparison travel attempt to one known-working destination and one known-failing) Tj ET
+BT /F1 9 Tf 54 412 Td (  ClassicalInstancing destination.) Tj ET
+BT /F2 13 Tf 54 390 Td (Next Recommended Controlled Test) Tj ET
+BT /F1 9 Tf 54 366 Td (Run one controlled travel attempt to `Story_ArtOfKanly` while capturing:) Tj ET
+BT /F1 9 Tf 54 348 Td (Director logs) Tj ET
+BT /F1 9 Tf 54 336 Td (Overmap/source logs) Tj ET
+BT /F1 9 Tf 54 324 Td (Story_ArtOfKanly destination logs) Tj ET
+BT /F1 9 Tf 54 312 Td (RabbitMQ queue/consumer snapshot) Tj ET
+BT /F1 9 Tf 54 300 Td (UDP listener output) Tj ET
+BT /F1 9 Tf 54 288 Td (Packet capture if possible) Tj ET
+BT /F1 9 Tf 54 270 Td (The target is to determine whether the destination ever receives a player) Tj ET
+BT /F1 9 Tf 54 258 Td (  login/prelogin/authorization attempt. If it does not, the failure is likely before) Tj ET
+BT /F1 9 Tf 54 246 Td (  destination connection and remains in director allocation, queue response, token issuance,) Tj ET
+BT /F1 9 Tf 54 234 Td (  or source handoff.) Tj ET
+BT /F2 13 Tf 54 212 Td (Focused Commands For Next Capture) Tj ET
+BT /F1 9 Tf 54 188 Td (Use actual service/container names discovered in the environment.) Tj ET
+BT /F2 11 Tf 54 168 Td (Director request-id trace) Tj ET
+BT /F1 9 Tf 54 147 Td (Run on: Docker host shell, only if the director is a container) Tj ET
+BT /F1 9 Tf 54 129 Td (REQ='7AC249A990DE4A33B621FCA65F780813') Tj ET
+BT /F1 9 Tf 54 117 Td (docker logs <DIRECTOR_SERVICE> --since '2026-05-25T06:48:45Z' 2>&1 | grep -F "$REQ" -C 30) Tj ET
+BT /F2 11 Tf 54 97 Td (Destination map trace) Tj ET
+BT /F1 8 Tf 54 30 Td (Current Investigation State - Page 3 of 4) Tj ET
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 12 0 R >>
+endobj
+12 0 obj
+<< /Length 2457 >>
+stream
+BT /F1 9 Tf 54 738 Td (Run on: Docker host shell, only if the destination is a container) Tj ET
+BT /F1 9 Tf 54 720 Td (docker logs <STORY_ARTOFKANLY_CONTAINER> --since '2026-05-25T06:48:45Z' 2>&1 | \\) Tj ET
+BT /F1 9 Tf 54 708 Td (  grep -Ei) Tj ET
+BT /F1 9 Tf 54 696 Td (  'PreLogin|VerifyFlsIdentity|VerifyFlsAuthorization|Travel|Login|Join|FinishSpawn|Disconnect|Error|Warning|7AC249A990DE4A33B621FCA65F780813') Tj ET
+BT /F2 11 Tf 54 676 Td (RabbitMQ queue state during retry) Tj ET
+BT /F1 9 Tf 54 655 Td (Run on: Docker host shell, only if RabbitMQ is a container) Tj ET
+BT /F1 9 Tf 54 637 Td (docker exec <RABBITMQ_SERVICE> rabbitmqctl list_queues -p / \\) Tj ET
+BT /F1 9 Tf 54 625 Td (  name messages messages_ready messages_unacknowledged consumers state | \\) Tj ET
+BT /F1 9 Tf 54 613 Td (  grep -Ei) Tj ET
+BT /F1 9 Tf 54 601 Td (  'Story_ArtOfKanly|completionAgency_Story_ArtOfKanly|serverStateSink_Story_ArtOfKanly|travelAgency') Tj ET
+BT /F2 11 Tf 54 581 Td (UDP listeners during retry) Tj ET
+BT /F1 9 Tf 54 560 Td (Run on: Linux host or Linux VM shell) Tj ET
+BT /F1 9 Tf 54 542 Td (while true; do) Tj ET
+BT /F1 9 Tf 54 530 Td (  echo "===== $\(date -u --iso-8601=seconds\) =====") Tj ET
+BT /F1 9 Tf 54 518 Td (  sudo ss -uapn | grep -Ei 'Dune|777|778|779|780|781|788|789|790|791|792' || true) Tj ET
+BT /F1 9 Tf 54 506 Td (  sleep 2) Tj ET
+BT /F1 9 Tf 54 494 Td (done | tee story-artofkanly-listeners-during.log) Tj ET
+BT /F2 13 Tf 54 472 Td (Short Developer-Facing Summary) Tj ET
+BT /F1 9 Tf 54 448 Td (A travel request from Overmap2 to Story_ArtOfKanly/partition 13 reaches the) Tj ET
+BT /F1 9 Tf 54 436 Td (  ClassicalInstancing director path and receives queue token 5. The director reports) Tj ET
+BT /F1 9 Tf 54 424 Td (  ServerState=Ready but also ServerFull=True, DestinationPartitionId=null, and) Tj ET
+BT /F1 9 Tf 54 412 Td (  ServerLoginToken empty. The destination partition reports ready=true with no players one) Tj ET
+BT /F1 9 Tf 54 400 Td (  second later. The source-side request then fails with Bgd Travel Failed! Error:5, and the) Tj ET
+BT /F1 9 Tf 54 388 Td (  same request ID reappears in the Story_ArtOfKanly travel queue with OriginId=Nowhere.) Tj ET
+BT /F1 9 Tf 54 376 Td (  Current evidence points to director/instancing allocation, stale capacity metadata, or) Tj ET
+BT /F1 9 Tf 54 364 Td (  handoff-token issuance before destination PreLogin.) Tj ET
+BT /F1 8 Tf 54 30 Td (Current Investigation State - Page 4 of 4) Tj ET
+endstream
+endobj
+xref
+0 13
+0000000000 65535 f 
+0000000060 00000 n 
+0000000109 00000 n 
+0000000185 00000 n 
+0000000255 00000 n 
+0000000330 00000 n 
+0000000466 00000 n 
+0000004526 00000 n 
+0000004662 00000 n 
+0000008887 00000 n 
+0000009024 00000 n 
+0000012786 00000 n 
+0000012924 00000 n 
+trailer
+<< /Size 13 /Root 1 0 R >>
+startxref
+15433
+%%EOF
