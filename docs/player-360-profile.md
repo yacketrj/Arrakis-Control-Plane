@@ -8,7 +8,7 @@ The first version must remain read-only. Mutating quick actions belong to later 
 
 ## Current implementation status
 
-Player 360 is now in progress on `main`.
+Player 360 is in progress on `main` and the backend plus standalone frontend tab have compiled cleanly.
 
 Implemented so far:
 
@@ -19,9 +19,9 @@ Implemented so far:
 - `web/src/api/playerProfile.ts` frontend profile fetch helper and response types.
 - `web/src/tabs/Player360Tab.tsx` standalone read-only Player 360 tab.
 - `web/src/App.tsx` navigation entry for `Player 360`.
-- Removed unused modal prototype so the supported frontend path is the standalone tab.
-
-Validation is still pending. Run Go and frontend quality gates before considering this slice complete.
+- `web/src/tabs/PlayersTabWith360Launcher.tsx` wrapper that adds a read-only `360` launcher beside existing player row actions.
+- Player 360 auto-loads the selected player ID when opened from the Players table.
+- Existing Players, Inventory, Give Item, and Actions flows remain unchanged.
 
 ## Scope for v1
 
@@ -32,6 +32,7 @@ Player 360 v1 includes:
 - Player Info section that folds in Currency and Online Status context
 - read-only inventory, journey, vehicle, faction, specialization, event, and dungeon summaries
 - partial-data behavior through `section_errors`
+- player-row launch path from the existing Players table
 - no new player mutation paths
 
 ## Out of scope for v1
@@ -80,7 +81,7 @@ Each frontend section should render independently. If one section fails, the pro
 
 ## Frontend behavior
 
-The current frontend surface is a standalone `Player 360` tab. Operators enter a PlayerCharacter actor ID and load a protected read-only profile.
+The current frontend surface is a standalone `Player 360` tab. Operators can either enter a PlayerCharacter actor ID directly or use the `360` button beside a row in the existing Players table.
 
 The tab currently renders:
 
@@ -97,7 +98,7 @@ The tab currently renders:
 - Dungeon History
 - Partial-data warnings when a section is unavailable
 
-Existing Players, Inventory, Give Item, and Actions workflows remain unchanged until Player 360 is validated.
+Existing Players, Inventory, Give Item, and Actions workflows remain unchanged.
 
 ## Security controls
 
@@ -129,8 +130,8 @@ npm run build
 
 ## Next work
 
-1. Run Go validation and fix any backend compile/test failures.
-2. Run frontend typecheck/lint/build and fix any UI issues.
-3. Consider adding a `Player 360` launch button to the existing Players table after the standalone tab validates.
+1. Re-run validation after the launcher wrapper change.
+2. Clean up any frontend typecheck/lint/build findings.
+3. Improve Player 360 section display and add links to existing full inventory/actions views after validation.
 4. Add shared frontend mutation confirmation before any Player 360 quick actions.
 5. Link Player 360 to Inventory Studio v2 after Inventory Studio exists.
