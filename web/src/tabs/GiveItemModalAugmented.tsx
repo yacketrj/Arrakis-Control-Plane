@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Button, Modal, Spinner, toast } from '@heroui/react'
 import { api } from '../api/client'
-import type { GiveItemAugment, Player } from '../api/client'
+import type { GiveItemAugment, MutationSafetyClass, Player } from '../api/client'
 import { AUGMENT_PRESETS, findAugmentPreset } from './augmentPresets'
 import { clampFloat, clampInt, parseRollsCsv, presetAugment, toGiveItemPayload } from './giveItemPayload'
 
@@ -34,6 +34,37 @@ const newGiveItemDraft = (id: number): GiveItemDraft => ({
   stack_size: 1,
   augments: [],
 })
+
+function safetyMessage(safety: MutationSafetyClass | null, fallback: string): string {
+  if (!safety) return fallback
+  return [
+    safety.recommended_path,
+    ...(safety.operator_warnings ?? []),
+    safety.rollback_hint ? `Rollback hint: ${safety.rollback_hint}` : '',
+  ].filter(Boolean).join('\n\n') || fallback
+}
+
+async function getReasonForMutation(method: string, path: string): Promise<string | undefined> {
+  let safety: MutationSafetyClass | null = null
+  try {
+    safety = await api.mutationSafety.classify(method, path)
+  } catch {
+    safety = null
+  }
+
+  const preview = safetyMessage(safety, 'This action changes player/server state and will be recorded in the audit log.')
+  if (safety?.requires_preview || safety?.operator_warnings?.length || safety?.recommended_path) {
+    const ok = window.confirm(`${preview}\n\nContinue?`)
+    if (!ok) return undefined
+  }
+
+  if (safety?.requires_reason ?? true) {
+    const reason = window.prompt('Admin reason required for audit log:', '')?.trim()
+    if (!reason) return undefined
+    return reason
+  }
+  return undefined
+}
 
 export default function GiveItemModalAugmented({ player, open, onClose }: { player: Player; open: boolean; onClose: () => void }) {
   const [templates, setTemplates] = useState<TemplateOption[]>([])
@@ -174,15 +205,23 @@ export default function GiveItemModalAugmented({ player, open, onClose }: { play
       toast.warning('Live delivery only supports plain, unaugmented, non-grade item grants. Use Inventory Write for graded or augmented items.')
       return
     }
+
+    const mutationPath = deliveryMode === 'live' ? '/api/v1/players/grant-live' : '/api/v1/players/give-item'
+    const reason = await getReasonForMutation('POST', mutationPath)
+    if (reason === undefined) {
+      toast.warning('Cancelled: admin reason is required for this action')
+      return
+    }
+
     setSubmitting(true)
     try {
       if (deliveryMode === 'live') {
         for (const row of readyRows) {
-          await api.players.grantLive(player.controller_id, row.template, row.qty * row.stack_size)
+          await api.players.grantLive(player.controller_id, row.template, row.qty * row.stack_size, reason)
         }
         toast.success(`Queued ${readyRows.length} live claim reward row(s) for ${player.name}`)
       } else {
-        await api.players.giveItems(player.id, readyRows.map(toGiveItemPayload))
+        await api.players.giveItems(player.id, readyRows.map(toGiveItemPayload), reason)
         toast.success(`Gave ${readyRows.length} item row(s) to ${player.name}`)
       }
       onClose()
@@ -222,6 +261,9 @@ export default function GiveItemModalAugmented({ player, open, onClose }: { play
                       {deliveryMode === 'live'
                         ? 'Live Claim Rewards is for plain items only: template + amount. It cannot attach item grade, weapon augments, armor augments, custom rolls, or direct inventory placement.'
                         : 'Inventory Write is the advanced path. Pick an item, set item grade/stacking, then optionally attach weapon or armor augment template IDs. Online players may need to relog before the client refreshes inventory.'}
+                    </div>
+                    <div className="mt-2">
+                      <strong style={{ color: 'var(--color-primary)' }}>Audit safety:</strong> item grants require an admin reason and are recorded in the Audit tab with mutation safety metadata.
                     </div>
                     <div className="mt-2">
                       <strong style={{ color: 'var(--color-primary)' }}>Augment workflow:</strong> select the item row first, then add augments to that row. Weapon preset buttons are shortcuts only. Armor augments use the same system: add them from the Augment Template Search or paste the armor augment template ID into Custom Augment.
