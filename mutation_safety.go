@@ -6,25 +6,27 @@ import (
 )
 
 type mutationSafetyClass struct {
-	Action             string   `json:"action"`
-	Risk               string   `json:"risk"`
-	RequiresReason     bool     `json:"requires_reason"`
-	RequiresPreview    bool     `json:"requires_preview"`
-	Destructive        bool     `json:"destructive"`
-	RollbackHint       string   `json:"rollback_hint,omitempty"`
-	OperatorWarnings   []string `json:"operator_warnings,omitempty"`
-	RecommendedPath    string   `json:"recommended_path,omitempty"`
+	Action                   string   `json:"action"`
+	Risk                     string   `json:"risk"`
+	RequiresReason           bool     `json:"requires_reason"`
+	ReasonEnforcementEnabled bool     `json:"reason_enforcement_enabled"`
+	RequiresPreview          bool     `json:"requires_preview"`
+	Destructive              bool     `json:"destructive"`
+	RollbackHint             string   `json:"rollback_hint,omitempty"`
+	OperatorWarnings         []string `json:"operator_warnings,omitempty"`
+	RecommendedPath          string   `json:"recommended_path,omitempty"`
 }
 
 func classifyMutationRequest(method, path string) mutationSafetyClass {
 	action := auditActionName(method, path)
 	risk := mutationRiskForRequest(method, path)
 	classification := mutationSafetyClass{
-		Action:          action,
-		Risk:            risk,
-		RequiresReason:  risk == "high" || risk == "destructive",
-		RequiresPreview: risk == "high" || risk == "destructive",
-		Destructive:     risk == "destructive",
+		Action:                   action,
+		Risk:                     risk,
+		RequiresReason:           risk == "high" || risk == "destructive",
+		ReasonEnforcementEnabled: adminReasonEnforcementEnabled(),
+		RequiresPreview:          risk == "high" || risk == "destructive",
+		Destructive:              risk == "destructive",
 	}
 
 	lower := strings.ToLower(path)
