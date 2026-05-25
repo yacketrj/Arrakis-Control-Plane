@@ -42,6 +42,7 @@ function localMutationSafety(method: string, path: string): MutationSafetyClass 
     action: `${method.toLowerCase()}:${path.replace(/^\/api\/v1\//, '').replace(/^\//, '').replaceAll('/', '.') || 'root'}`,
     risk: destructive ? 'destructive' : high ? 'high' : 'medium',
     requires_reason: high,
+    reason_enforcement_enabled: false,
     requires_preview: high,
     destructive,
     operator_warnings: high ? ['This action changes player or server state and will be written to the audit log.'] : [],
@@ -121,7 +122,7 @@ export type OnlineRow = { player_id: number; name: string; map: string; status: 
 export type ItemTemplate = { id: string; name: string }
 export type GiveItemAugment = { name: string; grade: number; roll?: number; rolls?: number[]; roll_count?: number; effect_indices?: number[] }
 export type GiveItemRow = { template: string; qty: number; quality: number; stack_size: number; augments?: GiveItemAugment[] }
-export type MutationSafetyClass = { action: string; risk: string; requires_reason: boolean; requires_preview: boolean; destructive: boolean; rollback_hint?: string; operator_warnings?: string[]; recommended_path?: string }
+export type MutationSafetyClass = { action: string; risk: string; requires_reason: boolean; reason_enforcement_enabled?: boolean; requires_preview: boolean; destructive: boolean; rollback_hint?: string; operator_warnings?: string[]; recommended_path?: string }
 
 export const api = {
   status: () => req<Status>('GET', '/status'), reconnect: () => req<Status>('POST', '/reconnect'),
