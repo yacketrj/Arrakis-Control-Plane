@@ -1,29 +1,28 @@
 # Dune Admin Release Notes
 
-## Current update: Journey node shared mutation confirmation migration
+## Current update: Confirmed player move workflow
 
 ### Why this update was made
 
-Journey node complete/reset actions are high-impact player progression mutations. This update extends the confirmed Player Actions modal with a Journey section so node-level journey mutations use shared confirmation and required admin reason capture.
+Player movement is a high-impact support action that can create location/state drift if used while the player is online. This update isolates the move workflow in a dedicated confirmed modal so the action uses shared mutation confirmation and required admin reason capture.
 
 ### What changed
 
-- Extended `web/src/tabs/PlayerActionsModalConfirmed.tsx` with a Journey section.
-- Added journey node loading and filtering to the confirmed modal.
-- Added shared mutation confirmation and required admin reason capture for:
-  - Journey node complete
-  - Journey node reset
-- Added player target metadata, online-state context, and journey node identifiers to confirmation details.
-- Passed captured reasons into `api.players.journeyComplete` and `api.players.journeyReset`.
-- Kept bulk journey wipe and admin actions out of this slice so destructive operations can be migrated separately.
+- Added `web/src/tabs/PlayerTeleportModal.tsx` as a dedicated confirmed player move modal.
+- Added destination loading from the existing partitions endpoint.
+- Added a Players-table `Move` launcher through `PlayersTabWith360Launcher.tsx`.
+- Added shared mutation confirmation and required admin reason capture before move requests are sent.
+- Added player target metadata, current map, online state, destination, and drift warning details to the confirmation flow.
+- Passed captured reasons into `api.players.teleport`.
+- Disabled move submission while the player is online.
 
 ### Security and operator impact
 
-- Active journey node complete/reset actions now use the same shared confirmation foundation as Give Item, Inventory repair/delete, and resource/spec actions.
-- Admin reason capture is required before node-level journey mutation requests are sent.
+- Active player move actions now use the same shared confirmation foundation as Give Item, Inventory repair/delete, resource/spec actions, and journey node actions.
+- Admin reason capture is required before move requests are sent.
 - Player 360 remains read-only.
 - No Player 360 quick actions were added.
-- Remaining action migrations are journey wipe, tutorial deletion, codex wipe, kick, and teleport.
+- Remaining action migrations are journey wipe, tutorial deletion, codex wipe, and kick.
 
 ### Validation
 
@@ -32,6 +31,12 @@ Validation required in the Windows development environment:
 ```powershell
 .\update.ps1
 ```
+
+---
+
+## Previous update: Journey node shared mutation confirmation migration
+
+Journey node complete/reset actions were migrated to the confirmed Player Actions modal with required admin reason capture.
 
 ---
 
@@ -74,27 +79,3 @@ Added the read-only Players-table `360` launcher and Player 360 auto-load behavi
 ## Previous update: Player 360 read-only frontend tab
 
 Added the standalone read-only Player 360 frontend tab and navigation entry.
-
----
-
-## Previous update: Player 360 backend profile foundation
-
-Added the protected read-only Player 360 backend profile endpoint, route registration, helper tests, and backend documentation.
-
----
-
-## Previous update: Player 360 roadmap and design foundation
-
-The roadmap and design documents were updated so Player 360 is the next P1 read-only implementation slice after the P0 safety foundation.
-
----
-
-## Previous update: Admin audit and mutation-safety documentation sync
-
-Documentation and tracking were synced with the landed audit foundation and in-progress mutation-safety foundation.
-
----
-
-## Previous update: SSH tunnel management foundation
-
-Managed SSH tunnel behavior was added for protected game-management database access.
