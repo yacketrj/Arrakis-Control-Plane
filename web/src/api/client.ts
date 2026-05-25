@@ -30,8 +30,67 @@ async function headers(body?: unknown, reason?: string): Promise<Record<string, 
   return h
 }
 
+function isMutatingMethod(method: string): boolean {
+  return ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase())
+}
+
+function localMutationSafety(method: string, path: string): MutationSafetyClass {
+  const lower = path.toLowerCase()
+  const destructive = method.toUpperCase() === 'DELETE' || lower.includes('/wipe') || lower.includes('/delete') || lower.includes('/reset') || lower.includes('/kick') || lower.includes('/blueprints/import')
+  const high = destructive || lower.includes('/give') || lower.includes('/award') || lower.includes('/grant') || lower.includes('/teleport') || lower.includes('/journey/') || lower.includes('/set-faction') || lower.includes('/repair') || lower.includes('/storage/') || lower.includes('/database/sql') || lower.includes('/battlegroup/exec')
+  return {
+    action: `${method.toLowerCase()}:${path.replace(/^\/api\/v1\//, '').replace(/^\//, '').replaceAll('/', '.') || 'root'}`,
+    risk: destructive ? 'destructive' : high ? 'high' : 'medium',
+    requires_reason: high,
+    requires_preview: high,
+    destructive,
+    operator_warnings: high ? ['This action changes player or server state and will be written to the audit log.'] : [],
+  }
+}
+
+function safetyText(safety: MutationSafetyClass): string {
+  return [
+    `Risk: ${safety.risk}`,
+    safety.recommended_path ? `Recommended path: ${safety.recommended_path}` : '',
+    safety.rollback_hint ? `Rollback hint: ${safety.rollback_hint}` : '',
+    ...(safety.operator_warnings ?? []).map(w => `Warning: ${w}`),
+  ].filter(Boolean).join('\n')
+}
+
+async function classifyMutation(method: string, path: string): Promise<MutationSafetyClass> {
+  try {
+    const res = await fetch(`${BASE}/mutation-safety/classify?method=${encodeURIComponent(method)}&path=${encodeURIComponent(path)}`, { headers: await headers() })
+    if (!res.ok) return localMutationSafety(method, path)
+    return res.json()
+  } catch {
+    return localMutationSafety(method, path)
+  }
+}
+
+async function ensureAdminReasonForMutation(method: string, path: string, reason?: string): Promise<string | undefined> {
+  if (reason?.trim()) return reason.trim()
+  if (!isMutatingMethod(method)) return undefined
+
+  const safety = await classifyMutation(method, path)
+  if (!safety.requires_reason && !safety.requires_preview) return undefined
+
+  if (safety.requires_preview || safety.operator_warnings?.length || safety.recommended_path || safety.rollback_hint) {
+    const ok = window.confirm(`${safetyText(safety)}\n\nContinue?`)
+    if (!ok) throw new Error('Mutation cancelled')
+  }
+
+  if (safety.requires_reason) {
+    const entered = window.prompt('Admin reason required for audit log:', '')?.trim()
+    if (!entered) throw new Error('Admin reason is required for this action')
+    return entered
+  }
+
+  return undefined
+}
+
 async function req<T>(method: string, path: string, body?: unknown, reason?: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, { method, headers: await headers(body, reason), body: body ? JSON.stringify(body) : undefined })
+  const finalReason = await ensureAdminReasonForMutation(method, path, reason)
+  const res = await fetch(`${BASE}${path}`, { method, headers: await headers(body, finalReason), body: body ? JSON.stringify(body) : undefined })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }))
     throw new Error(err.error ?? res.statusText)
