@@ -6,6 +6,18 @@ This document defines the planned Dune Admin feature roadmap, priority order, sa
 
 The goal is to turn Dune Admin into a polished server-operations console for player support, live operations, diagnostics, inventory administration, moderation support, and safe high-risk state changes.
 
+## Current roadmap position
+
+Dune Admin is currently between **Phase 1: Safety foundation** and **Phase 2: Operator support surface**.
+
+Current status:
+
+- Phase 0 stabilization remains ongoing through CI, lint, build, security scan, and dependency hygiene.
+- P0 Admin Action Audit Log is implemented and documented.
+- P0 Mutation Safety Framework is implemented as a backend foundation and remains in progress for shared frontend confirmation and typed mutation wrappers.
+- The next feature slice is P1 Player 360 Profile, starting with read-only visibility.
+- New feature work must continue to update `PATCH_NOTES.md`, `CHANGELOG.md`, relevant docs, tests, and validation notes.
+
 ## Important clarification: item delivery paths
 
 There are multiple item paths, and they are not equivalent.
@@ -73,11 +85,11 @@ Use Direct Inventory Write for full-fidelity item creation and edits. Use Claim 
 
 | Rank | Priority | Feature | Primary value | Dependency |
 |---:|---|---|---|---|
-| 1 | P0 | Admin Action Audit Log | Makes high-risk actions accountable | None |
-| 2 | P0 | Mutation Safety Framework | Shared preview, reason, audit, validation, rollback hooks | Audit Log |
-| 3 | P1 | Player 360 Profile | Single support view for player identity, state, inventory, history | Existing player APIs | Fold Currance & Online Status into Player Info|
-| 4 | P1 | Inventory Studio v2 | Safer inventory snapshots, diffs, item edits, augment inspection | Audit + Give Item helpers |
-| 5 | P1 | Battlegroup Status v2 | Implement Prometheus/Grafana graphs | improve diagnostics | Trouble Shooting |
+| 1 | P0 | Admin Action Audit Log | Makes high-risk actions accountable | Done |
+| 2 | P0 | Mutation Safety Framework | Shared preview, reason, audit, validation, rollback hooks | In progress; audit foundation done |
+| 3 | P1 | Player 360 Profile | Single support view for player identity, state, inventory, history | Existing player APIs; fold Currency and Online Status into Player Info |
+| 4 | P1 | Inventory Studio v2 | Safer inventory snapshots, diffs, item edits, augment inspection | Audit + Give Item helpers + Player 360 context |
+| 5 | P1 | Battlegroup Status v2 | Prometheus/Grafana graphs and improved diagnostics | Battlegroup Health Diagnostics + troubleshooting signals |
 | 6 | P1 | Broadcast Center | Template-based maintenance and live-ops communication | Notification/RMQ path |
 | 7 | P1 | Safe Offline Teleport / Rescue | Stuck-player rescue with guardrails and rollback hints | Audit + partition APIs |
 | 8 | P1 | Server Health Command Center | Unified operational status and diagnostic bundle | Battlegroup + DB status |
@@ -94,20 +106,24 @@ Use Direct Inventory Write for full-fidelity item creation and edits. Use Claim 
 
 ### Admin Action Audit Log
 
+Status: implemented foundation.
+
 Record every high-impact action with:
 
 - timestamp
 - operator identity or auth mode
 - action type
 - target player/account/controller/item/guild where available
-- sanitized payload summary
+- sanitized payload summary or allowlisted target metadata
 - success/failure result
-- error message when applicable
+- error state where applicable
 - rollback hint when available
 
 Do not log secrets, admin tokens, database passwords, SSH keys, or raw credential-bearing environment values.
 
 ### Mutation Safety Framework
+
+Status: backend foundation in progress.
 
 Provide one shared backend/frontend pattern for:
 
@@ -118,9 +134,13 @@ Provide one shared backend/frontend pattern for:
 - rollback hint generation
 - consistent operator errors
 
+Implemented foundation includes request classification, protected classification endpoint, optional reason capture, environment-controlled reason enforcement, and audit metadata fields. Remaining work includes shared frontend confirmation and typed mutation wrappers.
+
 ## P1 core operator features
 
 ### Player 360 Profile
+
+Player 360 should start as a protected read-only support page. Mutating quick actions must wait until the read-only view is stable and the shared mutation-safety confirmation pattern is ready.
 
 A single player detail page should aggregate:
 
@@ -135,7 +155,10 @@ A single player detail page should aggregate:
 - journey summary
 - recent events
 - dungeon history
-- quick actions
+
+Player 360 should also fold the current Currency and Online Status views into Player Info so operators do not need to jump between separate pages for basic support context.
+
+Quick actions are allowed only as later work after the read-only view, preview model, reason flow, and audit records are validated.
 
 ### Inventory Studio v2
 
@@ -189,6 +212,17 @@ Safety requirements:
 - Validate item template IDs and augment template IDs.
 - Warn when direct database writes may require online players to relog.
 - Do not expose arbitrary SQL as the editing mechanism.
+
+### Battlegroup Status v2
+
+Battlegroup Status v2 should build on the existing Battlegroup Health Diagnostics work.
+
+Target improvements:
+
+- Prometheus and Grafana graph integration where available.
+- Map/server cards with live and historical signals.
+- Troubleshooting-first summaries for hangs, unavailable partitions, queue pressure, and resource saturation.
+- Clear separation between read-only diagnostics and control actions.
 
 ### Broadcast Center
 
@@ -312,6 +346,8 @@ Minimum controls:
 
 ### Phase 0: Stabilize existing workflows
 
+Status: ongoing.
+
 - Keep Actions green.
 - Resolve frontend typecheck/lint/build issues.
 - Commit frontend lockfile once dependency state is stable.
@@ -319,13 +355,17 @@ Minimum controls:
 
 ### Phase 1: Safety foundation
 
-- Admin Action Audit Log.
-- Mutation Safety Framework.
-- Backfill audit calls into existing mutation handlers.
+Status: partially complete.
+
+- Admin Action Audit Log: done.
+- Mutation Safety Framework: backend foundation in progress.
+- Backfill audit and mutation-safety coverage into existing mutation handlers: ongoing as features are touched.
 
 ### Phase 2: Operator support surface
 
-- Player 360 Profile.
+Status: next.
+
+- Player 360 Profile: next, read-only first.
 - Inventory Studio v2.
 - Safe Offline Teleport / Rescue.
 - Broadcast Center.
@@ -350,12 +390,16 @@ Minimum controls:
 
 ## Next implementation slice
 
-The next implementation slice should be foundational:
+The next implementation slice is **Player 360 Profile read-only foundation**.
 
-1. Add backend audit event model and append-only JSONL audit sink.
-2. Add `recordAdminAction` helper with redaction.
-3. Wrap existing mutation handlers.
-4. Add read-only Audit tab.
-5. Add tests for redaction and success/failure audit entries.
+Required sequence:
 
-This unlocks safer implementation of every later feature.
+1. Create `docs/player-360-profile.md` before code implementation.
+2. Define the protected read-only player overview response shape.
+3. Aggregate existing player support signals without adding new mutations.
+4. Fold Currency and Online Status into Player Info.
+5. Add frontend Player 360 layout with clear sections for identity, online state, inventory summary, vehicles, currencies, factions, specs, journey, recent events, and dungeons.
+6. Reuse the audit and mutation-safety foundations for any later quick actions.
+7. Update `PATCH_NOTES.md`, `CHANGELOG.md`, tests, and validation notes with every implementation step.
+
+This unlocks the daily operator support surface while preserving the rule that new domains start read-only before adding high-risk actions.
