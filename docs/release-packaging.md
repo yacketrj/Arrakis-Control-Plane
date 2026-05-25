@@ -4,6 +4,8 @@
 
 Dune Admin releases should be installable without requiring users to clone the repository or build from source.
 
+The release system should produce a repeatable artifact set with clear release tags, release notes, checksums, and enough packaging context for operators to understand exactly what changed between releases.
+
 The release system should eventually produce:
 
 - Windows 11 installer for normal users.
@@ -12,17 +14,17 @@ The release system should eventually produce:
 - Linux native packages for common package managers.
 - macOS ZIP or tarball for both Intel and Apple Silicon.
 - Checksums for every artifact.
-- Release notes generated from commits.
+- Release notes generated from release tags and curated changelog entries.
 
 ## Current release baseline
 
-The repository already uses GoReleaser on semantic version tags:
+The repository uses GitHub Actions plus GoReleaser on semantic version tags:
 
 ```text
 vMAJOR.MINOR.PATCH
 ```
 
-The current baseline should remain:
+The current baseline artifact set is:
 
 ```text
 dune-admin_<version>_windows_amd64.zip
@@ -32,6 +34,54 @@ dune-admin_<version>_darwin_amd64.tar.gz
 dune-admin_<version>_darwin_arm64.tar.gz
 checksums.txt
 ```
+
+The release workflow also builds the React/Vite frontend before GoReleaser runs so `web/dist` can be packaged with the release archives.
+
+## Release tag model
+
+Use release tags for every stable release:
+
+```text
+v0.1.0
+v0.1.1
+v0.2.0
+v1.0.0
+```
+
+Recommended versioning rule:
+
+| Version part | Use when |
+|---|---|
+| MAJOR | Breaking config, API, packaging, or operator workflow changes. |
+| MINOR | New features, new tabs, new endpoints, new release artifacts, or substantial UX changes. |
+| PATCH | Bug fixes, documentation corrections, small safety improvements, or packaging repair. |
+
+Before the first public stable release, use `v0.x.y` tags. The first stable checkpoint for this repo should be a `v0.1.0` release after build/test validation passes and the release archive contents are verified.
+
+## Changelog and release notes policy
+
+Every feature or packaging change should update both:
+
+```text
+CHANGELOG.md
+PATCH_NOTES.md
+```
+
+`CHANGELOG.md` should keep the long-running `[Unreleased]` section and should add a version section when a release tag is cut:
+
+```markdown
+## [v0.1.0] - YYYY-MM-DD
+```
+
+`PATCH_NOTES.md` should describe the current operator-facing update in plain language:
+
+- why the change was made
+- what changed
+- operator/security impact
+- validation steps
+- known limitations or follow-up work
+
+GoReleaser will generate release notes from commits, but curated docs remain the operator source of truth.
 
 ## Target artifact matrix
 
@@ -52,29 +102,40 @@ checksums.txt
 ## Release process
 
 1. Confirm repo is clean.
-2. Run the local update/build validation:
+2. Pull latest `main` and run local validation:
 
 ```powershell
 .\update.ps1
 ```
 
 3. Confirm backend starts and frontend can authenticate locally.
-4. Update `PATCH_NOTES.md` and `CHANGELOG.md`.
-5. Tag the release:
+4. Confirm Docker/Kubernetes runtime detection still reports only:
+
+```text
+docker
+kubernetes
+```
+
+5. Update `PATCH_NOTES.md` and `CHANGELOG.md`.
+6. Pick the next semantic version tag.
+7. Tag the release:
 
 ```bash
 git tag v0.1.0
 git push origin v0.1.0
 ```
 
-6. GitHub Actions runs the release workflow.
-7. Download artifacts from the GitHub release and test at least:
+8. GitHub Actions runs the release workflow.
+9. Download artifacts from the GitHub release and test at least:
 
 ```text
 Windows 11 portable ZIP
-Ubuntu generic tar.gz or .deb
+Ubuntu generic tar.gz
 macOS archive, when available
+checksums.txt verification
 ```
+
+10. Add any release-specific notes to the GitHub release if manual operator warnings are needed.
 
 ## Packaging requirements
 
@@ -161,11 +222,13 @@ Later work:
 - Should Linux packages install a systemd service by default or only provide a helper unit file?
 - Where should audit logs live for packaged installs?
 - Should release packages include sample scripts for setup and update?
+- Should `ADMIN_REQUIRE_REASON=true` become the default after all high-risk UI paths are fully wired?
 
 ## Immediate next implementation steps
 
-1. Ensure release workflow builds the frontend before GoReleaser runs.
-2. Include frontend build output in archives when present.
+1. Verify release workflow builds frontend before GoReleaser runs.
+2. Verify release archives include frontend build output.
 3. Add Linux native package definitions.
 4. Keep Windows portable ZIP as the first Windows release artifact.
 5. Add Windows installer work as a future roadmap item, not part of the immediate mutation-safety work.
+6. Cut the first `v0.1.0` release only after a clean local update/build and one artifact smoke test.
