@@ -1,149 +1,186 @@
 # Troubleshooting Decision Tree
 
-Use this after completing intake and environment discovery.
+Use this document after intake and environment discovery are complete.
 
-This document helps entry-level support decide which guide to use next. Do not assume the root cause from the symptom alone.
+The decision tree directs the operator to the correct evidence path. It does not determine root cause by itself. A symptom may have several possible causes, so each branch requires supporting logs, runtime state, and network or listener evidence where applicable.
 
-## 1. Start With the User-Defined Symptom
+## 1. Classify the Primary Symptom
 
 ```text
-Is the issue a startup failure?
-  -> Use Server Startup Failure runbook.
+Startup failure:
+  Use Server Startup Failure.
 
-Is the issue a player login failure?
-  -> Use Login and Authentication Failure runbook.
+Login or authentication failure:
+  Use Login and Authentication Failure.
 
-Is the issue a travel, map transfer, destination hang, dungeon/story instance failure, or instanced map disconnect?
-  -> Use Map Travel and Instancing Failure runbook.
-  -> If the issue affects dynamic/instanced destinations specifically, also use Instanced Travel Dynamic Spawn Validation.
+Travel, map transfer, dungeon/story instance, destination hang, or instanced map disconnect:
+  Use Map Travel and Instancing Failure.
+  If the failing target is dynamically spawned or instanced, also use Dynamic Instancing and Handoff Validation.
 
-Is the issue a port, firewall, NAT, or connectivity concern?
-  -> Use Port and Network Listener Validation runbook.
+Port, firewall, NAT, routing, or connectivity concern:
+  Use Port and Network Listener Validation.
+  Use Firewall, NAT, and Cloud Networking when the issue involves cloud, hypervisor, router, or edge firewall paths.
 
-Is the issue a permission denied, file write, save, config, or ownership error?
-  -> Use Permission and Ownership Errors runbook.
+Permission denied, file write, save, configuration, or ownership error:
+  Use Permission and Ownership Errors.
 
-Is the issue a RabbitMQ, queue, AMQP, or messaging error?
-  -> Use RabbitMQ or Messaging Checks runbook.
+RabbitMQ, queue, AMQP, or messaging error:
+  Use RabbitMQ or Messaging Checks.
 
-Is the issue unclear?
-  -> Return to Intake and Environment Discovery.
+Crash, hang, unexpected restart, or process exit:
+  Use Crash, Hang, and Process Exit Analysis.
+
+Resource pressure, lag, stalls, or capacity concern:
+  Use Resource and Performance Checks.
+
+Unclear symptom:
+  Return to Intake and Evidence Handling, then Environment Discovery.
 ```
 
-## 2. Confirm the Hosting Platform First
+## 2. Confirm the Hosting Platform
+
+Select one platform path only after it is confirmed by the operator, the control panel, shell output, or provider console.
 
 ```text
-If hosted through AMP:
-  -> Use AMP-controlled hosting platform guide and AMP runtime guide.
+AMP or another control panel:
+  Use AMP-Controlled Hosting.
 
-If hosted on Linux local/bare metal/VM:
-  -> Use Linux local or Linux VM platform guide.
+Linux local, bare metal, or Linux VM:
+  Use Linux Local or Linux VM.
 
-If hosted on Windows local/VM:
-  -> Use Windows host or Windows VM platform guide.
+Windows host or Windows VM:
+  Use Windows Host or Windows VM.
 
-If hosted on Hyper-V:
-  -> Use Hyper-V platform guide, then continue inside the guest VM.
+Hyper-V:
+  Use Hyper-V first, then continue inside the guest VM.
 
-If hosted on Proxmox:
-  -> Use Proxmox platform guide, then continue inside the guest VM or LXC.
+Proxmox:
+  Use Proxmox first, then continue inside the guest VM or container.
 
-If hosted in OCI/AWS/Azure/GCP:
-  -> Use the matching cloud platform guide, then continue inside the guest OS.
+OCI, AWS, Azure, or GCP:
+  Use the matching cloud provider guide, then continue inside the guest OS.
 ```
 
 ## 3. Confirm the Runtime or Orchestration Layer
 
-```text
-If AMP manages the server:
-  -> Use AMP control panel runtime guide.
-
-If Docker or Docker Compose is discovered:
-  -> Use Docker or Docker Compose runtime guide.
-
-If Linux systemd service is discovered:
-  -> Use Linux systemd runtime guide.
-
-If Windows service is discovered:
-  -> Use Windows service runtime guide.
-
-If a shell script, batch file, scheduled task, or manual command starts the server:
-  -> Use Manual or Custom Script runtime guide.
-```
-
-## 4. Choose Evidence Capture Based on Failure Type
+Choose the runtime guide after determining how the server process is started and managed.
 
 ```text
-Startup failure:
-  Required evidence:
-    - Service/container/process status
-    - Startup logs
-    - Launch command or service config
-    - Permission and port checks
+AMP manages the instance:
+  Use AMP Control Panel.
 
-Login failure:
-  Required evidence:
-    - User-defined login symptom
-    - Control-plane logs
-    - Auth-related logs
-    - Client-visible error
-    - Network/listener state
+Docker or Docker Compose is present:
+  Use Docker or Docker Compose.
 
-Travel or destination hang:
-  Required evidence:
-    - One controlled reproduction
-    - Source and destination logs
-    - Control-plane/director logs
-    - Listener before/during/after
-    - Packet capture if possible
+Linux systemd service is present:
+  Use Linux systemd.
 
-Dynamic or instanced destination failure:
-  Required evidence:
-    - One known-working destination and one known-failing destination
-    - Director/control-plane queue response
-    - Destination map lifecycle logs
-    - Dynamic game/client port listener
-    - Dynamic server-to-server/gateway/IGW-style listener, if applicable
-    - Runtime launch arguments with secrets redacted
-    - Packet capture if possible
+Windows service is present:
+  Use Windows Service.
 
-Network/port issue:
-  Required evidence:
-    - Expected ports
-    - Actual listeners
-    - Firewall/security group/NAT path
-    - Packet capture
-
-Permission issue:
-  Required evidence:
-    - Exact path and error
-    - File owner/ACL
-    - Service/container user
-    - Startup logs
+Custom script, scheduled task, batch file, shell script, or manual command:
+  Use Manual or Custom Script.
 ```
 
-## 5. Stop Conditions
+## 4. Evidence Required by Failure Type
 
-Stop and escalate if:
+### Startup Failure
+
+```text
+Required evidence:
+- Service, container, or process status
+- Startup logs
+- Launch command or service configuration
+- File permissions for active instance paths
+- Port/listener state before and after startup
+```
+
+### Login Failure
+
+```text
+Required evidence:
+- User-defined login symptom
+- Control-plane or login service logs
+- Destination or starting-map logs
+- Client-visible error or behavior
+- Network and listener state
+```
+
+### Travel or Destination Hang
+
+```text
+Required evidence:
+- One controlled reproduction
+- Known working source and destination
+- Known failing source and destination
+- Source map logs
+- Destination map logs
+- Control-plane or director logs
+- Listener state before, during, and after the attempt
+- Packet capture when available
+```
+
+### Dynamic or Instanced Destination Failure
+
+```text
+Required evidence:
+- One known-working destination and one known-failing destination
+- Director/control-plane travel response
+- Destination map lifecycle logs
+- Dynamic game/client port listener
+- Dynamic server-to-server, gateway, or IGW-style listener, if applicable
+- Runtime launch arguments with credentials redacted
+- Packet capture when available
+```
+
+### Network or Port Issue
+
+```text
+Required evidence:
+- Expected ports from configuration or launch arguments
+- Actual listeners on the host or VM
+- Cloud, host, hypervisor, router, or firewall path
+- NAT or port-forwarding configuration, if used
+- Packet capture when available
+```
+
+### Permission or Ownership Issue
+
+```text
+Required evidence:
+- Exact error message
+- Exact failed path
+- File owner and permissions or ACL
+- Service, process, or container user
+- Startup or write-attempt logs
+```
+
+## 5. Stop and Escalate When Required
+
+Stop the troubleshooting session and escalate when any of the following conditions apply:
 
 ```text
 The same controlled test has been captured with logs, listeners, and packet output.
-A vendor-owned binary or closed-source component appears to be failing internally.
-A required secret or token is missing and support does not have authority to replace it.
-The environment owner cannot provide access to the platform required for the next step.
-Restarting or changing configuration would risk data loss without approval.
+The next step would change persistent data without a backup or approval.
+A restart would disrupt active players without authorization.
+A required credential is missing and support is not authorized to replace it.
+The environment owner cannot provide access to the required platform or runtime.
+The evidence points to closed-source or vendor-owned behavior that cannot be validated locally.
 ```
 
-## 6. RCA Rule
+## 6. RCA Standard
 
-Do not write a final RCA until the evidence proves:
+Do not document a final root cause until the evidence establishes:
 
 ```text
 Confirmed symptom
 Confirmed hosting platform
-Confirmed runtime/orchestration layer
-Confirmed working path
-Confirmed failing path
-Evidence showing where the request stops or fails
-Competing explanations that were ruled out
+Confirmed runtime or orchestration layer
+Known working path
+Known failing path
+Evidence showing the first failed or missing step
+Competing explanations considered and ruled out
+Remaining unknowns, if any
 ```
+
+If the evidence is incomplete, document the finding as a working hypothesis.
