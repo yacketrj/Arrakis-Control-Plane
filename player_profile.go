@@ -295,7 +295,11 @@ func addProfileFactions(profile *playerProfileResponse, playerID int64) {
 }
 
 func addProfileSpecializations(profile *playerProfileResponse, playerID int64) {
-	msg, ok := cmdFetchPlayerSpecs(playerID)().(msgSpecs)
+	specPlayerID := playerID
+	if profile.Identity != nil && profile.Identity.ControllerID != 0 {
+		specPlayerID = profile.Identity.ControllerID
+	}
+	msg, ok := cmdFetchPlayerSpecs(specPlayerID)().(msgSpecs)
 	if !ok {
 		profile.addSectionErrorMessage("specializations", "internal error")
 		return
