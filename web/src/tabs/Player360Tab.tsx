@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Button, Spinner, toast } from '@heroui/react'
 import { getPlayerProfile, type PlayerProfile } from '../api/playerProfile'
 
@@ -8,7 +8,7 @@ function fmt(value: unknown): string {
   return String(value)
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="rounded-lg p-3" style={{ background: '#0d0b07', border: '1px solid #2a2418' }}>
       <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>{title}</h3>
