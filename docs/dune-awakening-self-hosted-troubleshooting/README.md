@@ -14,7 +14,7 @@ The workflow is split by **hosting platform**, **runtime/orchestration layer**, 
 6. Pick the matching platform guide.
 7. Pick the matching runtime/orchestration guide.
 8. Use focused runbooks only after the environment is identified.
-9. Package evidence with the [Escalation Package Template](./05-escalation-package-template.md).
+9. Package evidence with the [Escalation Package Template](./05-escalation-package-template.md) and [Standard Evidence Bundle](./06-standard-evidence-bundle.md).
 
 ## Core Workflow Documents
 
@@ -24,6 +24,7 @@ The workflow is split by **hosting platform**, **runtime/orchestration layer**, 
 - [Troubleshooting Decision Tree](./03-troubleshooting-decision-tree.md)
 - [Glossary and Operational Variables](./04-glossary-and-operational-variables.md)
 - [Escalation Package Template](./05-escalation-package-template.md)
+- [Standard Evidence Bundle](./06-standard-evidence-bundle.md)
 
 ## Platform Guides
 
