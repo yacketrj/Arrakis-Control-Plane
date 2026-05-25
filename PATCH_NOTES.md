@@ -1,33 +1,29 @@
 # Dune Admin Release Notes
 
-## Current update: Player resource/action shared mutation confirmation migration
+## Current update: Journey node shared mutation confirmation migration
 
 ### Why this update was made
 
-The active Players Actions workflow still allowed high-impact player resource, XP, specialization, and faction reputation mutations to flow through local action handlers. This update adds a confirmed Player Actions modal for the non-destructive/high-impact player action slice and routes the active Actions button through that modal.
+Journey node complete/reset actions are high-impact player progression mutations. This update extends the confirmed Player Actions modal with a Journey section so node-level journey mutations use shared confirmation and required admin reason capture.
 
 ### What changed
 
-- Added `web/src/tabs/PlayerActionsModalConfirmed.tsx` for confirmed player resource and specialization actions.
-- Wired the active Players-table Actions button through `PlayersTabWith360Launcher.tsx`.
+- Extended `web/src/tabs/PlayerActionsModalConfirmed.tsx` with a Journey section.
+- Added journey node loading and filtering to the confirmed modal.
 - Added shared mutation confirmation and required admin reason capture for:
-  - Give Currency
-  - Give Scrip
-  - Award Intel
-  - Award Character XP
-  - Give Faction Reputation
-  - Set Specialization XP
-- Added player target metadata and online-state warnings to confirmation details.
-- Passed captured reasons into the matching `api.players.*` mutation calls.
-- Avoided direct large-file replacement of `web/src/tabs/PlayersTab.tsx` in this slice.
+  - Journey node complete
+  - Journey node reset
+- Added player target metadata, online-state context, and journey node identifiers to confirmation details.
+- Passed captured reasons into `api.players.journeyComplete` and `api.players.journeyReset`.
+- Kept bulk journey wipe and admin actions out of this slice so destructive operations can be migrated separately.
 
 ### Security and operator impact
 
-- Active resource, XP, specialization, and faction reputation actions now use the same shared confirmation foundation as Give Item and Inventory repair/delete.
-- Admin reason capture is required before these mutation requests are sent.
+- Active journey node complete/reset actions now use the same shared confirmation foundation as Give Item, Inventory repair/delete, and resource/spec actions.
+- Admin reason capture is required before node-level journey mutation requests are sent.
 - Player 360 remains read-only.
 - No Player 360 quick actions were added.
-- Remaining action migrations are journey complete/reset/wipe, tutorial deletion, codex wipe, kick, and teleport.
+- Remaining action migrations are journey wipe, tutorial deletion, codex wipe, kick, and teleport.
 
 ### Validation
 
@@ -36,6 +32,12 @@ Validation required in the Windows development environment:
 ```powershell
 .\update.ps1
 ```
+
+---
+
+## Previous update: Player resource/action shared mutation confirmation migration
+
+Resource, XP, specialization, and faction reputation actions were migrated to the confirmed Player Actions modal with required admin reason capture.
 
 ---
 
@@ -96,9 +98,3 @@ Documentation and tracking were synced with the landed audit foundation and in-p
 ## Previous update: SSH tunnel management foundation
 
 Managed SSH tunnel behavior was added for protected game-management database access.
-
----
-
-## Previous update: Battlegroup Health Diagnostics
-
-Read-only Battlegroup Health Diagnostics and support-bundle export were added for operator troubleshooting.
