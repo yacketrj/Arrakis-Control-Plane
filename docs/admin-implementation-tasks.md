@@ -32,7 +32,7 @@ Every feature task must update:
 | P0 | Public-safe vs protected admin portal design | In Progress | `docs/portal-separation-design.md` | Go + frontend validation |
 | P0 | Admin Action Audit Log | Done | `docs/admin-audit-log.md` | Go tests |
 | P0 | Mutation Safety Framework | In Progress | `docs/mutation-safety-framework.md` | Go + frontend tests |
-| P1 | Player 360 Profile | Next | `docs/player-360-profile.md` required | Go + frontend tests |
+| P1 | Player 360 Profile | In Progress | `docs/player-360-profile.md` | Go tests pending local validation; frontend next |
 | P1 | Inventory Studio v2 | Planned | `docs/inventory-studio.md` required | Go + frontend tests |
 | P1 | Broadcast Center | Planned | `docs/broadcast-center.md` required | Go + frontend tests |
 | P1 | Safe Offline Teleport / Rescue | Planned | `docs/safe-teleport-rescue.md` required | Go + frontend tests |
@@ -48,17 +48,18 @@ Every feature task must update:
 
 ## Current implementation focus
 
-### 1. Complete mutation-safety documentation sync
+### 1. Validate Player 360 backend foundation
 
-- Keep `docs/mutation-safety-framework.md` aligned with the implemented middleware and classification endpoint.
-- Keep `PATCH_NOTES.md` and `CHANGELOG.md` aligned with the audit and mutation-safety work.
-- Confirm the task tracker reflects landed work instead of stale roadmap states.
+- Confirm `player_profile.go`, `routes.go`, and `server.go` compile together.
+- Run Go tests locally or through CI.
+- Fix any formatting, compile, or test failures before frontend work.
 
-### 2. Prepare Player 360 Profile as the next feature slice
+### 2. Build Player 360 frontend surface
 
-- Design a protected read-only player overview endpoint before adding new player mutations.
-- Reuse the audit and mutation-safety foundations for any future quick actions.
-- Add a `docs/player-360-profile.md` design document before implementation.
+- Add frontend API client support for `GET /api/v1/players/{id}/profile`.
+- Add Player 360 detail page or panel from the existing Players view.
+- Fold Currency and Online Status into Player Info.
+- Keep the first frontend slice read-only.
 
 ### 3. Continue quality-gate cleanup
 
