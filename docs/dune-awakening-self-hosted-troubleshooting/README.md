@@ -10,10 +10,11 @@ The workflow is split by **hosting platform**, **runtime/orchestration layer**, 
 2. Complete [Intake and Evidence Handling](./01-intake-and-evidence-handling.md).
 3. Use [Environment Discovery](./02-environment-discovery.md) to identify the platform and runtime.
 4. Use the [Troubleshooting Decision Tree](./03-troubleshooting-decision-tree.md) to choose the right issue runbook.
-5. Pick the matching platform guide.
-6. Pick the matching runtime/orchestration guide.
-7. Use focused runbooks only after the environment is identified.
-8. Package evidence for escalation.
+5. Use the [Glossary and Operational Variables](./04-glossary-and-operational-variables.md) when a term or value is unclear.
+6. Pick the matching platform guide.
+7. Pick the matching runtime/orchestration guide.
+8. Use focused runbooks only after the environment is identified.
+9. Package evidence with the [Escalation Package Template](./05-escalation-package-template.md).
 
 ## Core Workflow Documents
 
@@ -21,6 +22,8 @@ The workflow is split by **hosting platform**, **runtime/orchestration layer**, 
 - [Intake and Evidence Handling](./01-intake-and-evidence-handling.md)
 - [Environment Discovery](./02-environment-discovery.md)
 - [Troubleshooting Decision Tree](./03-troubleshooting-decision-tree.md)
+- [Glossary and Operational Variables](./04-glossary-and-operational-variables.md)
+- [Escalation Package Template](./05-escalation-package-template.md)
 
 ## Platform Guides
 
@@ -49,6 +52,9 @@ The workflow is split by **hosting platform**, **runtime/orchestration layer**, 
 - [Login and authentication failure](./runbooks/login-and-authentication-failure.md)
 - [Server startup failure](./runbooks/server-startup-failure.md)
 - [Port and network listener validation](./runbooks/port-and-network-listener-validation.md)
+- [Firewall, NAT, and cloud networking](./runbooks/firewall-nat-and-cloud-networking.md)
+- [Resource and performance checks](./runbooks/resource-and-performance-checks.md)
+- [Update, patch, and version validation](./runbooks/update-patch-and-version-validation.md)
 - [Log collection and redaction](./runbooks/log-collection-and-redaction.md)
 - [RabbitMQ or messaging checks](./runbooks/rabbitmq-or-messaging-checks.md)
 - [Database and persistence checks](./runbooks/database-and-persistence-checks.md)
