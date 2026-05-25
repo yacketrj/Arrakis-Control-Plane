@@ -30,7 +30,7 @@ Every feature task must update:
 | P0 | Public-safe vs protected admin portal design | In Progress | `docs/portal-separation-design.md` | Go + frontend validation |
 | P0 | Admin Action Audit Log | Done | `docs/admin-audit-log.md` | Go tests |
 | P0 | Mutation Safety Framework | In Progress | `docs/mutation-safety-framework.md` | Go + frontend tests |
-| P1 | Player 360 Profile | In Progress | `docs/player-360-profile.md` | Go + frontend validation pending |
+| P1 | Player 360 Profile | Done | `docs/player-360-profile.md` | Go + frontend validation clean |
 | P1 | Inventory Studio v2 | Planned | `docs/inventory-studio.md` required | Go + frontend tests |
 | P1 | Battlegroup Status v2 | Planned | `docs/battlegroup-status-v2.md` required | Go + frontend tests |
 | P1 | Broadcast Center | Planned | `docs/broadcast-center.md` required | Go + frontend tests |
@@ -47,17 +47,17 @@ Every feature task must update:
 
 ## Current implementation focus
 
-### 1. Validate Player 360 read-only foundation
+### 1. Prepare the next safety/frontend foundation slice
 
-- Confirm backend compile and Go tests for `player_profile.go`, `routes.go`, and `server.go`.
-- Confirm frontend typecheck, lint, and build for `web/src/api/playerProfile.ts`, `web/src/tabs/Player360Tab.tsx`, and `web/src/App.tsx`.
-- Fix any validation failures before adding more Player 360 UI affordances.
+- Keep Player 360 read-only.
+- Do not add Player 360 quick actions until shared mutation-safety confirmation is ready.
+- Start the shared frontend mutation confirmation component before adding more mutating operator workflows.
 
-### 2. Stabilize Player 360 operator workflow
+### 2. Preserve Player 360 validated state
 
-- Keep the standalone `Player 360` tab read-only.
-- Keep existing Players, Inventory, Give Item, and Actions workflows unchanged until validation is green.
-- Consider adding a `Player 360` launch button to the existing Players table only after standalone tab validation succeeds.
+- Keep the standalone `Player 360` tab available.
+- Keep the Players-table `360` launcher read-only.
+- Keep existing Players, Inventory, Give Item, and Actions workflows unchanged unless a later validated slice explicitly changes them.
 
 ## Validation command set
 
