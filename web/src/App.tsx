@@ -5,17 +5,19 @@ import { getAdminToken, setAdminToken } from './api/client'
 const AuditTab = lazy(() => import('./tabs/AuditTab'))
 const BattlegroupTab = lazy(() => import('./tabs/BattlegroupTab'))
 const PlayersTab = lazy(() => import('./tabs/PlayersTab'))
+const Player360Tab = lazy(() => import('./tabs/Player360Tab'))
 const DatabaseTab = lazy(() => import('./tabs/DatabaseTab'))
 const DbRoutinesTab = lazy(() => import('./tabs/DbRoutinesTab'))
 const LogsTab = lazy(() => import('./tabs/LogsTab'))
 const BlueprintsTab = lazy(() => import('./tabs/BlueprintsTab'))
 const StorageTab = lazy(() => import('./tabs/StorageTab'))
 
-type TabId = 'battlegroup' | 'players' | 'database' | 'db-routines' | 'audit' | 'logs' | 'blueprints' | 'storage'
+type TabId = 'battlegroup' | 'players' | 'player-360' | 'database' | 'db-routines' | 'audit' | 'logs' | 'blueprints' | 'storage'
 
 const tabs: Array<{ id: TabId; label: string }> = [
   { id: 'battlegroup', label: 'Battlegroup' },
   { id: 'players', label: 'Players' },
+  { id: 'player-360', label: 'Player 360' },
   { id: 'database', label: 'Database' },
   { id: 'db-routines', label: 'DB Routines' },
   { id: 'audit', label: 'Audit' },
@@ -195,6 +197,7 @@ function renderTab(tab: TabId) {
   switch (tab) {
     case 'battlegroup': return <BattlegroupTab />
     case 'players': return <PlayersTab />
+    case 'player-360': return <Player360Tab />
     case 'database': return <DatabaseTab />
     case 'db-routines': return <DbRoutinesTab />
     case 'audit': return <AuditTab />
@@ -214,6 +217,7 @@ function panelClass(tab: TabId) {
     case 'storage':
       return 'flex-1 overflow-hidden flex flex-col p-4'
     case 'players':
+    case 'player-360':
     case 'database':
       return 'flex-1 overflow-auto p-4'
   }
