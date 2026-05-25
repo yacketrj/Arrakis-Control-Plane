@@ -13,6 +13,7 @@ param(
   [switch]$SkipWebBuild,
   [switch]$SkipNpmRepair,
   [switch]$SkipAutoCommit,
+  [switch]$SkipAutoPush,
   [switch]$AllowDirtyWorktree
 )
 
@@ -159,6 +160,31 @@ function Invoke-AutoCommitIfNeeded {
   Write-Host "Auto-commit created: $script:AutoCommitSha" -ForegroundColor Green
 }
 
+function Invoke-AutoPushIfNeeded {
+  if ($SkipAutoPush) {
+    Write-Host 'Skipping auto-push because -SkipAutoPush was supplied.' -ForegroundColor Yellow
+    return
+  }
+
+  Set-Location $RepoRoot
+
+  $branchState = (& git status --short --branch | Select-Object -First 1)
+  if ($LASTEXITCODE -ne 0) {
+    throw 'Unable to inspect branch state before auto-push.'
+  }
+
+  if ($branchState -match 'behind') {
+    throw 'Refusing auto-push because the local branch is behind its upstream. Pull first, then rerun.'
+  }
+
+  if ($branchState -notmatch 'ahead') {
+    Write-Host 'Branch is not ahead of upstream; no auto-push needed.' -ForegroundColor Yellow
+    return
+  }
+
+  Invoke-Native 'git' @('push')
+  Write-Host 'Auto-push completed.' -ForegroundColor Green
+}
 function Resolve-OutputDirectory {
   param(
     [Parameter(Mandatory = $true)][string]$Root,
@@ -350,7 +376,7 @@ try {
   }
 
   Invoke-Step 'Git auto-commit successful changes' { Invoke-AutoCommitIfNeeded }
-
+  Invoke-Step 'Git auto-push committed changes' { Invoke-AutoPushIfNeeded }
   $UpdateSucceeded = $true
 }
 catch {
