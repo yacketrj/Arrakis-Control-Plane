@@ -1,102 +1,99 @@
 # Glossary and Operational Variables
 
-Use this document when a support person is unsure what a term means or what value should be recorded in case notes.
+Use this document when support staff need plain-language definitions for troubleshooting terms, platform terms, runtime terms, and reusable case variables.
 
 ## Operational Variables
 
-These values are installation-specific. They are not automatically sensitive, but some may need redaction depending on who receives the final package.
+These values are discovered during troubleshooting. They are not automatically sensitive. Use actual values in local case notes and redact only when the sharing audience requires it.
 
 ```text
-CLOUD_PROVIDER          OCI, AWS, Azure, GCP, local, hosted provider, or unknown
-CLOUD_INSTANCE_ID       Cloud VM or instance identifier, if cloud-hosted
+CLOUD_PROVIDER          OCI, AWS, Azure, GCP, local, other, or unknown
+CLOUD_INSTANCE_ID       Cloud VM/instance identifier, if hosted in cloud
 INSTANCE_PATH           Active game/control-panel instance path on the host
 LOG_PATH                Directory or file path where relevant logs are stored
 SAVED_PATH              Active Saved directory for the game server
 SERVICE_NAME            systemd service, Windows service, AMP instance, or other service name
-CONTAINER_NAME          Container name, only if containers are used
-DIRECTOR_SERVICE        Service, container, or process handling control-plane/director behavior
-RABBITMQ_SERVICE        Service, container, or process running RabbitMQ or messaging, if present
-DESTINATION_SERVICE     Service, container, or process for the destination map/server
+CONTAINER_NAME          Generic container name, if containers are used
+DIRECTOR_SERVICE        Service/container/process handling director or control-plane logs
+RABBITMQ_SERVICE        Service/container/process running RabbitMQ or messaging, if present
+DESTINATION_SERVICE     Service/container/process for the destination map/server
 DESTINATION_MAP         Map, partition, zone, or destination being tested
 CLIENT_IP               Client public IP, when needed for packet capture
 PUBLIC_IP               Server public IP or advertised external address
 PRIVATE_IP              Server private, bind, or interface IP
+DATABASE_SERVICE        Database service/container/process, if present
+DATABASE_HOST           Database hostname or IP, if known
+DATABASE_PORT           Database port, if known
 PLAYER_ID               Player identifier, if needed for queue/log correlation
 PLAYER_NAME             Player display name, if needed for operational notes
-DATABASE_SERVICE        Database service, container, or process name, if discovered
-DATABASE_HOST           Database host or endpoint, if discovered
-DATABASE_PORT           Database port, if discovered
 ```
 
-## Case Notes Template
+## Hosting and Runtime Terms
 
-```text
-CLOUD_PROVIDER=
-CLOUD_INSTANCE_ID=
-INSTANCE_PATH=
-LOG_PATH=
-SAVED_PATH=
-SERVICE_NAME=
-CONTAINER_NAME=
-DIRECTOR_SERVICE=
-RABBITMQ_SERVICE=
-DESTINATION_SERVICE=
-DESTINATION_MAP=
-CLIENT_IP=
-PUBLIC_IP=
-PRIVATE_IP=
-DATABASE_SERVICE=
-DATABASE_HOST=
-DATABASE_PORT=
-```
-
-## Glossary
-
-| Term | Meaning |
+| Term | Plain-language meaning |
 |---|---|
-| Control plane | The service or services that decide where a player should connect or travel. |
-| Director | A control-plane service that handles login/travel routing decisions. |
-| Destination | The map, partition, server, or instance the player is trying to reach. |
-| Game/client port | The port the game client connects to for gameplay traffic. Usually UDP. |
-| IGW/server-to-server port | A port used by game services to communicate internally. |
-| Instance path | The active install or management directory for a server instance. |
-| Listener | A process actively waiting for network traffic on a port. |
+| Host | The physical or virtual machine where services run. |
+| Guest VM | A virtual machine running inside a hypervisor such as Hyper-V or Proxmox. |
+| Hypervisor | Software that runs virtual machines, such as Hyper-V or Proxmox. |
+| Cloud VM | A virtual machine hosted by OCI, AWS, Azure, GCP, or another cloud provider. |
+| Control panel | A web UI used to manage servers, such as AMP. |
+| Runtime | The layer that actually starts and runs the server process, such as Docker, systemd, Windows Service, AMP, or a custom script. |
+| Orchestration | The management layer that starts, stops, restarts, and configures services or containers. |
+| Container | A packaged runtime environment, commonly managed by Docker or another container runtime. |
+| Bind mount | A host directory mapped into a container. The same files are visible from both the host and container. |
+| Volume | Storage managed by a container runtime. It may contain persistent server or database data. |
+
+## Network Terms
+
+| Term | Plain-language meaning |
+|---|---|
+| Public IP | Address clients use from the internet. |
+| Private IP | Internal address used inside the host, VM, VPC, VNet, or local network. |
+| Bind address | Address the process listens on. A process bound to `127.0.0.1` is usually local-only. |
+| Advertised address | Address the server tells clients or services to connect to. |
+| Listener | A process actively waiting for network connections or packets on a port. |
+| UDP | Network protocol commonly used for real-time game traffic. |
+| TCP | Network protocol commonly used for management, APIs, databases, or message brokers. |
 | NAT | Network address translation. It maps traffic from one address/port to another. |
-| Orchestration layer | The tool that starts, stops, or manages services. Examples: AMP, Docker Compose, systemd, Windows service, scripts. |
-| Platform | Where the server is hosted. Examples: Linux VM, Windows VM, Hyper-V, Proxmox, OCI, AWS, Azure, GCP. |
-| RabbitMQ | A messaging service sometimes used for communication between server components. |
-| Runtime | The actual execution model for the server. Examples: direct process, Docker container, Windows service, systemd service. |
-| Saved path | The directory where runtime data, saves, user settings, or generated state may be written. |
-| Service | A long-running managed process, such as a Windows service or Linux systemd service. |
-| Travel | The gameplay action of moving from one map, partition, zone, or destination to another. |
+| Firewall rule | Rule that allows or blocks traffic. It may exist on the host, cloud provider, router, hypervisor, or control panel. |
+| Security group / NSG / security list | Cloud-provider firewall object. Different providers use different names. |
 
-## Sensitive vs Operational Values
+## Dune Server Terms
 
-Usually sensitive:
+| Term | Plain-language meaning |
+|---|---|
+| Game server process | The process that runs the Dune game world or map. |
+| Control plane | Service layer that coordinates login, travel, map assignment, or server state. |
+| Director | A control-plane role that may assign players to maps or destinations. |
+| Destination | The map, zone, partition, dungeon, or server the player is trying to enter. |
+| Source | The map or service the player starts from before travel. |
+| Partition | A numbered game-world destination or map instance. |
+| Instanced map | A destination that may start, stop, or scale separately from the main world. |
+| Starting map | The first map or world location players enter after login. |
+| Travel | Movement from one map, zone, partition, or server instance to another. |
+| Handoff | The server-side process of moving a player from source to destination. |
 
-```text
-Tokens
-JWTs
-Passwords
-Database passwords
-RabbitMQ secrets
-Private keys
-Personal names
-Raw player/account IDs when not vendor-required
-Cloud resource IDs when sharing broadly
-```
+## Messaging and Data Terms
 
-Usually operational:
+| Term | Plain-language meaning |
+|---|---|
+| RabbitMQ | Messaging system that can pass events between services. |
+| Queue | A named message holding area. Services read messages from queues. |
+| Consumer | A service connected to a queue and reading messages. |
+| messages_ready | Messages waiting to be processed. |
+| messages_unacknowledged | Messages sent to a consumer but not confirmed as processed. |
+| Database | Persistent data store for player, world, or service state. |
+| Persistence | Saving and loading server, player, or world data. |
 
-```text
-Service names
-Container names
-Map names
-Local paths
-Instance paths
-Runtime names
-Platform names
-Port numbers
-```
+## Troubleshooting Terms
 
-Operational values may still be redacted if the sharing audience is public or untrusted.
+| Term | Plain-language meaning |
+|---|---|
+| Reproduction | A controlled attempt to make the issue happen again. |
+| Evidence window | The exact time range where support captures logs and system state. |
+| Known working path | A login, travel, or server action that succeeds. |
+| Known failing path | A login, travel, or server action that fails. |
+| RCA | Root cause analysis. It should only be written after evidence supports it. |
+| Hypothesis | A possible explanation that still needs evidence. |
+| Redaction | Removing sensitive values before sharing logs or reports. |
+| Escalation package | The evidence bundle sent to an engineer, vendor, or higher-level support team. |
