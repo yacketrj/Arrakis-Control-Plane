@@ -29,10 +29,10 @@ Every feature task must update:
 | P0 | Item delivery architecture clarification | Done | `docs/admin-feature-design-and-priorities.md` | Review only |
 | P0 | Database routine discovery backend | Done | `PATCH_NOTES.md`, `CHANGELOG.md` pending sync after workflow cleanup | Go Quality |
 | P0 | Database routine inspection UI | Done | `PATCH_NOTES.md`, `CHANGELOG.md` pending sync after workflow cleanup | Frontend Quality |
-| P0 | Public-safe vs protected admin portal design | In Progress | `docs/portal-separation-design.md` required | Go + frontend validation |
-| P0 | Admin Action Audit Log | Next | `docs/admin-audit-log.md` required | Go tests required |
-| P0 | Mutation Safety Framework | Planned | `docs/mutation-safety-framework.md` required | Go + frontend tests |
-| P1 | Player 360 Profile | Planned | `docs/player-360-profile.md` required | Go + frontend tests |
+| P0 | Public-safe vs protected admin portal design | In Progress | `docs/portal-separation-design.md` | Go + frontend validation |
+| P0 | Admin Action Audit Log | Done | `docs/admin-audit-log.md` | Go tests |
+| P0 | Mutation Safety Framework | In Progress | `docs/mutation-safety-framework.md` | Go + frontend tests |
+| P1 | Player 360 Profile | Next | `docs/player-360-profile.md` required | Go + frontend tests |
 | P1 | Inventory Studio v2 | Planned | `docs/inventory-studio.md` required | Go + frontend tests |
 | P1 | Broadcast Center | Planned | `docs/broadcast-center.md` required | Go + frontend tests |
 | P1 | Safe Offline Teleport / Rescue | Planned | `docs/safe-teleport-rescue.md` required | Go + frontend tests |
@@ -48,25 +48,23 @@ Every feature task must update:
 
 ## Current implementation focus
 
-### 1. Finish quality-gate cleanup
+### 1. Complete mutation-safety documentation sync
+
+- Keep `docs/mutation-safety-framework.md` aligned with the implemented middleware and classification endpoint.
+- Keep `PATCH_NOTES.md` and `CHANGELOG.md` aligned with the audit and mutation-safety work.
+- Confirm the task tracker reflects landed work instead of stale roadmap states.
+
+### 2. Prepare Player 360 Profile as the next feature slice
+
+- Design a protected read-only player overview endpoint before adding new player mutations.
+- Reuse the audit and mutation-safety foundations for any future quick actions.
+- Add a `docs/player-360-profile.md` design document before implementation.
+
+### 3. Continue quality-gate cleanup
 
 - Confirm remediation workflow applies Go formatting.
 - Confirm Go Quality passes formatting, module verification, vet, and tests.
 - Confirm Frontend Quality passes install, audit, typecheck, lint, and build.
-
-### 2. Finish portal separation documentation
-
-- Create user/admin portal separation design.
-- Keep all sensitive player/admin/database/logging data in protected admin routes.
-- Expose only deliberately reviewed user-safe endpoints under `/api/v1/public/*`.
-
-### 3. Start audit log foundation
-
-- Add append-only audit event model.
-- Add protected audit list endpoint.
-- Add audit UI tab.
-- Backfill audit recording into existing mutation routes.
-- Add redaction tests.
 
 ## Documentation requirement per feature
 
@@ -99,3 +97,5 @@ npm run build
 ## Notes
 
 The DB routine discovery feature is intended to answer whether the database has a safer function or routine for gameplay-like item delivery. Discovery and inspection are read-only. Any future routine execution must remain allowlisted, typed, previewed, audited, and protected by the mutation safety framework.
+
+The DA Manager workstream also tracks runtime/operator usability requirements. SSH tunnel status should remain visible at startup so operators can confirm managed database forwarding before using protected admin workflows.
