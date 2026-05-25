@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Added `docs/player-360-profile.md` as the design foundation for the next P1 read-only Player 360 implementation slice.
+- Added roadmap status notes showing the project has moved from P0 safety foundation into the Player 360 planning step for Phase 2 operator support.
 - Added admin audit documentation sync covering the current audit event model, protected event review endpoint, local JSONL audit path, captured fields, reason capture, and operational limitations.
 - Added implementation tracker updates so Admin Action Audit Log is marked complete and Player 360 Profile is identified as the next feature slice.
 - Added SSH tunnel management foundation with managed local forwarding for game-management database access.
@@ -48,8 +50,11 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Updated `docs/admin-feature-design-and-priorities.md` so the next implementation slice is Player 360 Profile read-only foundation instead of the already-completed audit foundation.
+- Updated the Player 360 roadmap entry to fold Currency and Online Status into Player Info.
+- Clarified Battlegroup Status v2 as future Prometheus/Grafana graph and diagnostic improvement work.
+- Updated `PATCH_NOTES.md` with the Player 360 planning and roadmap correction update.
 - Updated `docs/admin-implementation-tasks.md` to reflect landed audit work, active mutation-safety work, and Player 360 Profile as the next feature slice.
-- Updated `PATCH_NOTES.md` so the current release note matches the latest DA Manager documentation sync instead of the older SSH tunnel-only focus.
 - Routed PostgreSQL game-management access through the configured SSH tunnel policy instead of the previous inline SSH dial function.
 - Updated Battlegroup tab navigation with separate `Pods` and `Health Diagnostics` views.
 - Updated Battlegroup support-bundle workflow with separate raw and redacted export actions.
@@ -73,6 +78,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Fixed stale roadmap text that still pointed to the completed audit log as the next implementation slice.
+- Fixed the Player 360 roadmap typo from Currency wording and corrected the malformed Battlegroup Status v2 roadmap row.
 - Fixed stale admin implementation tracker statuses that still described Admin Action Audit Log and Mutation Safety Framework as future-only work.
 - Fixed managed SSH tunnel cleanup so repeated close paths are idempotent.
 - Fixed Battlegroup view button variants to use supported HeroUI values.
@@ -93,8 +100,9 @@ All notable changes to this project will be documented in this file.
 
 ### Security
 
-- Improved operator accountability by documenting the current audit event capture fields, reason capture, and protected review path.
+- Reinforced that Player 360 Profile v1 must start as a protected read-only support surface with no new mutation paths.
 - Reinforced that future Player 360 quick actions should reuse the audit and mutation-safety foundation before adding new mutation workflows.
+- Improved operator accountability by documenting the current audit event capture fields, reason capture, and protected review path.
 - Reduced direct infrastructure exposure by routing supported game-management database access through managed SSH tunnels by default.
 - Reduced reconnect risk by cleaning managed tunnels before reopening SSH and database sessions.
 - Reduced diagnostic handoff risk by adding redacted Battlegroup Health bundle export for common infrastructure identifiers.
