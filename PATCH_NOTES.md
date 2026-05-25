@@ -1,27 +1,30 @@
 # Dune Admin Release Notes
 
-## Current update: Storage shared mutation confirmation migration
+## Current update: Database SQL shared mutation confirmation migration
 
 ### Why this update was made
 
-Storage container item add/remove operations mutate persisted server state and require a server zone restart before visibility is consistent for other players. This update moves the active Storage tab mutation flows onto the shared mutation-confirmation hook with required admin reason capture.
+The Database tab SQL runner is a privileged database operation surface. Even read-looking SQL is submitted through a protected mutation endpoint, so this update requires shared confirmation and an admin reason before any SQL is sent.
 
 ### What changed
 
-- Updated `web/src/tabs/StorageTab.tsx` to use `useMutationConfirmation`.
-- Added shared mutation confirmation and required admin reason capture for:
-  - Add item to storage container
-  - Remove item from storage container
-- Added storage container target metadata, item identifiers, container type, map, stack size, quality, and restart visibility warning details to the confirmation flow.
-- Passed captured reasons into `api.storage.giveItem` and `api.players.deleteItem`.
-- Preserved existing storage warning that item add/remove operations require a server zone restart before other players see the change.
+- Updated `web/src/tabs/DatabaseTab.tsx` to use `useMutationConfirmation` for Run SQL.
+- Kept read-only database views frictionless:
+  - List Tables
+  - Describe
+  - Sample
+  - Search Columns
+- Added shared mutation confirmation and required admin reason capture before `api.database.sql` is called.
+- Added SQL preview, database target metadata, common mutating-keyword detection, and blast-radius verification guidance to the confirmation details.
+- Passed captured reasons into `api.database.sql`.
+- Updated the SQL UI helper text so operators know confirmation and a reason are required.
 
 ### Security and operator impact
 
-- Storage add/remove mutations now use the same shared confirmation foundation as active Players-table mutations.
-- Admin reason capture is required before storage mutation requests are sent.
+- Database SQL now uses the same shared confirmation foundation as active Players-table and Storage mutations.
+- Admin reason capture is required before SQL requests are sent.
 - Player 360 remains read-only.
-- Remaining shared-confirmation review targets include Database SQL, Battlegroup Exec, Blueprint import, and future Inventory Studio/Player 360 quick-action workflows.
+- Remaining shared-confirmation review targets include Battlegroup Exec, Blueprint import, and future Inventory Studio/Player 360 quick-action workflows.
 
 ### Validation
 
@@ -30,6 +33,12 @@ Validation required in the Windows development environment:
 ```powershell
 .\update.ps1
 ```
+
+---
+
+## Previous update: Storage shared mutation confirmation migration
+
+Storage container add/remove item operations were migrated to shared mutation confirmation with required admin reason capture.
 
 ---
 
@@ -72,9 +81,3 @@ The Give Item modal was migrated from local browser confirm/prompt handling to t
 ## Previous update: Shared frontend mutation confirmation foundation
 
 The reusable frontend mutation-confirmation hook was added so future high-risk UI actions can display mutation safety metadata and capture an admin reason before sending the mutation request.
-
----
-
-## Previous update: Player 360 validated read-only profile
-
-Player 360 v1 was validated as a protected read-only profile with a standalone tab and Players-table launcher.
