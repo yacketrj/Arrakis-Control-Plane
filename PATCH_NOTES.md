@@ -1,29 +1,28 @@
 # Dune Admin Release Notes
 
-## Current update: Player 360 launcher from Players table
+## Current update: Player 360 validated read-only profile
 
 ### Why this update was made
 
-Player 360 compiled cleanly as a protected read-only backend and standalone frontend tab. This slice adds the operator shortcut that was planned after validation: a row-level `360` launcher from the existing Players table.
+Player 360 is now implemented and compiled cleanly as the first P1 operator-support surface after the P0 audit and mutation-safety foundation. This update closes the Player 360 v1 slice as a protected read-only profile with a standalone tab and Players-table launcher.
 
 ### What changed
 
-- Added `web/src/tabs/PlayersTabWith360Launcher.tsx` as a wrapper around the existing Players tab.
-- Added a read-only `360` button beside existing player row actions.
-- Updated `web/src/App.tsx` so the Players tab uses the launcher wrapper.
-- Updated `web/src/tabs/Player360Tab.tsx` so Player 360 reads the selected player ID and auto-loads the profile.
-- Updated `docs/player-360-profile.md` with the launcher status.
+- Marked Player 360 v1 as validated in `docs/player-360-profile.md`.
+- Marked Player 360 Profile as Done in `docs/admin-implementation-tasks.md`.
+- Confirmed the backend profile endpoint, standalone frontend tab, auto-load behavior, and Players-table launcher have compiled cleanly.
+- Preserved the rule that Player 360 remains read-only and does not add quick actions yet.
 
 ### Security and operator impact
 
-- Player 360 remains read-only.
+- Player 360 remains a read-only support view.
 - No existing Inventory, Give Item, or Actions flows were changed.
 - No new player mutation paths were added.
-- The launcher stores only the selected player actor ID in browser local storage.
+- Future Player 360 quick actions remain blocked on shared mutation-safety confirmation.
 
 ### Validation
 
-Expected validation after this launcher slice:
+Validated clean:
 
 ```bash
 gofmt -w *.go
@@ -35,6 +34,12 @@ npm run typecheck
 npm run lint
 npm run build
 ```
+
+---
+
+## Previous update: Player 360 launcher from Players table
+
+Added the read-only Players-table `360` launcher and Player 360 auto-load behavior.
 
 ---
 
