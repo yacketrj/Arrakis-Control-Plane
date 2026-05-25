@@ -92,6 +92,7 @@ func runSetup() {
 	} else {
 		ok("ADMIN_TOKEN already configured")
 	}
+	ok("Admin reason enforcement default: false; set ADMIN_REQUIRE_REASON=true after UI reason prompts are fully wired")
 	fmt.Println()
 
 	if errs := requiredConfigErrors(); len(errs) > 0 {
@@ -213,6 +214,7 @@ func writeSetupEnv(includeDatabasePassword bool) error {
 		"",
 		fmt.Sprintf("SCRIP_CURRENCY=%d", scripCurrencyID),
 		"ADMIN_TOKEN="+quote(effectiveAdminToken()),
+		"ADMIN_REQUIRE_REASON="+quote(envOr("ADMIN_REQUIRE_REASON", "false")),
 		"ALLOWED_ORIGINS="+quote(allowedOrigins),
 		"LISTEN_ADDR="+quote(listenAddr),
 	)
