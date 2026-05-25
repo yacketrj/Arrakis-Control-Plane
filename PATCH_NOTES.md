@@ -1,26 +1,25 @@
 # Dune Admin Release Notes
 
-## Current update: Player 360 backend profile foundation
+## Current update: Player 360 read-only frontend tab
 
 ### Why this update was made
 
-Player 360 is moving from roadmap planning into implementation. This slice adds the protected read-only backend foundation so operators can eventually review one consolidated player support profile before any new high-risk quick actions are introduced.
+Player 360 now has a protected read-only backend profile endpoint, so this slice adds the first frontend surface for operators. The goal is to let operators load one consolidated support view without changing the existing Players, Inventory, Give Item, or Actions workflows and without introducing any new mutation paths.
 
 ### What changed
 
-- Added `player_profile.go` with the Player 360 response model, aggregation handler, section-level safe error handling, and helper functions.
-- Added `GET /api/v1/players/{id}/profile` through shared route registration.
-- Added `routes.go` to centralize HTTP route registration.
-- Refactored `server.go` to call shared route registration.
-- Added `player_profile_test.go` coverage for summary helpers, online-state matching, ID helper behavior, and safe error wording.
-- Updated `docs/player-360-profile.md` and `docs/admin-implementation-tasks.md` with backend status.
+- Added `web/src/api/playerProfile.ts` with Player 360 response types and a protected profile fetch helper.
+- Added `web/src/tabs/Player360Tab.tsx` as a standalone read-only Player 360 page.
+- Added `Player 360` to the main app navigation in `web/src/App.tsx`.
+- Removed the unused Player 360 modal prototype so the supported frontend path is the standalone tab.
+- Updated `docs/player-360-profile.md` and `docs/admin-implementation-tasks.md` with the frontend status and validation focus.
 
 ### Security and operator impact
 
-- Player 360 remains read-only in this slice.
-- No new mutation paths were added.
-- The route remains protected by the existing admin middleware.
-- Section errors use safe wording instead of exposing raw backend details.
+- Player 360 remains read-only.
+- No new player mutation paths were added.
+- Existing player workflows remain unchanged until the standalone tab validates cleanly.
+- The frontend surfaces section-level partial-data warnings without exposing raw backend internals.
 
 ### Validation
 
@@ -36,6 +35,12 @@ npm run typecheck
 npm run lint
 npm run build
 ```
+
+---
+
+## Previous update: Player 360 backend profile foundation
+
+Added the protected read-only Player 360 backend profile endpoint, route registration, helper tests, and backend documentation.
 
 ---
 
