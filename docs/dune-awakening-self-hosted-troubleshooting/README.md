@@ -15,6 +15,8 @@ The workflow is split by **hosting platform**, **runtime/orchestration layer**, 
 7. Pick the matching runtime/orchestration guide.
 8. Use focused runbooks only after the environment is identified.
 9. Package evidence with the [Escalation Package Template](./05-escalation-package-template.md) and [Standard Evidence Bundle](./06-standard-evidence-bundle.md).
+10. Write final analysis with the [RCA Report Template](./07-rca-report-template.md) only after evidence supports the conclusion.
+11. Use [Project Continuity Notes](./08-project-continuity-notes.md) when continuing the work in a new chat or handoff.
 
 ## Core Workflow Documents
 
@@ -25,6 +27,8 @@ The workflow is split by **hosting platform**, **runtime/orchestration layer**, 
 - [Glossary and Operational Variables](./04-glossary-and-operational-variables.md)
 - [Escalation Package Template](./05-escalation-package-template.md)
 - [Standard Evidence Bundle](./06-standard-evidence-bundle.md)
+- [RCA Report Template](./07-rca-report-template.md)
+- [Project Continuity Notes](./08-project-continuity-notes.md)
 
 ## Platform Guides
 
