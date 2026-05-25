@@ -4,7 +4,7 @@ import { getAdminToken, setAdminToken } from './api/client'
 
 const AuditTab = lazy(() => import('./tabs/AuditTab'))
 const BattlegroupTab = lazy(() => import('./tabs/BattlegroupTab'))
-const PlayersTab = lazy(() => import('./tabs/PlayersTab'))
+const PlayersTab = lazy(() => import('./tabs/PlayersTabWith360Launcher'))
 const Player360Tab = lazy(() => import('./tabs/Player360Tab'))
 const DatabaseTab = lazy(() => import('./tabs/DatabaseTab'))
 const DbRoutinesTab = lazy(() => import('./tabs/DbRoutinesTab'))
