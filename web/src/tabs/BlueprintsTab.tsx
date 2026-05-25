@@ -95,12 +95,10 @@ export default function BlueprintsTab() {
         </div>
       )}
 
-      {/* Import Modal */}
       <ImportModal
         open={showImport}
         onClose={() => setShowImport(false)}
         onSuccess={() => { setShowImport(false); load() }}
-        players={[]}
       />
     </div>
   )
@@ -114,7 +112,6 @@ function ImportModal({
   open: boolean
   onClose: () => void
   onSuccess: () => void
-  players: { id: number; name: string }[]
 }) {
   const [file, setFile] = useState<File | null>(null)
   const [playerId, setPlayerId] = useState('')
@@ -124,9 +121,19 @@ function ImportModal({
     if (!file) { toast.warning('Select a blueprint file'); return }
     const pid = Number(playerId)
     if (!pid) { toast.warning('Enter a valid player ID'); return }
+
+    const reason = window.prompt('Admin reason required for blueprint import:', '')?.trim()
+    if (!reason) {
+      toast.warning('Cancelled: admin reason is required for blueprint imports')
+      return
+    }
+
+    const ok = window.confirm('Blueprint import changes player construction data and is written to the audit log. Continue?')
+    if (!ok) return
+
     setSubmitting(true)
     try {
-      const res = await api.blueprints.import(file, pid)
+      const res = await api.blueprints.import(file, pid, reason)
       if (res.ok) {
         toast.success('Blueprint imported successfully')
         onSuccess()
@@ -152,6 +159,9 @@ function ImportModal({
             </Modal.Header>
             <Modal.Body>
               <div className="flex flex-col gap-4">
+                <p className="text-xs" style={{ color: 'var(--color-text-dim)' }}>
+                  Blueprint imports change player construction data. The import requires an admin reason and will be recorded in the Audit tab.
+                </p>
                 <div className="flex flex-col gap-1">
                   <Label className="text-sm" style={{ color: 'var(--color-text-dim)' }}>
                     Blueprint File (.json)
