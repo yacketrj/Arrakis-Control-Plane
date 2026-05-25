@@ -8,9 +8,9 @@ The first version must remain read-only. Mutating quick actions belong to later 
 
 ## Current implementation status
 
-Player 360 is in progress on `main` and the backend plus standalone frontend tab have compiled cleanly.
+Player 360 v1 is implemented and has compiled cleanly on `main`.
 
-Implemented so far:
+Implemented and validated:
 
 - `player_profile.go` backend response model, handler, aggregation helpers, and safe section-level errors.
 - `GET /api/v1/players/{id}/profile` registered through `routes.go`.
@@ -117,6 +117,8 @@ Later Player 360 quick actions must use the Mutation Safety Framework, require p
 
 ## Validation steps
 
+Validated clean after the launcher wrapper change:
+
 ```bash
 gofmt -w *.go
 go test ./...
@@ -130,8 +132,7 @@ npm run build
 
 ## Next work
 
-1. Re-run validation after the launcher wrapper change.
-2. Clean up any frontend typecheck/lint/build findings.
-3. Improve Player 360 section display and add links to existing full inventory/actions views after validation.
-4. Add shared frontend mutation confirmation before any Player 360 quick actions.
-5. Link Player 360 to Inventory Studio v2 after Inventory Studio exists.
+1. Improve Player 360 section display and add clearer links to existing full inventory/actions views.
+2. Start the shared frontend mutation confirmation component before any Player 360 quick actions.
+3. Link Player 360 to Inventory Studio v2 after Inventory Studio exists.
+4. Keep Player 360 read-only until mutation-safety UX is ready.
