@@ -55,7 +55,22 @@ func TestMutationSafetyStorage(t *testing.T) {
 	}
 }
 
+func TestMutationSafetyReasonEnforcementFlag(t *testing.T) {
+	t.Setenv("ADMIN_REQUIRE_REASON", "true")
+	got := mutationSafetyForPath(http.MethodPost, "/api/v1/players/give-item")
+	if !got.ReasonEnforcementEnabled {
+		t.Fatalf("expected enforcement enabled in classification: %#v", got)
+	}
+
+	t.Setenv("ADMIN_REQUIRE_REASON", "false")
+	got = mutationSafetyForPath(http.MethodPost, "/api/v1/players/give-item")
+	if got.ReasonEnforcementEnabled {
+		t.Fatalf("expected enforcement disabled in classification: %#v", got)
+	}
+}
+
 func TestMutationSafetyClassifyHandler(t *testing.T) {
+	t.Setenv("ADMIN_REQUIRE_REASON", "true")
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/mutation-safety/classify?method=DELETE&path=/api/v1/players/item/99", nil)
 	res := httptest.NewRecorder()
 
@@ -70,6 +85,9 @@ func TestMutationSafetyClassifyHandler(t *testing.T) {
 	}
 	if got.Risk != "destructive" || !got.Destructive || !got.RequiresReason {
 		t.Fatalf("unexpected handler response: %#v", got)
+	}
+	if !got.ReasonEnforcementEnabled {
+		t.Fatalf("expected handler response to expose reason enforcement state: %#v", got)
 	}
 }
 
