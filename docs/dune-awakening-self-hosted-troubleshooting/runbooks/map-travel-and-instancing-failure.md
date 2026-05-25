@@ -4,6 +4,8 @@ Use this runbook when players can log in but fail when moving between maps, zone
 
 Start only after the hosting platform and runtime/orchestration layer are identified.
 
+Do not record client names, player names, chat names, Discord names, raw account identifiers, or other personal information in the troubleshooting notes. Use generic labels such as `PLAYER_1`, `CLIENT_IP`, `SOURCE_MAP`, and `DESTINATION_MAP`.
+
 ## 1. Capture the User-Visible Travel Symptom
 
 Ask the player or environment owner:
@@ -42,13 +44,13 @@ docker logs --since 30m "$DIRECTOR_SERVICE" 2>&1 | tee travel-control-plane.log
 Run on: Linux host or Linux VM shell if logs are file-based
 
 ```bash
-grep -RniE 'Travel request|Received travel request|travel queue|Travel grant|travel completion|completion validation|LoginRequest|ServerState|partition|serverId|instancing|failed|error|exception|timeout' "$LOG_PATH" 2>/dev/null | head -400 | tee travel-control-plane-search.txt
+grep -RniE 'Travel request|Received travel request|travel queue|Travel grant|travel completion|completion validation|LoginRequest|ServerState|partition|serverId|instancing|ServerFull|DestinationPartitionId|ServerLoginToken|failed|error|exception|timeout' "$LOG_PATH" 2>/dev/null | head -400 | tee travel-control-plane-search.txt
 ```
 
 Run on: Windows host PowerShell if logs are file-based
 
 ```powershell
-Select-String -Path "$env:LOG_PATH\**\*.log" -Pattern 'Travel request','Received travel request','travel queue','Travel grant','travel completion','completion validation','LoginRequest','ServerState','partition','serverId','instancing','failed','error','exception','timeout' -ErrorAction SilentlyContinue | Select-Object -First 400 | Tee-Object -FilePath travel-control-plane-search.txt
+Select-String -Path "$env:LOG_PATH\**\*.log" -Pattern 'Travel request','Received travel request','travel queue','Travel grant','travel completion','completion validation','LoginRequest','ServerState','partition','serverId','instancing','ServerFull','DestinationPartitionId','ServerLoginToken','failed','error','exception','timeout' -ErrorAction SilentlyContinue | Select-Object -First 400 | Tee-Object -FilePath travel-control-plane-search.txt
 ```
 
 Run in: control panel UI
@@ -129,7 +131,40 @@ pktmon stop
 pktmon format PktMon.etl -o travel-pktmon-capture.txt
 ```
 
-## 6. Interpret Results
+## 6. Validate Dynamic Handoff Values
+
+For dynamically spawned or instanced destinations, inspect the control-plane response and destination lifecycle together.
+
+Record:
+
+```text
+Travel response code:
+Server state:
+ServerFull value:
+DestinationPartitionId present: yes/no
+ServerLoginToken present: yes/no
+Destination server ID:
+Destination active players, if shown:
+Queue length, if shown:
+```
+
+Interpretation:
+
+```text
+ServerState=Ready but DestinationPartitionId is empty:
+  The destination may exist, but the player was not given a usable destination assignment.
+
+ServerFull=True while destination state shows no players:
+  Investigate stale capacity state, queue state, or instancing metadata.
+
+ServerLoginToken is empty:
+  The source/client may not have a valid destination login handoff.
+
+The same request later appears with missing or generic origin context:
+  Treat this as a possible orphaned, retry, or cleanup-path symptom. Correlate with queue state and destination logs.
+```
+
+## 7. Interpret Results
 
 ```text
 Control plane never logs the travel request:
@@ -137,6 +172,9 @@ Control plane never logs the travel request:
 
 Control plane logs travel request but no destination appears:
   Check instance spawn, service manager, runtime/orchestration, and resource limits.
+
+Control plane reports destination ready but no usable partition/token is returned:
+  Check director allocation, capacity state, queue state, and instancing metadata.
 
 Destination appears but no expected listener appears:
   Check launch arguments, bind address, runtime config, and port allocation.
@@ -151,10 +189,10 @@ Destination logs PreLogin or lifecycle stages then disconnects:
   Handoff reached the destination. Continue investigating session lifecycle, persistence, cleanup, and return/instance completion.
 
 Failure happens only for some destinations:
-  Compare working and failing destination launch arguments, listeners, logs, map mode, and runtime path.
+  Compare working and failing destination launch arguments, listeners, logs, map mode, capacity state, and runtime path.
 ```
 
-## 7. Evidence to Escalate
+## 8. Evidence to Escalate
 
 ```text
 Known working source/destination
@@ -162,8 +200,36 @@ Known failing source/destination
 Exact UTC test time
 Control-plane/director logs
 Source and destination server logs
+Travel response values
 Listener before/during/after
 Packet capture
 Runtime/orchestration state before and after
 Cloud/hypervisor/firewall evidence if applicable
+```
+
+## 9. Privacy and Redaction Requirements
+
+Before adding evidence to notes or reports, remove:
+
+```text
+Client names
+User names
+Discord names
+Player display names
+Raw account IDs unless vendor-required and approved
+Server passwords
+Tokens
+Secrets
+Private keys
+```
+
+Keep generalized operational values when needed for troubleshooting:
+
+```text
+Map names
+Partition numbers
+Service names
+Container names
+Port numbers
+Local file paths
 ```
