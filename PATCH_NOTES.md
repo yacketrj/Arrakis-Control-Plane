@@ -1,41 +1,42 @@
 # Dune Admin Release Notes
 
-## Current update: Shared frontend mutation confirmation foundation
+## Current update: Give Item shared mutation confirmation migration
 
 ### Why this update was made
 
-The next DA Manager slice prepares the frontend safety layer needed before adding Player 360 quick actions or expanding high-risk operator workflows. Player 360 remains read-only; this update adds the reusable confirmation surface that future mutating flows must use.
+The Give Item modal is a high-impact player mutation surface. It previously used local browser confirmation and prompt handling. This update moves Give Item confirmation and admin reason capture onto the shared frontend mutation-confirmation hook.
 
 ### What changed
 
-- Added `web/src/hooks/useMutationConfirmation.tsx` as a shared frontend confirmation hook.
-- The hook classifies the target mutation through `/api/v1/mutation-safety/classify` before showing confirmation.
-- Added conservative local fallback classification so the UI still prompts for high-risk or destructive-looking paths if the backend classification request fails.
-- Added support for displaying risk, action name, operator warnings, recommended path, rollback hint, target context, extra details, and admin reason capture.
-- Updated `docs/mutation-safety-framework.md` with the frontend integration pattern and current limitations.
-- Updated `docs/admin-implementation-tasks.md` so the active focus is migrating existing high-risk workflows to the shared confirmation hook.
+- Updated `web/src/tabs/GiveItemModalAugmented.tsx` to use `useMutationConfirmation`.
+- Removed the modal-local mutation safety classification, `window.confirm`, and `window.prompt` flow from Give Item.
+- Added shared confirmation metadata for both delivery modes:
+  - Inventory Write
+  - Live Claim Rewards
+- Added item-row count, delivery-mode context, and player target identifiers to the shared confirmation dialog.
+- Kept admin reason capture mandatory for Give Item operations.
+- Passed the captured reason into `api.players.giveItems` and `api.players.grantLive`.
 
 ### Security and operator impact
 
-- Player 360 remains a read-only support view.
-- No new player mutation paths were added.
-- Existing Players, Inventory, Give Item, and Actions workflows were not behaviorally changed in this slice.
-- Future Player 360 quick actions remain blocked until relevant mutation flows are wired through the shared confirmation hook and reason capture.
+- Give Item now uses the same frontend confirmation foundation planned for other high-risk mutations.
+- Player 360 remains read-only.
+- No new Player 360 quick actions were added.
+- Existing PlayersTab action migrations remain pending for inventory repair/delete, resource grants, XP/spec changes, journey reset/wipe, admin wipes, kick, and teleport.
 
 ### Validation
 
-Validation still required in the target development environment:
+Validation required in the Windows development environment:
 
-```bash
-gofmt -w *.go
-go test ./...
-cd web
-npm install
-npm audit --audit-level=high
-npm run typecheck
-npm run lint
-npm run build
+```powershell
+.\update.ps1
 ```
+
+---
+
+## Previous update: Shared frontend mutation confirmation foundation
+
+The reusable frontend mutation-confirmation hook was added so future high-risk UI actions can display mutation safety metadata and capture an admin reason before sending the mutation request.
 
 ---
 
