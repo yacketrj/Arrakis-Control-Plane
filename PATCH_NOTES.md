@@ -1,28 +1,30 @@
 # Dune Admin Release Notes
 
-## Current update: Player 360 validated read-only profile
+## Current update: Shared frontend mutation confirmation foundation
 
 ### Why this update was made
 
-Player 360 is now implemented and compiled cleanly as the first P1 operator-support surface after the P0 audit and mutation-safety foundation. This update closes the Player 360 v1 slice as a protected read-only profile with a standalone tab and Players-table launcher.
+The next DA Manager slice prepares the frontend safety layer needed before adding Player 360 quick actions or expanding high-risk operator workflows. Player 360 remains read-only; this update adds the reusable confirmation surface that future mutating flows must use.
 
 ### What changed
 
-- Marked Player 360 v1 as validated in `docs/player-360-profile.md`.
-- Marked Player 360 Profile as Done in `docs/admin-implementation-tasks.md`.
-- Confirmed the backend profile endpoint, standalone frontend tab, auto-load behavior, and Players-table launcher have compiled cleanly.
-- Preserved the rule that Player 360 remains read-only and does not add quick actions yet.
+- Added `web/src/hooks/useMutationConfirmation.tsx` as a shared frontend confirmation hook.
+- The hook classifies the target mutation through `/api/v1/mutation-safety/classify` before showing confirmation.
+- Added conservative local fallback classification so the UI still prompts for high-risk or destructive-looking paths if the backend classification request fails.
+- Added support for displaying risk, action name, operator warnings, recommended path, rollback hint, target context, extra details, and admin reason capture.
+- Updated `docs/mutation-safety-framework.md` with the frontend integration pattern and current limitations.
+- Updated `docs/admin-implementation-tasks.md` so the active focus is migrating existing high-risk workflows to the shared confirmation hook.
 
 ### Security and operator impact
 
 - Player 360 remains a read-only support view.
-- No existing Inventory, Give Item, or Actions flows were changed.
 - No new player mutation paths were added.
-- Future Player 360 quick actions remain blocked on shared mutation-safety confirmation.
+- Existing Players, Inventory, Give Item, and Actions workflows were not behaviorally changed in this slice.
+- Future Player 360 quick actions remain blocked until relevant mutation flows are wired through the shared confirmation hook and reason capture.
 
 ### Validation
 
-Validated clean:
+Validation still required in the target development environment:
 
 ```bash
 gofmt -w *.go
@@ -34,6 +36,12 @@ npm run typecheck
 npm run lint
 npm run build
 ```
+
+---
+
+## Previous update: Player 360 validated read-only profile
+
+Player 360 v1 was validated as a protected read-only profile with a standalone tab and Players-table launcher.
 
 ---
 
