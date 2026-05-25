@@ -49,7 +49,7 @@ async function getReasonForMutation(method: string, path: string): Promise<strin
   try {
     safety = await api.mutationSafety.classify(method, path)
   } catch {
-    safety = null
+    // Keep the conservative null fallback when classification is unavailable.
   }
 
   const preview = safetyMessage(safety, 'This action changes player/server state and will be recorded in the audit log.')
