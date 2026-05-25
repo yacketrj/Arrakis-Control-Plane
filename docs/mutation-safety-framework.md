@@ -4,7 +4,7 @@
 
 Mutation Safety Framework v1 adds shared safety metadata around high-impact administrator operations. It builds on the Admin Action Audit Log by classifying mutating requests, capturing operator reason text when supplied, and recording a small allowlist of target identifiers.
 
-This is a P0 foundation layer for future features such as Player 360 quick actions, Inventory Studio v2, guild/faction administration, journey management, safe teleport/rescue, and allowlisted routine execution.
+This is a P0 foundation layer for features such as Player 360 quick actions, Inventory Studio v2, guild/faction administration, journey management, safe teleport/rescue, and allowlisted routine execution.
 
 ## What v1 provides
 
@@ -12,6 +12,12 @@ This is a P0 foundation layer for future features such as Player 360 quick actio
 - Protected classification endpoint for frontend preview workflows.
 - Shared frontend mutation confirmation hook at `web/src/hooks/useMutationConfirmation.tsx`.
 - Frontend confirmation support for risk display, warnings, recommended path, rollback hint, target summary, operator details, and admin reason capture.
+- Confirmed extracted player workflow modals for the active Players-table mutation surface:
+  - `web/src/tabs/GiveItemModalAugmented.tsx`
+  - `web/src/tabs/InventoryModal.tsx`
+  - `web/src/tabs/PlayerActionsModalConfirmed.tsx`
+  - `web/src/tabs/PlayerTeleportModal.tsx`
+  - `web/src/tabs/PlayerAdminActionsModal.tsx`
 - Optional `reason` capture from JSON request bodies.
 - Optional `X-Admin-Reason` header capture for admin workflows.
 - Environment-controlled reason enforcement for high-risk and destructive actions.
@@ -44,6 +50,7 @@ const reason = await confirmMutation({
   summary: 'Give 100 Solari to the selected player.',
   target: 'actor:12345',
   details: ['Player must be the intended support target.'],
+  forceReason: true,
 })
 
 await api.players.giveCurrency(controllerId, 100, reason)
@@ -52,6 +59,30 @@ return <>{confirmationDialog}</>
 ```
 
 The hook calls the protected classification endpoint before displaying the dialog. If classification is unavailable, it falls back to conservative local classification so operators still see a confirmation and reason prompt for high-risk or destructive-looking paths.
+
+## Active Players-table coverage
+
+The active Players-table wrapper, `web/src/tabs/PlayersTabWith360Launcher.tsx`, routes high-risk player workflows through extracted confirmed modals instead of expanding the legacy `PlayersTab.tsx` file.
+
+Currently covered by shared confirmation and required reason capture:
+
+- Give Item and Live Claim Rewards.
+- Inventory repair and inventory delete.
+- Give Currency.
+- Give Scrip.
+- Award Intel.
+- Award Character XP.
+- Give Faction Reputation.
+- Set Specialization XP.
+- Journey node complete.
+- Journey node reset.
+- Player move.
+- Clear all journey progress.
+- Remove tutorial records.
+- Clear codex discoveries.
+- Disconnect player session.
+
+Player 360 remains read-only. No Player 360 quick actions have been added.
 
 ## Risk levels
 
@@ -83,6 +114,8 @@ Reason text can be supplied in the `X-Admin-Reason` header or in a JSON request 
 
 Reason enforcement is controlled by `ADMIN_REQUIRE_REASON`. When enabled, high-risk and destructive requests must include a reason. When disabled, reason text is still captured when supplied.
 
+Frontend confirmed modals force reason collection for active Players-table mutation workflows before the request is sent.
+
 ## Security rules
 
 - Do not log admin tokens.
@@ -92,25 +125,28 @@ Reason enforcement is controlled by `ADMIN_REQUIRE_REASON`. When enabled, high-r
 - Keep audit records available only from protected admin routes.
 - Treat reason and target metadata as support metadata, not authorization.
 - Keep mutation preview metadata separate from actual authorization checks.
-- Keep Player 360 read-only until quick actions are explicitly wired through the shared confirmation hook.
+- Keep Player 360 read-only until quick actions are explicitly implemented as new confirmed workflows.
+- Prefer extracted workflow modals over further expansion of legacy `PlayersTab.tsx`.
 
 ## Current limitations
 
 - Operator identity is still based on shared admin-token access rather than named operator accounts.
-- The shared frontend confirmation hook now exists, but existing mutation screens still need to be migrated to use it.
+- Legacy inline modal code still exists in `PlayersTab.tsx` as cleanup debt, although the active wrapper path now routes the covered workflows through extracted confirmed modals.
 - Rollback hints describe operator guidance, but the backend does not yet create automatic before-change snapshots.
 - Reason enforcement is environment-controlled and not yet configurable from the UI.
 - Typed mutation wrappers are still needed for workflow-specific before/after metadata.
+- Storage, Database SQL, Battlegroup Exec, Blueprint import, and future Inventory Studio workflows still need shared confirmation review.
 
 ## Follow-up tasks
 
-1. Migrate existing high-risk Players, Inventory, Give Item, Journey, Teleport, Storage, Database SQL, and Battlegroup Exec UI actions to `useMutationConfirmation`.
-2. Add Player 360 quick actions only after the relevant action flows use shared confirmation and reason capture.
-3. Add typed backend mutation wrappers per high-risk endpoint.
-4. Add before-change snapshot helpers for inventory, journey/progression, teleport, and storage operations.
-5. Add named operator identity when authentication supports individual users.
-6. Add audit export and filtering support.
-7. Add UI visibility for reason-enforcement state.
+1. Remove legacy inline modal code from `PlayersTab.tsx` after extracted workflow routing is stable.
+2. Add Player 360 quick actions only as new confirmed workflows with reason capture and target metadata.
+3. Migrate Storage, Database SQL, Battlegroup Exec, Blueprint import, and future Inventory Studio actions to `useMutationConfirmation`.
+4. Add typed backend mutation wrappers per high-risk endpoint.
+5. Add before-change snapshot helpers for inventory, journey/progression, teleport, and storage operations.
+6. Add named operator identity when authentication supports individual users.
+7. Add audit export and filtering support.
+8. Add UI visibility for reason-enforcement state.
 
 ## Validation
 
