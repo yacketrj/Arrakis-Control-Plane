@@ -4,8 +4,8 @@ This folder contains the current operations troubleshooting guide and supporting
 
 Files in this folder:
 
-- `dune_awakening_operations_troubleshooting_guide_current_environment.md`
-- `dune_awakening_operations_troubleshooting_guide_current_environment.pdf`
-- `dune_awakening_operations_troubleshooting_guide_current_environment.docx`
+- [Markdown guide](./dune_awakening_operations_troubleshooting_guide_current_environment.md)
+- [PDF guide](./dune_awakening_operations_troubleshooting_guide_current_environment.pdf)
+- [DOCX guide](./dune_awakening_operations_troubleshooting_guide_current_environment.docx)
 
 Sensitive values are redacted in the generated documents.
