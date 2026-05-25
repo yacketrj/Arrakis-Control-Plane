@@ -2,6 +2,7 @@ param(
   [string]$RepoRoot,
   [string]$OutputDir,
   [string]$Version,
+  [string]$CommitMessage,
   [switch]$CleanWebDependencies,
   [switch]$SkipWebInstall,
   [switch]$SkipGitPull,
@@ -10,6 +11,7 @@ param(
   [switch]$SkipWebTypecheck,
   [switch]$SkipWebLint,
   [switch]$SkipWebBuild,
+  [switch]$SkipAutoCommit,
   [switch]$AllowDirtyWorktree
 )
 
@@ -23,10 +25,14 @@ if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
 if ([string]::IsNullOrWhiteSpace($Version)) {
   $Version = if ($env:VERSION) { $env:VERSION } else { 'dev' }
 }
+if ([string]::IsNullOrWhiteSpace($CommitMessage)) {
+  $CommitMessage = if ($env:COMMIT_MESSAGE) { $env:COMMIT_MESSAGE } else { 'Automated successful update' }
+}
 
 $InitialLocation = Get-Location
 $UpdateSucceeded = $false
 $ExitCode = 0
+$AutoCommitSha = ''
 
 function Write-Section {
   param([Parameter(Mandatory = $true)][string]$Name)
@@ -74,21 +80,86 @@ function Assert-CommandAvailable {
   }
 }
 
-function Assert-CleanGitWorktree {
-  if ($AllowDirtyWorktree) {
-    Write-Host 'Dirty worktree check bypassed because -AllowDirtyWorktree was supplied.' -ForegroundColor Yellow
-    return
-  }
-
-  $status = & git status --porcelain
+function Get-GitStatusLines {
+  $status = @(& git status --porcelain)
   if ($LASTEXITCODE -ne 0) {
     throw 'Unable to check git working tree status.'
   }
+  return $status
+}
 
-  if ($status) {
-    $preview = ($status | Select-Object -First 12) -join [Environment]::NewLine
-    throw "Working tree has uncommitted changes. Commit, stash, or re-run with -AllowDirtyWorktree.`n$preview"
+function Test-GitHasChanges {
+  return (@(Get-GitStatusLines).Count -gt 0)
+}
+
+function Write-GitStatusPreview {
+  param([string[]]$StatusLines)
+
+  if (-not $StatusLines -or $StatusLines.Count -eq 0) {
+    return
   }
+
+  Write-Host 'Changed files:' -ForegroundColor Yellow
+  $StatusLines | Select-Object -First 12 | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+  if ($StatusLines.Count -gt 12) {
+    Write-Host "  ... $($StatusLines.Count - 12) more" -ForegroundColor Yellow
+  }
+}
+
+function Invoke-GitPullIfSafe {
+  if ($SkipGitPull) {
+    Write-Host 'Skipping git pull because -SkipGitPull was supplied.' -ForegroundColor Yellow
+    return
+  }
+
+  $statusLines = @(Get-GitStatusLines)
+  if ($statusLines.Count -gt 0 -and -not $AllowDirtyWorktree) {
+    Write-Host 'Local changes detected; skipping git pull to avoid merging over uncommitted work.' -ForegroundColor Yellow
+    Write-Host 'These changes will be validated and auto-committed if all gates pass.' -ForegroundColor Yellow
+    Write-GitStatusPreview -StatusLines $statusLines
+    return
+  }
+
+  if ($statusLines.Count -gt 0 -and $AllowDirtyWorktree) {
+    Write-Host 'Dirty worktree pull allowed because -AllowDirtyWorktree was supplied.' -ForegroundColor Yellow
+    Write-GitStatusPreview -StatusLines $statusLines
+  }
+
+  Invoke-Step 'Git pull --ff-only' { Invoke-Native 'git' @('pull', '--ff-only') }
+}
+
+function Invoke-AutoCommitIfNeeded {
+  if ($SkipAutoCommit) {
+    Write-Host 'Skipping auto-commit because -SkipAutoCommit was supplied.' -ForegroundColor Yellow
+    return
+  }
+
+  Set-Location $RepoRoot
+  $statusLines = @(Get-GitStatusLines)
+  if ($statusLines.Count -eq 0) {
+    Write-Host 'No repository changes detected; no auto-commit created.' -ForegroundColor Yellow
+    return
+  }
+
+  Write-GitStatusPreview -StatusLines $statusLines
+  Invoke-Native 'git' @('add', '-A')
+
+  $stagedFiles = @(& git diff --cached --name-only)
+  if ($LASTEXITCODE -ne 0) {
+    throw 'Unable to inspect staged changes before auto-commit.'
+  }
+
+  if ($stagedFiles.Count -eq 0) {
+    Write-Host 'No staged changes detected after git add; no auto-commit created.' -ForegroundColor Yellow
+    return
+  }
+
+  Invoke-Native 'git' @('commit', '-m', $CommitMessage)
+  $script:AutoCommitSha = (& git rev-parse --short HEAD).Trim()
+  if ($LASTEXITCODE -ne 0) {
+    throw 'Auto-commit was created, but the commit SHA could not be read.'
+  }
+  Write-Host "Auto-commit created: $script:AutoCommitSha" -ForegroundColor Green
 }
 
 function Resolve-OutputDirectory {
@@ -136,12 +207,7 @@ try {
   Assert-CommandAvailable -Name 'git' -InstallHint 'Install Git for Windows.'
   Assert-CommandAvailable -Name 'go' -InstallHint 'Install Go and reopen PowerShell so PATH is refreshed.'
 
-  if (-not $SkipGitPull) {
-    Invoke-Step 'Check git working tree' { Assert-CleanGitWorktree }
-    Invoke-Step 'Git pull --ff-only' { Invoke-Native 'git' @('pull', '--ff-only') }
-  } else {
-    Write-Host 'Skipping git pull because -SkipGitPull was supplied.' -ForegroundColor Yellow
-  }
+  Invoke-GitPullIfSafe
 
   if (-not $SkipGoTests) {
     Invoke-Step 'Go tests' { Invoke-Native 'go' @('test', '-v', './...') }
@@ -217,6 +283,8 @@ try {
     Write-Host "Web folder not found; skipping web build: $WebRoot" -ForegroundColor Yellow
   }
 
+  Invoke-Step 'Git auto-commit successful changes' { Invoke-AutoCommitIfNeeded }
+
   $UpdateSucceeded = $true
 }
 catch {
@@ -249,6 +317,9 @@ if ($UpdateSucceeded) {
     Write-Host "Frontend build:  $WebRoot\dist"
   }
   Write-Host "Copied assets:   $BuildOutputDir\.env.example, $BuildOutputDir\README.md"
+  if (-not [string]::IsNullOrWhiteSpace($AutoCommitSha)) {
+    Write-Host "Auto-commit:     $AutoCommitSha"
+  }
 } else {
   exit $ExitCode
 }
