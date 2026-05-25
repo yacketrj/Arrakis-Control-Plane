@@ -24,6 +24,7 @@ web/node_modules/
 
 # Compiled binaries
 dune-admin
+dune-admin.exe
 dune-admin-linux
 
 # macOS
