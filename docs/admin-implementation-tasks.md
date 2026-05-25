@@ -47,17 +47,17 @@ Every feature task must update:
 
 ## Current implementation focus
 
-### 1. Prepare the next safety/frontend foundation slice
+### 1. Wire shared mutation confirmation into existing high-risk workflows
 
-- Keep Player 360 read-only.
-- Do not add Player 360 quick actions until shared mutation-safety confirmation is ready.
-- Start the shared frontend mutation confirmation component before adding more mutating operator workflows.
+- Shared frontend mutation confirmation now exists at `web/src/hooks/useMutationConfirmation.tsx`.
+- Keep Player 360 read-only until existing high-risk Players, Inventory, Give Item, Journey, Teleport, Storage, Database SQL, and Battlegroup Exec workflows are migrated to the shared confirmation flow.
+- Use the confirmation hook to display backend mutation-safety classification, operator warnings, rollback guidance, target context, and admin reason capture before the mutation request is sent.
 
 ### 2. Preserve Player 360 validated state
 
 - Keep the standalone `Player 360` tab available.
 - Keep the Players-table `360` launcher read-only.
-- Keep existing Players, Inventory, Give Item, and Actions workflows unchanged unless a later validated slice explicitly changes them.
+- Keep existing Players, Inventory, Give Item, and Actions workflows behaviorally unchanged until a later validated slice explicitly migrates them to the shared confirmation hook.
 
 ## Validation command set
 
