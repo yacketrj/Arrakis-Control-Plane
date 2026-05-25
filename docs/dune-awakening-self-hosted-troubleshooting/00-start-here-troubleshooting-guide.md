@@ -16,6 +16,7 @@ This is the first document to use for any Dune: Awakening self-hosted server iss
 
 Use [Environment Discovery](./02-environment-discovery.md), then choose one:
 
+- [AMP-controlled hosting](./platforms/amp-control-panel.md)
 - [Linux local or Linux VM](./platforms/linux-local-or-vm.md)
 - [Windows / Hyper-V](./platforms/windows-hyper-v.md)
 - [Proxmox](./platforms/proxmox.md)
@@ -37,6 +38,7 @@ Choose only after the management layer is discovered:
 ## Then Use Focused Runbooks
 
 - [Failed travel capture](./runbooks/failed-travel-capture.md)
+- [Server startup failure](./runbooks/server-startup-failure.md)
 - [Port and listener validation](./runbooks/port-and-network-listener-validation.md)
 - [Log collection and redaction](./runbooks/log-collection-and-redaction.md)
 - [RabbitMQ or messaging checks](./runbooks/rabbitmq-or-messaging-checks.md)
