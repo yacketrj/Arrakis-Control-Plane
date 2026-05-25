@@ -1,29 +1,27 @@
 # Dune Admin Release Notes
 
-## Current update: Confirmed player admin actions workflow
+## Current update: Storage shared mutation confirmation migration
 
 ### Why this update was made
 
-The remaining player admin actions modify or disrupt player state and should not run through unstructured prompts. This update isolates them in a dedicated confirmed admin-actions modal with shared mutation confirmation and required admin reason capture.
+Storage container item add/remove operations mutate persisted server state and require a server zone restart before visibility is consistent for other players. This update moves the active Storage tab mutation flows onto the shared mutation-confirmation hook with required admin reason capture.
 
 ### What changed
 
-- Added `web/src/tabs/PlayerAdminActionsModal.tsx` as a dedicated confirmed player admin-actions modal.
-- Added a Players-table `Admin` launcher through `PlayersTabWith360Launcher.tsx`.
+- Updated `web/src/tabs/StorageTab.tsx` to use `useMutationConfirmation`.
 - Added shared mutation confirmation and required admin reason capture for:
-  - Clear all journey progress
-  - Remove tutorial records
-  - Clear codex discoveries
-  - Disconnect player session
-- Added player target metadata, current map, online state, operator warnings, and per-action support details to the confirmation flow.
-- Passed captured reasons into the matching `api.players.*` mutation calls.
+  - Add item to storage container
+  - Remove item from storage container
+- Added storage container target metadata, item identifiers, container type, map, stack size, quality, and restart visibility warning details to the confirmation flow.
+- Passed captured reasons into `api.storage.giveItem` and `api.players.deleteItem`.
+- Preserved existing storage warning that item add/remove operations require a server zone restart before other players see the change.
 
 ### Security and operator impact
 
-- The active Players-table mutation surface now routes Give Item, Inventory repair/delete, resource/spec actions, journey node actions, player move, and admin actions through shared confirmation and reason capture.
+- Storage add/remove mutations now use the same shared confirmation foundation as active Players-table mutations.
+- Admin reason capture is required before storage mutation requests are sent.
 - Player 360 remains read-only.
-- No Player 360 quick actions were added.
-- `PlayersTab.tsx` still contains legacy inline modal code as cleanup debt, but the active wrapper path now routes these workflows through confirmed extracted modals.
+- Remaining shared-confirmation review targets include Database SQL, Battlegroup Exec, Blueprint import, and future Inventory Studio/Player 360 quick-action workflows.
 
 ### Validation
 
@@ -32,6 +30,12 @@ Validation required in the Windows development environment:
 ```powershell
 .\update.ps1
 ```
+
+---
+
+## Previous update: Confirmed player admin actions workflow
+
+Player admin actions were migrated to a dedicated confirmed modal with required admin reason capture.
 
 ---
 
@@ -74,15 +78,3 @@ The reusable frontend mutation-confirmation hook was added so future high-risk U
 ## Previous update: Player 360 validated read-only profile
 
 Player 360 v1 was validated as a protected read-only profile with a standalone tab and Players-table launcher.
-
----
-
-## Previous update: Player 360 launcher from Players table
-
-Added the read-only Players-table `360` launcher and Player 360 auto-load behavior.
-
----
-
-## Previous update: Player 360 read-only frontend tab
-
-Added the standalone read-only Player 360 frontend tab and navigation entry.
