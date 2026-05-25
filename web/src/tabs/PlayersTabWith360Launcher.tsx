@@ -3,6 +3,7 @@ import { api } from '../api/client'
 import type { Player } from '../api/client'
 import InventoryModal from './InventoryModal'
 import PlayerActionsModalConfirmed from './PlayerActionsModalConfirmed'
+import PlayerAdminActionsModal from './PlayerAdminActionsModal'
 import PlayerTeleportModal from './PlayerTeleportModal'
 import PlayersTab from './PlayersTab'
 
@@ -10,8 +11,9 @@ const player360EventName = 'dune-admin-open-player-360'
 const player360StorageKey = 'dune_admin_player_360_id'
 const launcherClassName = 'dune-admin-player-360-launcher'
 const teleportLauncherClassName = 'dune-admin-player-move-launcher'
+const adminLauncherClassName = 'dune-admin-player-admin-launcher'
 
-type InterceptedAction = 'Inventory' | 'Actions' | 'Move'
+type InterceptedAction = 'Inventory' | 'Actions' | 'Move' | 'Admin'
 
 function openPlayer360(playerId: string) {
   localStorage.setItem(player360StorageKey, playerId)
@@ -59,6 +61,11 @@ function installLaunchButtons(root: HTMLElement) {
       const button = makeLauncherButton('Move', teleportLauncherClassName, `Move player ${playerId}`)
       actionWrapper.appendChild(button)
     }
+
+    if (!row.querySelector(`.${adminLauncherClassName}`)) {
+      const button = makeLauncherButton('Admin', adminLauncherClassName, `Open admin actions for player ${playerId}`)
+      actionWrapper.appendChild(button)
+    }
   }
 }
 
@@ -67,7 +74,7 @@ function playerActionFromClick(target: EventTarget | null): { playerId: number; 
   const button = target.closest('button')
   if (!button) return null
   const action = button.textContent?.trim()
-  if (action !== 'Inventory' && action !== 'Actions' && action !== 'Move') return null
+  if (action !== 'Inventory' && action !== 'Actions' && action !== 'Move' && action !== 'Admin') return null
 
   const row = button.closest('tr')
   const playerId = row?.querySelector('td')?.textContent?.trim()
@@ -84,6 +91,8 @@ export default function PlayersTabWith360Launcher() {
   const [showActions, setShowActions] = useState(false)
   const [teleportPlayer, setTeleportPlayer] = useState<Player | null>(null)
   const [showTeleport, setShowTeleport] = useState(false)
+  const [adminPlayer, setAdminPlayer] = useState<Player | null>(null)
+  const [showAdmin, setShowAdmin] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -123,9 +132,12 @@ export default function PlayersTabWith360Launcher() {
       } else if (clicked.action === 'Actions') {
         setActionsPlayer(player)
         setShowActions(true)
-      } else {
+      } else if (clicked.action === 'Move') {
         setTeleportPlayer(player)
         setShowTeleport(true)
+      } else {
+        setAdminPlayer(player)
+        setShowAdmin(true)
       }
     }
 
@@ -152,6 +164,9 @@ export default function PlayersTabWith360Launcher() {
       )}
       {teleportPlayer && (
         <PlayerTeleportModal player={teleportPlayer} open={showTeleport} onClose={() => setShowTeleport(false)} />
+      )}
+      {adminPlayer && (
+        <PlayerAdminActionsModal player={adminPlayer} open={showAdmin} onClose={() => setShowAdmin(false)} />
       )}
     </div>
   )
