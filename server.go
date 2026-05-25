@@ -127,7 +127,7 @@ func startServer(addr string) {
 	logStartupSummary(addr)
 	server := &http.Server{
 		Addr:              addr,
-		Handler:           corsMiddleware(auditMiddleware(authMiddleware(mux))),
+		Handler:           corsMiddleware(auditMiddleware(mutationSafetyMiddleware(authMiddleware(mux)))),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      60 * time.Second,
