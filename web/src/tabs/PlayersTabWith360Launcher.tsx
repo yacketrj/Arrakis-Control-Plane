@@ -2,11 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
 import type { Player } from '../api/client'
 import InventoryModal from './InventoryModal'
+import PlayerActionsModalConfirmed from './PlayerActionsModalConfirmed'
 import PlayersTab from './PlayersTab'
 
 const player360EventName = 'dune-admin-open-player-360'
 const player360StorageKey = 'dune_admin_player_360_id'
 const launcherClassName = 'dune-admin-player-360-launcher'
+
+type InterceptedAction = 'Inventory' | 'Actions'
 
 function openPlayer360(playerId: string) {
   localStorage.setItem(player360StorageKey, playerId)
@@ -46,16 +49,17 @@ function installLaunchButtons(root: HTMLElement) {
   }
 }
 
-function playerIdFromInventoryClick(target: EventTarget | null): number | null {
+function playerActionFromClick(target: EventTarget | null): { playerId: number; action: InterceptedAction } | null {
   if (!(target instanceof HTMLElement)) return null
   const button = target.closest('button')
   if (!button) return null
-  if (button.textContent?.trim() !== 'Inventory') return null
+  const action = button.textContent?.trim()
+  if (action !== 'Inventory' && action !== 'Actions') return null
 
   const row = button.closest('tr')
   const playerId = row?.querySelector('td')?.textContent?.trim()
   if (!playerId || !/^\d+$/.test(playerId)) return null
-  return Number(playerId)
+  return { playerId: Number(playerId), action }
 }
 
 export default function PlayersTabWith360Launcher() {
@@ -63,6 +67,8 @@ export default function PlayersTabWith360Launcher() {
   const [players, setPlayers] = useState<Player[]>([])
   const [inventoryPlayer, setInventoryPlayer] = useState<Player | null>(null)
   const [showInventory, setShowInventory] = useState(false)
+  const [actionsPlayer, setActionsPlayer] = useState<Player | null>(null)
+  const [showActions, setShowActions] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -76,37 +82,42 @@ export default function PlayersTabWith360Launcher() {
     const root = rootRef.current
     if (!root) return
 
-    const handleInventoryClick = async (event: MouseEvent) => {
-      const playerId = playerIdFromInventoryClick(event.target)
-      if (!playerId) return
+    const handlePlayerActionClick = async (event: MouseEvent) => {
+      const clicked = playerActionFromClick(event.target)
+      if (!clicked) return
 
       event.preventDefault()
       event.stopPropagation()
       event.stopImmediatePropagation()
 
-      let player = players.find(row => row.id === playerId) ?? null
+      let player = players.find(row => row.id === clicked.playerId) ?? null
       if (!player) {
         try {
           const refreshed = await api.players.list()
           setPlayers(refreshed)
-          player = refreshed.find(row => row.id === playerId) ?? null
+          player = refreshed.find(row => row.id === clicked.playerId) ?? null
         } catch {
           player = null
         }
       }
 
       if (!player) return
-      setInventoryPlayer(player)
-      setShowInventory(true)
+      if (clicked.action === 'Inventory') {
+        setInventoryPlayer(player)
+        setShowInventory(true)
+      } else {
+        setActionsPlayer(player)
+        setShowActions(true)
+      }
     }
 
     installLaunchButtons(root)
-    root.addEventListener('click', handleInventoryClick, true)
+    root.addEventListener('click', handlePlayerActionClick, true)
     const observer = new MutationObserver(() => installLaunchButtons(root))
     observer.observe(root, { childList: true, subtree: true })
     return () => {
       observer.disconnect()
-      root.removeEventListener('click', handleInventoryClick, true)
+      root.removeEventListener('click', handlePlayerActionClick, true)
     }
   }, [players])
 
@@ -117,6 +128,9 @@ export default function PlayersTabWith360Launcher() {
       </div>
       {inventoryPlayer && (
         <InventoryModal player={inventoryPlayer} open={showInventory} onClose={() => setShowInventory(false)} />
+      )}
+      {actionsPlayer && (
+        <PlayerActionsModalConfirmed player={actionsPlayer} open={showActions} onClose={() => setShowActions(false)} />
       )}
     </div>
   )
