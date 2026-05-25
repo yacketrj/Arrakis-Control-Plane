@@ -11,6 +11,12 @@ export type AdminAuditEvent = {
   status: number
   duration_ms: number
   result: string
+  requires_reason?: boolean
+  requires_preview?: boolean
+  destructive?: boolean
+  rollback_hint?: string
+  operator_warnings?: string[]
+  recommended_path?: string
 }
 
 function base(): string {
