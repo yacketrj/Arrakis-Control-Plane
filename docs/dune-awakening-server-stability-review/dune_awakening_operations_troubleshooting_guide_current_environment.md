@@ -2,24 +2,24 @@
 
 **Project name:** Dune: Awakening Dedicated Server Stability Review  
 **Document type:** Discovery-based troubleshooting guide  
-**Audience:** Support, operations, server administrators, and technical escalation staff
+**Audience:** Entry-level support, operations, server administrators, and escalation teams
 
 ---
 
 ## Purpose
 
-This is a troubleshooting guide, not an incident report. It does not assume the customer environment, affected partitions, control panel, container runtime, file paths, port ranges, symptoms, or root cause.
+This guide helps support staff troubleshoot a Dune: Awakening self-hosted server without assuming the customer environment, symptoms, affected partitions, control panel, container runtime, file paths, port ranges, or root cause.
 
-The user or environment owner defines the issue first. Support staff then use this guide to discover the environment, collect evidence, and determine where the failure occurs.
+The user or environment owner must define the issue first. Support staff then use this guide to discover the environment, collect evidence, and determine where the failure occurs.
 
 Workflow:
 
 ```text
 1. Capture the user-defined issue statement.
 2. Discover the installation and runtime environment.
-3. Identify the known-working path and known-failing path.
+3. Identify what works and what fails.
 4. Capture logs, process state, listener state, and traffic during one controlled reproduction.
-5. Compare the evidence against common Dune: Awakening server failure patterns.
+5. Compare evidence against known Dune: Awakening self-hosted server failure patterns.
 6. Document findings, confidence level, next test, and escalation package.
 ```
 
@@ -27,9 +27,36 @@ Do not convert a symptom into a root cause until evidence supports it.
 
 ---
 
+## How to Read Command Steps
+
+Every command in this guide states where it should be run.
+
+Common platform labels:
+
+```text
+Run on: Linux host or Linux VM shell
+  Use when you are SSH'd into a Linux server, Ubuntu VM, Proxmox guest, or bare-metal Linux host.
+
+Run on: Windows host PowerShell
+  Use when you are logged into a Windows server or Windows Hyper-V host.
+
+Run on: Docker host shell
+  Use on the machine where Docker is installed. This may be Linux shell, Windows PowerShell, or a control-panel terminal.
+
+Run on: inside a container
+  Use only after entering a container with docker exec or an equivalent control-panel console.
+
+Run in: control panel UI
+  Use when the value must be gathered from AMP or another hosting panel instead of a terminal command.
+```
+
+If you are unsure where you are, start with the environment discovery steps and record what you find.
+
+---
+
 ## Operational Variables
 
-The following designations make the guide reusable across installations. They are installation-specific operational values, not automatically sensitive. Support staff should replace them with the actual values discovered in the environment and record those values in the case notes.
+These designations make the guide reusable across installations. They are installation-specific operational values, not automatically sensitive. Support staff should replace them with the actual values discovered in the environment and record those values in case notes.
 
 ```text
 INSTANCE_PATH          Active game/control-panel instance path on the host
@@ -49,7 +76,7 @@ PLAYER_NAME            Player display name, if needed for operational notes
 
 Case-note template:
 
-```bash
+```text
 INSTANCE_PATH=
 LOG_PATH=
 SAVED_PATH=
@@ -83,7 +110,8 @@ Service tokens
 Authentication secrets
 RabbitMQ secrets
 Database passwords
-Cloud resource IDs such as OCIDs
+Cloud resource IDs
+Unredacted authentication material
 ```
 
 Do not automatically redact operational values that are required for troubleshooting, such as container names, service names, local paths, destination map names, and discovered instance paths, when sharing internally with trusted support staff.
@@ -94,7 +122,7 @@ Do not automatically redact operational values that are required for troubleshoo
 
 Capture the issue in the user's own words before adding assumptions or suspected causes.
 
-Ask:
+Ask the user or environment owner:
 
 ```text
 What is failing?
@@ -159,7 +187,11 @@ Evidence still needed:
 
 Environment details must be discovered and verified before they are treated as confirmed.
 
-### Step 1 - Identify the OS Visible to the Shell
+### Step 1 — Identify the Operating System You Are Logged Into
+
+Use the Linux command set if you are connected by SSH to a Linux server, Ubuntu VM, Proxmox guest, or Linux bare-metal host.
+
+Run on: Linux host or Linux VM shell
 
 ```bash
 hostnamectl
@@ -168,12 +200,22 @@ uname -a
 systemd-detect-virt -v || true
 ```
 
+Use the Windows command set if you are logged into a Windows server or Hyper-V host.
+
+Run on: Windows host PowerShell
+
+```powershell
+$env:COMPUTERNAME
+Get-ComputerInfo | Select-Object CsName, WindowsProductName, WindowsVersion, OsHardwareAbstractionLayer, CsSystemType
+systeminfo
+```
+
 Record:
 
 ```text
 Hostname:
 Operating system:
-Kernel:
+Kernel or Windows version:
 Virtualization result:
 Architecture:
 ```
@@ -181,22 +223,50 @@ Architecture:
 Interpretation:
 
 ```text
-systemd-detect-virt returns none:
+Linux systemd-detect-virt returns none:
   The shell may be on bare metal, but confirm with hardware/provider evidence.
 
-systemd-detect-virt returns a virtualization type:
+Linux systemd-detect-virt returns a virtualization type:
   The shell is inside a virtualized guest.
 
-/etc/os-release and uname identify the OS/kernel visible to the shell:
-  They do not automatically identify a Docker container image or parent hypervisor.
+Windows Get-ComputerInfo shows Hyper-V or virtual machine details:
+  The shell may be on a Hyper-V host or a Windows VM. Record exactly what is shown.
+
+OS discovery identifies only the system where the command ran:
+  It does not automatically prove where the Dune game process is running.
 ```
 
-### Step 2 - Determine Whether Docker Is Present and Usable
+---
+
+### Step 2 — Determine Whether Docker Is Present and Usable
+
+Run this on the machine that is expected to run the Dune server or containers.
+
+Run on: Docker host shell, Linux or Windows PowerShell
 
 ```bash
-docker version 2>/dev/null || true
-docker info 2>/dev/null | egrep -i 'Operating System|OSType|Architecture|Kernel Version|Docker Root Dir|Cgroup|Server Version' || true
-docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null || true
+docker version
+docker ps
+```
+
+If `docker version` or `docker ps` fails, record the error exactly.
+
+For more detail on Linux:
+
+Run on: Linux Docker host shell
+
+```bash
+docker info 2>/dev/null | grep -Ei 'Operating System|OSType|Architecture|Kernel Version|Docker Root Dir|Cgroup|Server Version' || true
+docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'
+```
+
+For more detail on Windows:
+
+Run on: Windows Docker host PowerShell
+
+```powershell
+docker info | Select-String -Pattern 'Operating System|OSType|Architecture|Kernel Version|Docker Root Dir|Cgroup|Server Version'
+docker ps --format "table {{.Names}}`t{{.Image}}`t{{.Status}}`t{{.Ports}}"
 ```
 
 Record:
@@ -209,14 +279,50 @@ Active Dune-related containers:
 Published ports or host network use:
 ```
 
-### Step 3 - Identify the Control Panel or Service Manager
+Interpretation:
+
+```text
+docker command not found:
+  Docker may not be installed, may not be in PATH, or a control panel may abstract access.
+
+docker command exists but permission is denied:
+  The current user may need sudo, group membership, administrator rights, or control-panel-provided access.
+
+docker ps shows Dune containers:
+  Use docker inspect to map mounts, ports, and runtime arguments.
+
+docker ps shows no Dune containers:
+  Check whether the server is managed directly by a control panel, systemd, Windows Service, or another process supervisor.
+```
+
+---
+
+### Step 3 — Identify the Control Panel or Service Manager
 
 Look for control panels, services, or scripts used to launch the server.
 
+Run on: Linux host or Linux VM shell
+
 ```bash
-ps -ef | egrep -i 'amp|cubecoders|DuneSandbox|docker|compose|systemd' | grep -v grep
-systemctl list-units --type=service 2>/dev/null | egrep -i 'dune|amp|docker|compose' || true
+ps -ef | grep -Ei 'amp|cubecoders|DuneSandbox|docker|compose|systemd' | grep -v grep
+systemctl list-units --type=service 2>/dev/null | grep -Ei 'dune|amp|docker|compose' || true
 find /home -maxdepth 4 -type d \( -iname '*amp*' -o -iname '*dune*' -o -iname '*awakening*' \) 2>/dev/null | head -100
+```
+
+Run on: Windows host PowerShell
+
+```powershell
+Get-Process | Where-Object { $_.ProcessName -match 'amp|docker|Dune|Awakening' } | Select-Object ProcessName, Id, Path
+Get-Service | Where-Object { $_.Name -match 'amp|docker|dune' -or $_.DisplayName -match 'amp|docker|dune' } | Select-Object Name, DisplayName, Status
+Get-ChildItem -Path C:\ -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'Dune|Awakening|AMP' }
+```
+
+Run in: control panel UI
+
+```text
+Open the hosting control panel.
+Find the Dune: Awakening instance.
+Record the instance name, install path, log path, launch method, and any container/service name shown in the UI.
 ```
 
 Record:
@@ -229,19 +335,44 @@ User running the service:
 Whether Docker is launched directly or through another tool:
 ```
 
-### Step 4 - Map the Active Instance Path
+---
+
+### Step 4 — Map the Active Instance Path
+
+Use Linux commands when the server files are on Linux.
+
+Run on: Linux host or Linux VM shell
 
 ```bash
-find /home -maxdepth 8 -type f \( -name '*Engine.ini' -o -name 'UserEngine.ini' -o -name '*.log' \) 2>/dev/null | egrep -i 'dune|awakening|DuneSandbox' | head -100
+find /home -maxdepth 8 -type f \( -name '*Engine.ini' -o -name 'UserEngine.ini' -o -name '*.log' \) 2>/dev/null | grep -Ei 'dune|awakening|DuneSandbox' | head -100
 ```
 
-If Docker is available:
+Use Windows commands when the server files are on Windows.
+
+Run on: Windows host PowerShell
+
+```powershell
+Get-ChildItem -Path C:\ -Recurse -ErrorAction SilentlyContinue -Include *Engine.ini,UserEngine.ini,*.log | Where-Object { $_.FullName -match 'Dune|Awakening|DuneSandbox' } | Select-Object -First 100 FullName
+```
+
+If Docker is available, map bind mounts.
+
+Run on: Linux Docker host shell
 
 ```bash
-docker ps --format '{{.Names}}' 2>/dev/null | while read c; do
+docker ps --format '{{.Names}}' | while read c; do
   echo "===== $c ====="
-  docker inspect "$c" --format '{{range .Mounts}}{{println .Source "->" .Destination}}{{end}}' 2>/dev/null
- done
+  docker inspect "$c" --format '{{range .Mounts}}{{println .Source "->" .Destination}}{{end}}'
+done
+```
+
+Run on: Windows Docker host PowerShell
+
+```powershell
+docker ps --format '{{.Names}}' | ForEach-Object {
+  Write-Host "===== $_ ====="
+  docker inspect $_ --format '{{range .Mounts}}{{println .Source "->" .Destination}}{{end}}'
+}
 ```
 
 Record actual values:
@@ -256,7 +387,9 @@ Container mount destination:
 
 Do not edit a path until it is proven to be used by the active running instance.
 
-### Step 5 - Document the Discovered Environment
+---
+
+### Step 5 — Document the Discovered Environment
 
 Only after discovery should support staff record a confirmed environment summary.
 
@@ -280,14 +413,28 @@ Active log path:
 
 Game logs may report an operating system that reflects what the game process can observe. That may differ from the shell OS, container image, VM OS, or physical host OS.
 
+Run on: Linux host or Linux VM shell
+
 ```bash
 find "$INSTANCE_PATH" -type f -name '*.log' 2>/dev/null | head -100
-
 grep -RniE 'LogInit: Log: OS:|ExecutableName|Binaries/Linux|Dreamworld platform|machine network name|user name is' "$INSTANCE_PATH" 2>/dev/null | head -100
-
 cat /etc/os-release
 uname -a
+```
 
+Run on: Windows host PowerShell
+
+```powershell
+Get-ChildItem -Path $env:INSTANCE_PATH -Recurse -Filter *.log -ErrorAction SilentlyContinue | Select-Object -First 100 FullName
+Select-String -Path "$env:INSTANCE_PATH\**\*.log" -Pattern 'LogInit: Log: OS:','ExecutableName','Binaries/Linux','Dreamworld platform','machine network name','user name is' -ErrorAction SilentlyContinue | Select-Object -First 100
+Get-ComputerInfo | Select-Object CsName, WindowsProductName, WindowsVersion, CsSystemType
+```
+
+If Docker is in use, compare with container-visible OS.
+
+Run on: Docker host shell
+
+```bash
 docker exec "$CONTAINER_NAME" sh -lc 'cat /etc/os-release; uname -a' 2>/dev/null || true
 ```
 
@@ -313,6 +460,8 @@ Game log reports a CPU model:
 
 The user/environment owner must define the working and failing paths first. Support should then verify them with logs.
 
+Record:
+
 ```text
 Known working login path:
 Known working map/partition path:
@@ -331,29 +480,63 @@ Use this section as a checklist, not as a conclusion.
 
 ### Director or Control-Plane Request Handling
 
+Run on: Linux host, Linux VM, or Linux container shell where logs are stored
+
 ```bash
 grep -RniE 'travel queue|Travel request|LoginRequest|Travel grant|travel completion|ServerState' "$LOG_PATH" 2>/dev/null | head -200
 ```
 
+Run on: Windows host PowerShell where logs are stored
+
+```powershell
+Select-String -Path "$env:LOG_PATH\**\*.log" -Pattern 'travel queue','Travel request','LoginRequest','Travel grant','travel completion','ServerState' -ErrorAction SilentlyContinue | Select-Object -First 200
+```
+
 ### Destination Lifecycle Progress
+
+Run on: Linux host, Linux VM, or Linux container shell where logs are stored
 
 ```bash
 grep -RniE 'PreLogin|VerifyFlsIdentity|VerifyFlsAuthorization|Completion|DatabaseLogin|CharacterDownload|Join|GameModeLogin|StartingNewPlayer|FlsLogin|LoadPlayerActors|FinishSpawn' "$LOG_PATH" 2>/dev/null | head -200
 ```
 
+Run on: Windows host PowerShell where logs are stored
+
+```powershell
+Select-String -Path "$env:LOG_PATH\**\*.log" -Pattern 'PreLogin','VerifyFlsIdentity','VerifyFlsAuthorization','Completion','DatabaseLogin','CharacterDownload','Join','GameModeLogin','StartingNewPlayer','FlsLogin','LoadPlayerActors','FinishSpawn' -ErrorAction SilentlyContinue | Select-Object -First 200
+```
+
 ### Grace-Period or Delayed Disconnect
+
+Run on: Linux host, Linux VM, or Linux container shell where logs are stored
 
 ```bash
 grep -RniE 'Grace Period|Disconnected from instanced map|Disconnect|Close|timeout|timed out' "$LOG_PATH" 2>/dev/null | head -200
+```
+
+Run on: Windows host PowerShell where logs are stored
+
+```powershell
+Select-String -Path "$env:LOG_PATH\**\*.log" -Pattern 'Grace Period','Disconnected from instanced map','Disconnect','Close','timeout','timed out' -ErrorAction SilentlyContinue | Select-Object -First 200
 ```
 
 ### Port Topology and Runtime Arguments
 
 Do not assume fixed port ranges. Discover them from active configuration, command lines, and listener output.
 
+Run on: Linux host or Linux VM shell
+
 ```bash
 ps -ef | grep DuneSandbox | grep -v grep | sed -E 's/ServiceAuthToken=[^ ]+/ServiceAuthToken=<redacted>/g'
-sudo ss -tulpen | egrep 'Dune|777|778|779|780|781|788|789|790|791|792|31982|31983' || true
+sudo ss -tulpen | grep -Ei 'Dune|777|778|779|780|781|788|789|790|791|792|31982|31983' || true
+```
+
+Run on: Windows host PowerShell
+
+```powershell
+Get-Process | Where-Object { $_.ProcessName -match 'Dune|Sandbox' } | Select-Object ProcessName, Id, Path
+Get-NetUDPEndpoint | Sort-Object LocalPort | Format-Table LocalAddress, LocalPort, OwningProcess
+Get-NetTCPConnection | Sort-Object LocalPort | Format-Table LocalAddress, LocalPort, State, OwningProcess
 ```
 
 Look for whether each process has:
@@ -367,33 +550,35 @@ Expected advertised external/public address
 
 ---
 
-## First-Response Triage Checklist
-
-```text
-1. Capture the user's problem statement.
-2. Run environment discovery.
-3. Identify working and failing paths.
-4. Preserve evidence before changing configuration.
-5. Capture one controlled reproduction attempt.
-```
-
----
-
 ## Quick Health Check Commands
 
+Run on: Docker host shell, Linux or Windows PowerShell
+
 ```bash
-docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null || true
-systemctl list-units --type=service 2>/dev/null | egrep -i 'dune|amp|docker|compose' || true
+docker ps
+```
 
+Run on: Linux host or Linux VM shell
+
+```bash
+systemctl list-units --type=service 2>/dev/null | grep -Ei 'dune|amp|docker|compose' || true
 ps -ef | grep DuneSandbox | grep -v grep | sed -E 's/ServiceAuthToken=[^ ]+/ServiceAuthToken=<redacted>/g'
-
-sudo ss -uapn | egrep 'Dune|777|778|779|780|781|788|789|790|791|792' || true
-
+sudo ss -uapn | grep -Ei 'Dune|777|778|779|780|781|788|789|790|791|792' || true
 date -u
 timedatectl
 ```
 
-RabbitMQ, after `RABBITMQ_CONTAINER` is discovered:
+Run on: Windows host PowerShell
+
+```powershell
+Get-Service | Where-Object { $_.Name -match 'dune|amp|docker' -or $_.DisplayName -match 'dune|amp|docker' } | Select-Object Name, DisplayName, Status
+Get-Process | Where-Object { $_.ProcessName -match 'Dune|Sandbox|Docker|AMP' } | Select-Object ProcessName, Id, Path
+Get-NetUDPEndpoint | Sort-Object LocalPort | Format-Table LocalAddress, LocalPort, OwningProcess
+Get-Date -Format u
+w32tm /query /status
+```
+
+Run on: Docker host shell after `RABBITMQ_CONTAINER` is discovered
 
 ```bash
 docker exec "$RABBITMQ_CONTAINER" rabbitmqctl list_queues name messages messages_ready messages_unacknowledged consumers 2>/dev/null || true
@@ -411,7 +596,9 @@ Capture these at the same time:
 3. Active UDP listener and traffic output
 ```
 
-Set actual values first:
+Set actual values first in your notes or terminal.
+
+Run on: Linux host or Linux VM shell
 
 ```bash
 DIRECTOR_CONTAINER=
@@ -423,7 +610,21 @@ INSTANCE_PATH=
 LOG_PATH=
 ```
 
-Create a capture directory:
+Run on: Windows host PowerShell
+
+```powershell
+$env:DIRECTOR_CONTAINER=""
+$env:RABBITMQ_CONTAINER=""
+$env:DESTINATION_CONTAINER=""
+$env:DESTINATION_MAP=""
+$env:CLIENT_IP=""
+$env:INSTANCE_PATH=""
+$env:LOG_PATH=""
+```
+
+Create a capture directory.
+
+Run on: Linux host or Linux VM shell
 
 ```bash
 mkdir -p ~/dune-travel-capture-$(date -u +%Y%m%d-%H%M%S)
@@ -431,43 +632,83 @@ cd ~/dune-travel-capture-*
 pwd
 ```
 
-### Terminal 1 - Capture Current Containers/Services
+Run on: Windows host PowerShell
 
-```bash
-docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null | tee docker-ps-before.txt
-systemctl list-units --type=service 2>/dev/null | egrep -i 'dune|amp|docker|compose' | tee services-before.txt || true
+```powershell
+$CaptureDir = "$env:USERPROFILE\dune-travel-capture-$(Get-Date -Format yyyyMMdd-HHmmss)"
+New-Item -ItemType Directory -Path $CaptureDir | Out-Null
+Set-Location $CaptureDir
+Get-Location
 ```
 
-### Terminal 2 - Capture Director Logs
+### Terminal 1 — Capture Current Containers or Services
+
+Run on: Docker host shell, Linux or Windows PowerShell
+
+```bash
+docker ps
+```
+
+Run on: Linux host or Linux VM shell
+
+```bash
+systemctl list-units --type=service 2>/dev/null | grep -Ei 'dune|amp|docker|compose' || true
+```
+
+Run on: Windows host PowerShell
+
+```powershell
+Get-Service | Where-Object { $_.Name -match 'dune|amp|docker' -or $_.DisplayName -match 'dune|amp|docker' } | Select-Object Name, DisplayName, Status
+```
+
+### Terminal 2 — Capture Director Logs
+
+Run on: Docker host shell after `DIRECTOR_CONTAINER` is discovered
 
 ```bash
 docker logs -f "$DIRECTOR_CONTAINER" 2>&1 | tee director-travel-capture.log
 ```
 
-If file-based:
+Run on: Linux host or Linux VM shell if logs are file-based
 
 ```bash
 tail -F "$DIRECTOR_LOG_FILE" 2>&1 | tee director-travel-capture.log
 ```
 
-### Terminal 3 - Capture Destination Logs
+Run on: Windows host PowerShell if logs are file-based
+
+```powershell
+Get-Content -Path $env:DIRECTOR_LOG_FILE -Wait | Tee-Object -FilePath director-travel-capture.log
+```
+
+### Terminal 3 — Capture Destination Logs
+
+Run on: Docker host shell after `DESTINATION_CONTAINER` is discovered
 
 ```bash
 docker logs -f "$DESTINATION_CONTAINER" 2>&1 | tee destination-map-capture.log
 ```
 
-If file-based:
+Run on: Linux host or Linux VM shell if logs are file-based
 
 ```bash
 find "$INSTANCE_PATH" -type f -name '*.log' 2>/dev/null | tee possible-log-files.txt
 tail -F "$DESTINATION_LOG_FILE" 2>&1 | tee destination-map-capture.log
 ```
 
-### Terminal 4 - Capture UDP Listeners
+Run on: Windows host PowerShell if logs are file-based
+
+```powershell
+Get-ChildItem -Path $env:INSTANCE_PATH -Recurse -Filter *.log -ErrorAction SilentlyContinue | Select-Object FullName | Tee-Object -FilePath possible-log-files.txt
+Get-Content -Path $env:DESTINATION_LOG_FILE -Wait | Tee-Object -FilePath destination-map-capture.log
+```
+
+### Terminal 4 — Capture UDP Listeners
+
+Run on: Linux host or Linux VM shell
 
 ```bash
 sudo ss -uapn | tee udp-listeners-before.txt
-
 while true; do
   echo "===== $(date -u --iso-8601=seconds) ====="
   sudo ss -uapn || true
@@ -475,35 +716,81 @@ while true; do
 done | tee udp-listeners-during-travel.log
 ```
 
-### Terminal 5 - Capture Traffic
+Run on: Windows host PowerShell
 
-If `CLIENT_IP` is known:
+```powershell
+Get-NetUDPEndpoint | Sort-Object LocalPort | Tee-Object -FilePath udp-listeners-before.txt
+while ($true) {
+  "===== $(Get-Date -Format u) =====" | Tee-Object -FilePath udp-listeners-during-travel.log -Append
+  Get-NetUDPEndpoint | Sort-Object LocalPort | Tee-Object -FilePath udp-listeners-during-travel.log -Append
+  Start-Sleep -Seconds 2
+}
+```
+
+### Terminal 5 — Capture Traffic
+
+Run on: Linux host or Linux VM shell if `tcpdump` is installed and `CLIENT_IP` is known
 
 ```bash
 sudo tcpdump -ni any -vv "host ${CLIENT_IP}" | tee tcpdump-client-travel.log
 ```
 
-If the client IP is not known:
+Run on: Linux host or Linux VM shell if client IP is not known
 
 ```bash
 sudo tcpdump -ni any -vv 'udp or tcp' | tee tcpdump-dune-ports-travel.log
 ```
 
-Run one controlled reproduction attempt, then collect final state:
+Run on: Windows host PowerShell
+
+```powershell
+pktmon start --capture --pkt-size 0
+```
+
+Stop Windows packet capture after the test.
+
+Run on: Windows host PowerShell
+
+```powershell
+pktmon stop
+pktmon format PktMon.etl -o pktmon-travel-capture.txt
+```
+
+Run one controlled reproduction attempt, then collect final state.
+
+Run on: Linux host or Linux VM shell
 
 ```bash
-docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null | tee docker-ps-after.txt
 sudo ss -uapn | tee udp-listeners-after.txt
+```
 
+Run on: Windows host PowerShell
+
+```powershell
+Get-NetUDPEndpoint | Sort-Object LocalPort | Tee-Object -FilePath udp-listeners-after.txt
+```
+
+Run on: Docker host shell after `RABBITMQ_CONTAINER` is discovered
+
+```bash
 docker exec "$RABBITMQ_CONTAINER" rabbitmqctl list_queues name messages messages_ready messages_unacknowledged consumers 2>/dev/null | tee rabbitmq-queues-after.txt || true
 ```
 
 Package the capture after applying appropriate redaction for the sharing audience.
 
+Run on: Linux host or Linux VM shell
+
 ```bash
 cd ..
 tar -czf dune-travel-capture-$(date -u +%Y%m%d-%H%M%S).tar.gz dune-travel-capture-*/
 ls -lh dune-travel-capture-*.tar.gz
+```
+
+Run on: Windows host PowerShell
+
+```powershell
+Compress-Archive -Path $CaptureDir -DestinationPath "$CaptureDir.zip"
+Get-Item "$CaptureDir.zip"
 ```
 
 ---
@@ -538,75 +825,6 @@ Server replies but client still hangs:
 
 ---
 
-## RabbitMQ / Messaging Checks
-
-Run only after discovering `RABBITMQ_CONTAINER`.
-
-```bash
-docker exec "$RABBITMQ_CONTAINER" rabbitmqctl list_queues -p / name durable auto_delete arguments consumers messages messages_ready messages_unacknowledged state
-
-docker exec "$RABBITMQ_CONTAINER" rabbitmqctl list_consumers -p /
-
-docker exec "$RABBITMQ_CONTAINER" rabbitmqctl list_connections pid user peer_host peer_port state name
-```
-
----
-
-## Server State Ordering Checks
-
-```bash
-grep -RniE 'Received server state out of order|ServerState|server state' "$LOG_PATH" 2>/dev/null | head -200
-
-docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null
-ps -ef | grep DuneSandbox | grep -v grep
-sudo ss -uapn
-date -u
-timedatectl
-```
-
-Out-of-order state may indicate duplicate or recently stopped server instances, delayed messages, restart sequencing, multiple server IDs for the same role, or time ordering issues.
-
----
-
-## UserEngine.ini / Permission Checks
-
-Use this section when startup scripts fail to write settings files.
-
-Discovery steps after setting `SAVED_PATH`:
-
-```bash
-ls -ld "$SAVED_PATH" "$SAVED_PATH/UserSettings" 2>/dev/null || true
-ls -l "$SAVED_PATH/UserSettings" 2>/dev/null || true
-stat "$SAVED_PATH/UserSettings/UserEngine.ini" 2>/dev/null || true
-```
-
-If Docker is available, identify the container user:
-
-```bash
-IMG="$(docker inspect "$CONTAINER_NAME" --format '{{.Config.Image}}' 2>/dev/null || true)"
-
-if [ -n "$IMG" ]; then
-  docker run --rm --entrypoint sh "$IMG" -lc 'id; id dune 2>/dev/null || true'
-fi
-```
-
-Preferred repair pattern after mapping the real active path:
-
-```bash
-sudo apt-get update
-sudo apt-get install -y acl
-
-HOST_USER="${SUDO_USER:-$(id -un)}"
-CONTAINER_UID=<CONTAINER_UID>
-CONTAINER_GID=<CONTAINER_GID>
-
-sudo mkdir -p "$SAVED_PATH/UserSettings"
-sudo setfacl -R -m "u:${HOST_USER}:rwx,u:${CONTAINER_UID}:rwx,g:${CONTAINER_GID}:rwx" "$SAVED_PATH"
-sudo setfacl -R -d -m "u:${HOST_USER}:rwx,u:${CONTAINER_UID}:rwx,g:${CONTAINER_GID}:rwx" "$SAVED_PATH"
-```
-
----
-
 ## Escalation Package Checklist
 
 Before escalating to a developer or vendor, collect:
@@ -619,7 +837,7 @@ Before escalating to a developer or vendor, collect:
 5. Director/control-plane log capture.
 6. Destination/server log capture.
 7. UDP listener before/during/after files.
-8. tcpdump output.
+8. Packet capture output.
 9. Docker/service state before and after, if available.
 10. RabbitMQ or messaging queue snapshot, if applicable.
 11. Exact UTC test times.
