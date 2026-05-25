@@ -83,3 +83,69 @@ func TestMutationSafetyClassifyHandlerRequiresPath(t *testing.T) {
 		t.Fatalf("expected 400, got %d", res.Code)
 	}
 }
+
+func TestMutationSafetyMiddlewareDisabledAllowsMissingReason(t *testing.T) {
+	t.Setenv("ADMIN_REQUIRE_REASON", "false")
+	called := false
+	handler := mutationSafetyMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/players/give-item", strings.NewReader(`{"player_id":1}`))
+	res := httptest.NewRecorder()
+	handler.ServeHTTP(res, req)
+
+	if !called {
+		t.Fatalf("expected wrapped handler to be called")
+	}
+	if res.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d", res.Code)
+	}
+}
+
+func TestMutationSafetyMiddlewareRequiresHeaderReasonWhenEnabled(t *testing.T) {
+	t.Setenv("ADMIN_REQUIRE_REASON", "true")
+	handler := mutationSafetyMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/players/give-item", strings.NewReader(`{"player_id":1}`))
+	res := httptest.NewRecorder()
+	handler.ServeHTTP(res, req)
+
+	if res.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 without reason, got %d", res.Code)
+	}
+
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/players/give-item", strings.NewReader(`{"player_id":1}`))
+	req.Header.Set("X-Admin-Reason", "support correction")
+	res = httptest.NewRecorder()
+	handler.ServeHTTP(res, req)
+
+	if res.Code != http.StatusNoContent {
+		t.Fatalf("expected 204 with header reason, got %d", res.Code)
+	}
+}
+
+func TestMutationSafetyMiddlewareAcceptsBodyReasonWhenEnabled(t *testing.T) {
+	t.Setenv("ADMIN_REQUIRE_REASON", "true")
+	var bodyAfterMiddleware map[string]any
+	handler := mutationSafetyMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&bodyAfterMiddleware); err != nil {
+			t.Fatalf("decode body after middleware: %v", err)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/players/give-item", strings.NewReader(`{"player_id":1,"reason":"support correction"}`))
+	res := httptest.NewRecorder()
+	handler.ServeHTTP(res, req)
+
+	if res.Code != http.StatusNoContent {
+		t.Fatalf("expected 204 with body reason, got %d", res.Code)
+	}
+	if bodyAfterMiddleware["player_id"].(float64) != 1 {
+		t.Fatalf("request body was not restored after middleware: %#v", bodyAfterMiddleware)
+	}
+}
