@@ -13,8 +13,9 @@ Is the issue a startup failure?
 Is the issue a player login failure?
   -> Use Login and Authentication Failure runbook.
 
-Is the issue a travel, map transfer, or destination hang?
+Is the issue a travel, map transfer, destination hang, dungeon/story instance failure, or instanced map disconnect?
   -> Use Map Travel and Instancing Failure runbook.
+  -> If the issue affects dynamic/instanced destinations specifically, also use Instanced Travel Dynamic Spawn Validation.
 
 Is the issue a port, firewall, NAT, or connectivity concern?
   -> Use Port and Network Listener Validation runbook.
@@ -94,6 +95,16 @@ Travel or destination hang:
     - Source and destination logs
     - Control-plane/director logs
     - Listener before/during/after
+    - Packet capture if possible
+
+Dynamic or instanced destination failure:
+  Required evidence:
+    - One known-working destination and one known-failing destination
+    - Director/control-plane queue response
+    - Destination map lifecycle logs
+    - Dynamic game/client port listener
+    - Dynamic server-to-server/gateway/IGW-style listener, if applicable
+    - Runtime launch arguments with secrets redacted
     - Packet capture if possible
 
 Network/port issue:
