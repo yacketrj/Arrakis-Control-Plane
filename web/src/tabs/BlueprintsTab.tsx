@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Button, Modal, Spinner, toast, Label } from '@heroui/react'
 import { api } from '../api/client'
 import type { BlueprintRow } from '../api/client'
+import { mutationConfirmationCancelledMessage, useMutationConfirmation } from '../hooks/useMutationConfirmation'
 
 export default function BlueprintsTab() {
   const [blueprints, setBlueprints] = useState<BlueprintRow[]>([])
@@ -116,20 +117,44 @@ function ImportModal({
   const [file, setFile] = useState<File | null>(null)
   const [playerId, setPlayerId] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const { confirmMutation, confirmationDialog } = useMutationConfirmation()
 
   const handleSubmit = async () => {
     if (!file) { toast.warning('Select a blueprint file'); return }
     const pid = Number(playerId)
     if (!pid) { toast.warning('Enter a valid player ID'); return }
 
-    const reason = window.prompt('Admin reason required for blueprint import:', '')?.trim()
+    let reason: string | undefined
+    try {
+      reason = await confirmMutation({
+        method: 'POST',
+        path: '/api/v1/blueprints/import',
+        title: 'Import blueprint to player',
+        summary: `Import blueprint file ${file.name} for player #${pid}.`,
+        target: `player:${pid} · file:${file.name}`,
+        details: [
+          `Player ID: ${pid}`,
+          `File name: ${file.name}`,
+          `File size: ${file.size.toLocaleString()} bytes`,
+          'Blueprint import changes player construction data and is recorded in the audit log.',
+          'Verify the target player ID and blueprint source before continuing.',
+        ],
+        confirmLabel: 'Import blueprint',
+        forceReason: true,
+      })
+    } catch (e: unknown) {
+      if (e instanceof Error && e.message === mutationConfirmationCancelledMessage) {
+        toast.warning('Cancelled')
+        return
+      }
+      toast.danger(e instanceof Error ? e.message : String(e))
+      return
+    }
+
     if (!reason) {
       toast.warning('Cancelled: admin reason is required for blueprint imports')
       return
     }
-
-    const ok = window.confirm('Blueprint import changes player construction data and is written to the audit log. Continue?')
-    if (!ok) return
 
     setSubmitting(true)
     try {
@@ -149,56 +174,59 @@ function ImportModal({
   }
 
   return (
-    <Modal>
-      <Modal.Backdrop isOpen={open} onOpenChange={v => !v && onClose()}>
-        <Modal.Container>
-          <Modal.Dialog>
-            <Modal.CloseTrigger />
-            <Modal.Header>
-              <Modal.Heading>Import Blueprint</Modal.Heading>
-            </Modal.Header>
-            <Modal.Body>
-              <div className="flex flex-col gap-4">
-                <p className="text-xs" style={{ color: 'var(--color-text-dim)' }}>
-                  Blueprint imports change player construction data. The import requires an admin reason and will be recorded in the Audit tab.
-                </p>
-                <div className="flex flex-col gap-1">
-                  <Label className="text-sm" style={{ color: 'var(--color-text-dim)' }}>
-                    Blueprint File (.json)
-                  </Label>
-                  <input
-                    type="file"
-                    accept=".json"
-                    className="text-sm"
-                    style={{ color: 'var(--color-text)' }}
-                    onChange={e => setFile(e.target.files?.[0] ?? null)}
-                  />
+    <>
+      <Modal>
+        <Modal.Backdrop isOpen={open} onOpenChange={v => !v && onClose()}>
+          <Modal.Container>
+            <Modal.Dialog>
+              <Modal.CloseTrigger />
+              <Modal.Header>
+                <Modal.Heading>Import Blueprint</Modal.Heading>
+              </Modal.Header>
+              <Modal.Body>
+                <div className="flex flex-col gap-4">
+                  <p className="text-xs" style={{ color: 'var(--color-text-dim)' }}>
+                    Blueprint imports change player construction data. The import requires an admin reason and will be recorded in the Audit tab.
+                  </p>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-sm" style={{ color: 'var(--color-text-dim)' }}>
+                      Blueprint File (.json)
+                    </Label>
+                    <input
+                      type="file"
+                      accept=".json"
+                      className="text-sm"
+                      style={{ color: 'var(--color-text)' }}
+                      onChange={e => setFile(e.target.files?.[0] ?? null)}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-sm" style={{ color: 'var(--color-text-dim)' }}>
+                      Player ID
+                    </Label>
+                    <input
+                      className="rounded px-3 py-1.5 text-sm border"
+                      style={{ background: 'var(--color-surface)', color: 'var(--color-text)', borderColor: '#2a2418', outline: 'none' }}
+                      type="number"
+                      value={playerId}
+                      onChange={e => setPlayerId(e.target.value)}
+                      placeholder="e.g. 12345"
+                    />
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <Label className="text-sm" style={{ color: 'var(--color-text-dim)' }}>
-                    Player ID
-                  </Label>
-                  <input
-                    className="rounded px-3 py-1.5 text-sm border"
-                    style={{ background: 'var(--color-surface)', color: 'var(--color-text)', borderColor: '#2a2418', outline: 'none' }}
-                    type="number"
-                    value={playerId}
-                    onChange={e => setPlayerId(e.target.value)}
-                    placeholder="e.g. 12345"
-                  />
-                </div>
-              </div>
-            </Modal.Body>
-            <Modal.Footer>
-              <Button variant="tertiary" onPress={onClose}>Cancel</Button>
-              <Button onPress={handleSubmit} isDisabled={submitting || !file}>
-                {submitting ? <Spinner size="sm" color="current" /> : null}
-                Import
-              </Button>
-            </Modal.Footer>
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
-    </Modal>
+              </Modal.Body>
+              <Modal.Footer>
+                <Button variant="tertiary" onPress={onClose}>Cancel</Button>
+                <Button onPress={handleSubmit} isDisabled={submitting || !file}>
+                  {submitting ? <Spinner size="sm" color="current" /> : null}
+                  Import
+                </Button>
+              </Modal.Footer>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
+      {confirmationDialog}
+    </>
   )
 }
