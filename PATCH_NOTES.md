@@ -1,6 +1,41 @@
 # Dune Admin Release Notes
 
-## Current update: SSH tunnel management foundation
+## Current update: Admin audit and mutation-safety documentation sync
+
+### Why this update was made
+
+The DA Manager workstream has moved beyond the original SSH tunnel foundation. The repository now includes the admin audit log and mutation-safety foundation, but several documentation and release-tracking files still described those features as future work. This update brings the operator-facing notes back in line with the code on `main`.
+
+### What changed
+
+- Updated `docs/admin-audit-log.md` to describe the current audit event model, protected audit endpoint, audit file behavior, captured fields, reason capture, and known limitations.
+- Updated `docs/admin-implementation-tasks.md` so the Admin Action Audit Log is marked done and Mutation Safety Framework is tracked as active in-progress work.
+- Clarified that Player 360 Profile is the next feature slice after the audit and mutation-safety foundation.
+- Preserved the DA Manager requirement that every feature update keeps `PATCH_NOTES.md`, `CHANGELOG.md`, and relevant docs synchronized.
+
+### Security and operator impact
+
+- Operators now have clearer documentation for protected audit review.
+- The task tracker now reflects that mutation-heavy future features should build on the landed audit foundation.
+- The next Player 360 work should begin read-only and reuse audit and mutation-safety controls before adding quick actions.
+
+### Validation
+
+Expected validation:
+
+```bash
+go test ./...
+cd web
+npm install
+npm audit --audit-level=high
+npm run typecheck
+npm run lint
+npm run build
+```
+
+---
+
+## Previous update: SSH tunnel management foundation
 
 ### Why this update was made
 
