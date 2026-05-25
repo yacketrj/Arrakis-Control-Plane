@@ -1,28 +1,29 @@
 # Dune Admin Release Notes
 
-## Current update: Confirmed player move workflow
+## Current update: Confirmed player admin actions workflow
 
 ### Why this update was made
 
-Player movement is a high-impact support action that can create location/state drift if used while the player is online. This update isolates the move workflow in a dedicated confirmed modal so the action uses shared mutation confirmation and required admin reason capture.
+The remaining player admin actions modify or disrupt player state and should not run through unstructured prompts. This update isolates them in a dedicated confirmed admin-actions modal with shared mutation confirmation and required admin reason capture.
 
 ### What changed
 
-- Added `web/src/tabs/PlayerTeleportModal.tsx` as a dedicated confirmed player move modal.
-- Added destination loading from the existing partitions endpoint.
-- Added a Players-table `Move` launcher through `PlayersTabWith360Launcher.tsx`.
-- Added shared mutation confirmation and required admin reason capture before move requests are sent.
-- Added player target metadata, current map, online state, destination, and drift warning details to the confirmation flow.
-- Passed captured reasons into `api.players.teleport`.
-- Disabled move submission while the player is online.
+- Added `web/src/tabs/PlayerAdminActionsModal.tsx` as a dedicated confirmed player admin-actions modal.
+- Added a Players-table `Admin` launcher through `PlayersTabWith360Launcher.tsx`.
+- Added shared mutation confirmation and required admin reason capture for:
+  - Clear all journey progress
+  - Remove tutorial records
+  - Clear codex discoveries
+  - Disconnect player session
+- Added player target metadata, current map, online state, operator warnings, and per-action support details to the confirmation flow.
+- Passed captured reasons into the matching `api.players.*` mutation calls.
 
 ### Security and operator impact
 
-- Active player move actions now use the same shared confirmation foundation as Give Item, Inventory repair/delete, resource/spec actions, and journey node actions.
-- Admin reason capture is required before move requests are sent.
+- The active Players-table mutation surface now routes Give Item, Inventory repair/delete, resource/spec actions, journey node actions, player move, and admin actions through shared confirmation and reason capture.
 - Player 360 remains read-only.
 - No Player 360 quick actions were added.
-- Remaining action migrations are journey wipe, tutorial deletion, codex wipe, and kick.
+- `PlayersTab.tsx` still contains legacy inline modal code as cleanup debt, but the active wrapper path now routes these workflows through confirmed extracted modals.
 
 ### Validation
 
@@ -31,6 +32,12 @@ Validation required in the Windows development environment:
 ```powershell
 .\update.ps1
 ```
+
+---
+
+## Previous update: Confirmed player move workflow
+
+Player move actions were migrated to a dedicated confirmed modal with required admin reason capture and online-state safeguards.
 
 ---
 
