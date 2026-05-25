@@ -36,6 +36,7 @@ function fallbackMutationSafety(method: MutationMethod, path: string): MutationS
     action: `${method.toLowerCase()}:${path.replace(/^\//, '').replaceAll('/', '.') || 'root'}`,
     risk: destructive ? 'destructive' : high ? 'high' : 'medium',
     requires_reason: high,
+    reason_enforcement_enabled: false,
     requires_preview: high,
     destructive,
     operator_warnings: high ? ['This action changes player or server state and should be performed only with a support reason.'] : [],
@@ -151,14 +152,23 @@ export function useMutationConfirmation() {
           </div>
         )}
 
-        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+        <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
           <div className="rounded p-2" style={{ background: '#0a0806', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
             Action: <span className="font-mono" style={{ color: 'var(--color-text)' }}>{pending.safety.action}</span>
           </div>
           <div className="rounded p-2" style={{ background: '#0a0806', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
             Reason required: <span style={{ color: pending.requiresReason ? '#f0a830' : 'var(--color-text)' }}>{pending.requiresReason ? 'Yes' : 'No'}</span>
           </div>
+          <div className="rounded p-2" style={{ background: '#0a0806', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
+            Backend enforcement: <span style={{ color: pending.safety.reason_enforcement_enabled ? '#f0a830' : 'var(--color-text)' }}>{pending.safety.reason_enforcement_enabled ? 'Enabled' : 'Disabled'}</span>
+          </div>
         </div>
+
+        {!pending.safety.reason_enforcement_enabled && pending.requiresReason && (
+          <div className="mt-3 rounded p-2 text-xs" style={{ background: '#160f06', border: '1px solid #5a3a10', color: '#f0a830' }}>
+            Frontend reason capture is active, but backend reason enforcement is disabled. Set ADMIN_REQUIRE_REASON=true to reject high-risk requests that bypass the UI without a reason.
+          </div>
+        )}
 
         <label className="block mt-4 text-xs font-semibold" style={{ color: 'var(--color-text-dim)' }}>
           Admin reason {pending.requiresReason ? '(required)' : '(optional)'}
