@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Added Player 360 row launcher from the Players table through `web/src/tabs/PlayersTabWith360Launcher.tsx`.
+- Added automatic Player 360 profile loading when opened from a selected Players table row.
 - Added standalone Player 360 frontend tab and main app navigation entry for read-only profile lookup by PlayerCharacter actor ID.
 - Added `web/src/api/playerProfile.ts` frontend response types and protected fetch helper for `GET /api/v1/players/{id}/profile`.
 - Added Player 360 backend profile foundation with `GET /api/v1/players/{id}/profile`.
@@ -56,6 +58,9 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Updated `web/src/App.tsx` so the Players tab uses the Player 360 launcher wrapper.
+- Updated `web/src/tabs/Player360Tab.tsx` to read the selected player actor ID from the launcher and auto-load that profile.
+- Updated `docs/player-360-profile.md` and `PATCH_NOTES.md` with the Player 360 launcher status.
 - Updated Player 360 to fetch specialization tracks by controller ID when available, matching the existing player action flow.
 - Updated `docs/player-360-profile.md` with current frontend tab status, validation requirements, and follow-up work.
 - Updated `docs/admin-implementation-tasks.md` so Player 360 validation is the active implementation focus.
@@ -111,6 +116,7 @@ All notable changes to this project will be documented in this file.
 
 ### Security
 
+- Added a read-only Player 360 launcher from Players without changing existing mutation workflows.
 - Added a read-only Player 360 frontend path without adding new player mutation workflows.
 - Added safe section-level error wording to the read-only Player 360 backend response to avoid exposing raw backend details.
 - Reinforced that Player 360 Profile v1 must start as a protected read-only support surface with no new mutation paths.
