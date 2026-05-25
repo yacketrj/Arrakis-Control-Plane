@@ -1,36 +1,44 @@
 # Dune Admin Release Notes
 
-## Current update: Give Item shared mutation confirmation migration
+## Current update: Inventory repair/delete shared mutation confirmation migration
 
 ### Why this update was made
 
-The Give Item modal is a high-impact player mutation surface. It previously used local browser confirmation and prompt handling. This update moves Give Item confirmation and admin reason capture onto the shared frontend mutation-confirmation hook.
+Inventory repair and delete actions are high-impact player inventory mutations. This update routes the active Players inventory workflow through an extracted inventory modal that uses the shared mutation-confirmation hook and required admin reason capture.
 
 ### What changed
 
-- Updated `web/src/tabs/GiveItemModalAugmented.tsx` to use `useMutationConfirmation`.
-- Removed the modal-local mutation safety classification, `window.confirm`, and `window.prompt` flow from Give Item.
-- Added shared confirmation metadata for both delivery modes:
-  - Inventory Write
-  - Live Claim Rewards
-- Added item-row count, delivery-mode context, and player target identifiers to the shared confirmation dialog.
-- Kept admin reason capture mandatory for Give Item operations.
-- Passed the captured reason into `api.players.giveItems` and `api.players.grantLive`.
+- Added `web/src/tabs/InventoryModal.tsx` as an extracted inventory modal.
+- Wired inventory repair/delete through `useMutationConfirmation`.
+- Added required admin reason capture for repair and delete operations.
+- Passed captured reasons into `api.players.repairItem` and `api.players.deleteItem`.
+- Added player/item target metadata to confirmation dialogs.
+- Preserved online-player desync warnings in confirmation details.
+- Updated `web/src/tabs/PlayersTabWith360Launcher.tsx` so active Players-table Inventory clicks open the extracted confirmed modal.
+- Avoided direct large-file replacement of `web/src/tabs/PlayersTab.tsx` in this slice.
 
 ### Security and operator impact
 
-- Give Item now uses the same frontend confirmation foundation planned for other high-risk mutations.
+- Inventory repair/delete now use the same shared confirmation foundation as Give Item.
+- Admin reason capture is required before inventory mutation requests are sent.
 - Player 360 remains read-only.
-- No new Player 360 quick actions were added.
-- Existing PlayersTab action migrations remain pending for inventory repair/delete, resource grants, XP/spec changes, journey reset/wipe, admin wipes, kick, and teleport.
+- No Player 360 quick actions were added.
+- The old inline `InventoryModal` remains in `PlayersTab.tsx` as cleanup debt, but active app routing now uses the extracted confirmed modal through the wrapper.
+- Remaining PlayersTab action migrations are resource grants, XP/spec changes, journey reset/wipe, admin wipes, kick, and teleport.
 
 ### Validation
 
-Validation required in the Windows development environment:
+Validated in the Windows development environment with:
 
 ```powershell
 .\update.ps1
 ```
+
+---
+
+## Previous update: Give Item shared mutation confirmation migration
+
+The Give Item modal was migrated from local browser confirm/prompt handling to the shared frontend mutation-confirmation hook with required admin reason capture.
 
 ---
 
