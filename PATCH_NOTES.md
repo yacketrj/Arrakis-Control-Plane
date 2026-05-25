@@ -1,33 +1,26 @@
 # Dune Admin Release Notes
 
-## Current update: Battlegroup Exec shared mutation confirmation migration
+## Current update: Blueprint import shared mutation confirmation migration
 
 ### Why this update was made
 
-Battlegroup Exec controls server lifecycle actions such as start, stop, restart, update, backup, and restore. These are privileged operations that can disrupt connected players or alter active server state. This update moves Server Control actions onto the shared mutation-confirmation hook with required admin reason capture.
+Blueprint import changes player construction data and should not rely on one-off browser prompts. This update moves blueprint import onto the shared mutation-confirmation hook with required admin reason capture.
 
 ### What changed
 
-- Updated `web/src/tabs/BattlegroupTab.tsx` to use `useMutationConfirmation` for Server Control actions.
-- Removed the local one-off confirmation modal for battlegroup commands.
-- Preserved read-only status, pod, health diagnostics, and support-bundle export flows.
-- Added shared mutation confirmation and required admin reason capture for:
-  - Start
-  - Stop
-  - Restart
-  - Update
-  - Backup
-  - Restore
-- Added command, namespace, disruption, backup/restore, and audit-log guidance to confirmation details.
-- Passed captured reasons into `api.battlegroup.exec`.
-- Preserved the existing command-running/output modal.
+- Updated `web/src/tabs/BlueprintsTab.tsx` to use `useMutationConfirmation` for Import Blueprint.
+- Removed the local `window.prompt` and `window.confirm` sequence from blueprint import.
+- Preserved blueprint list and export behavior as read-only flows.
+- Added shared mutation confirmation and required admin reason capture before `api.blueprints.import` is called.
+- Added player ID, file name, file size, audit-log guidance, and target verification details to the confirmation flow.
+- Passed captured reasons into `api.blueprints.import`.
 
 ### Security and operator impact
 
-- Battlegroup Exec now uses the same shared confirmation foundation as Players, Storage, and Database SQL mutations.
-- Admin reason capture is required before server-control requests are sent.
+- Blueprint import now uses the same shared confirmation foundation as Players, Storage, Database SQL, and Battlegroup Exec mutations.
+- Admin reason capture is required before blueprint import requests are sent.
 - Player 360 remains read-only.
-- Remaining shared-confirmation review targets include Blueprint import and future Inventory Studio/Player 360 quick-action workflows.
+- The explicit current mutation-safety review targets are now covered. Future Inventory Studio v2 workflows and Player 360 quick actions must still be added only as confirmed workflows.
 
 ### Validation
 
@@ -36,6 +29,12 @@ Validation required in the Windows development environment:
 ```powershell
 .\update.ps1
 ```
+
+---
+
+## Previous update: Battlegroup Exec shared mutation confirmation migration
+
+Battlegroup Exec server-control actions were migrated to shared mutation confirmation with required admin reason capture.
 
 ---
 
@@ -78,9 +77,3 @@ Resource, XP, specialization, and faction reputation actions were migrated to th
 ## Previous update: Inventory repair/delete shared mutation confirmation migration
 
 Inventory repair/delete was migrated to the extracted confirmed inventory modal with required admin reason capture.
-
----
-
-## Previous update: Give Item shared mutation confirmation migration
-
-The Give Item modal was migrated from local browser confirm/prompt handling to the shared frontend mutation-confirmation hook with required admin reason capture.
