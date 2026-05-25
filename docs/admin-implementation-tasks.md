@@ -31,6 +31,7 @@ Every feature task must update:
 | P0 | Admin Action Audit Log | Done | `docs/admin-audit-log.md` | Go tests |
 | P0 | Mutation Safety Framework | In Progress | `docs/mutation-safety-framework.md` | Go + frontend tests |
 | P0 | Active Players-table mutation confirmation migration | Done | `docs/mutation-safety-framework.md` | Windows `update.ps1` validation |
+| P0 | PlayersTab inline modal cleanup | Done | `docs/mutation-safety-framework.md` | Windows `update.ps1` validation |
 | P1 | Player 360 Profile | Done | `docs/player-360-profile.md` | Go + frontend validation clean |
 | P1 | Inventory Studio v2 | Planned | `docs/inventory-studio.md` required | Go + frontend tests |
 | P1 | Battlegroup Status v2 | Planned | `docs/battlegroup-status-v2.md` required | Go + frontend tests |
@@ -48,18 +49,9 @@ Every feature task must update:
 
 ## Current implementation focus
 
-### 1. Clean up legacy PlayersTab inline modal debt
+### 1. Continue shared mutation confirmation beyond Players
 
-- The active Players-table mutation path is now routed through extracted confirmed modals:
-  - `GiveItemModalAugmented.tsx`
-  - `InventoryModal.tsx`
-  - `PlayerActionsModalConfirmed.tsx`
-  - `PlayerTeleportModal.tsx`
-  - `PlayerAdminActionsModal.tsx`
-- `PlayersTab.tsx` still contains legacy inline modal code that should be removed only after a careful cleanup slice.
-- Prefer extracted workflow components over further expansion of `PlayersTab.tsx`.
-
-### 2. Continue shared mutation confirmation beyond Players
+The active Players-table mutation path is now routed through extracted confirmed modals, and legacy inline Inventory/Actions modal code has been removed from `PlayersTab.tsx`.
 
 Remaining shared-confirmation review targets:
 
@@ -69,6 +61,12 @@ Remaining shared-confirmation review targets:
 - Blueprint import flow.
 - Future Inventory Studio v2 workflows.
 - Future Player 360 quick actions.
+
+### 2. Preserve extracted workflow architecture
+
+- Keep player mutation workflows in extracted workflow components.
+- Prefer focused workflow components over further expansion of `PlayersTab.tsx`.
+- Keep `PlayersTabWith360Launcher.tsx` as the active routing layer for table-level player support workflows.
 
 ### 3. Preserve Player 360 validated state
 
