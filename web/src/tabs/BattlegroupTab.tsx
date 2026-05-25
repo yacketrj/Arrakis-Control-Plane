@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Button, Modal, Spinner, toast } from '@heroui/react'
 import { api, type BGHealthSection } from '../api/client'
+import { mutationConfirmationCancelledMessage, useMutationConfirmation } from '../hooks/useMutationConfirmation'
 
 type PodRow = { name: string; ready: string; status: string; restarts: string; age: string }
 type BattlegroupView = 'pods' | 'health'
@@ -92,6 +93,27 @@ const ACTIONS = [
 
 type ActionDef = typeof ACTIONS[0]
 
+function battlegroupActionDetails(action: ActionDef, namespace: string): string[] {
+  const details = [
+    `Command: ${action.cmd}`,
+    `Namespace: ${namespace || 'unknown'}`,
+    action.msg,
+    'Battlegroup Exec is a privileged server-control operation and is recorded in the audit log.',
+  ]
+
+  if (action.cmd === 'stop' || action.cmd === 'restart' || action.cmd === 'update' || action.cmd === 'restore') {
+    details.push('This command can disrupt connected players or change active server state.')
+  }
+  if (action.cmd === 'restore') {
+    details.push('Restore can overwrite current data. Verify the intended backup source and maintenance window before continuing.')
+  }
+  if (action.cmd === 'backup') {
+    details.push('Verify available disk space and expected backup destination before continuing.')
+  }
+
+  return details
+}
+
 export default function BattlegroupTab() {
   const [view, setView] = useState<BattlegroupView>('pods')
   const [pods, setPods] = useState<PodRow[]>([])
@@ -103,7 +125,7 @@ export default function BattlegroupTab() {
   const [runningCmd, setRunningCmd] = useState<string | null>(null)
   const [cmdOutput, setCmdOutput] = useState<string | null>(null)
   const [cmdDone, setCmdDone] = useState(false)
-  const [confirmCmd, setConfirmCmd] = useState<ActionDef | null>(null)
+  const { confirmMutation, confirmationDialog } = useMutationConfirmation()
 
   const fetchStatus = useCallback(async () => {
     setStatusLoading(true)
@@ -151,12 +173,37 @@ export default function BattlegroupTab() {
   }
 
   const runCmd = async (action: ActionDef) => {
-    setConfirmCmd(null)
+    let reason: string | undefined
+    try {
+      reason = await confirmMutation({
+        method: 'POST',
+        path: '/api/v1/battlegroup/exec',
+        title: `${action.label} battlegroup server`,
+        summary: action.msg,
+        target: `battlegroup:${healthNamespace || 'current'}`,
+        details: battlegroupActionDetails(action, healthNamespace),
+        confirmLabel: `Confirm ${action.label}`,
+        forceReason: true,
+      })
+    } catch (e: unknown) {
+      if (e instanceof Error && e.message === mutationConfirmationCancelledMessage) {
+        toast.warning('Cancelled')
+        return
+      }
+      toast.danger(e instanceof Error ? e.message : String(e))
+      return
+    }
+
+    if (!reason) {
+      toast.warning('Cancelled: admin reason is required for this action')
+      return
+    }
+
     setRunningCmd(action.label)
     setCmdOutput(null)
     setCmdDone(false)
     try {
-      const res = await api.battlegroup.exec(action.cmd)
+      const res = await api.battlegroup.exec(action.cmd, reason)
       setCmdOutput(res.output || '(no output)')
       setCmdDone(true)
       toast.success(`${action.label} completed`)
@@ -171,134 +218,112 @@ export default function BattlegroupTab() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '16px', gap: '0' }}>
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <div className="flex items-center gap-3 flex-wrap">
-          <h2 className="text-base font-semibold" style={{ color: 'var(--color-primary)' }}>
-            Battlegroup Status
-          </h2>
-          <Button size="sm" variant={view === 'pods' ? 'primary' : 'ghost'} onPress={() => setView('pods')}>Pods</Button>
-          <Button size="sm" variant={view === 'health' ? 'primary' : 'ghost'} onPress={openHealth}>Health Diagnostics</Button>
-          {view === 'pods' ? (
-            <Button size="sm" variant="ghost" onPress={fetchStatus} isDisabled={statusLoading}>
-              {statusLoading ? <Spinner size="sm" color="current" /> : '↻ Refresh'}
-            </Button>
-          ) : (
-            <>
-              <Button size="sm" variant="ghost" onPress={fetchHealth} isDisabled={healthLoading}>
-                {healthLoading ? <Spinner size="sm" color="current" /> : '↻ Run Diagnostics'}
+    <>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '16px', gap: '0' }}>
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h2 className="text-base font-semibold" style={{ color: 'var(--color-primary)' }}>
+              Battlegroup Status
+            </h2>
+            <Button size="sm" variant={view === 'pods' ? 'primary' : 'ghost'} onPress={() => setView('pods')}>Pods</Button>
+            <Button size="sm" variant={view === 'health' ? 'primary' : 'ghost'} onPress={openHealth}>Health Diagnostics</Button>
+            {view === 'pods' ? (
+              <Button size="sm" variant="ghost" onPress={fetchStatus} isDisabled={statusLoading}>
+                {statusLoading ? <Spinner size="sm" color="current" /> : '↻ Refresh'}
               </Button>
-              <Button size="sm" variant="outline" onPress={() => exportHealthBundle(false)} isDisabled={healthSections.length === 0 || healthLoading}>
-                Export Raw Bundle
-              </Button>
-              <Button size="sm" variant="outline" onPress={() => exportHealthBundle(true)} isDisabled={healthSections.length === 0 || healthLoading}>
-                Export Redacted Bundle
-              </Button>
-            </>
-          )}
-          {view === 'health' && healthNamespace && (
-            <span className="text-xs" style={{ color: 'var(--color-text-dim)' }}>
-              ns: {healthNamespace}{healthCheckedAt ? ` · ${healthCheckedAt}` : ''}
-            </span>
-          )}
-        </div>
-
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-          {view === 'pods' && (
-            <PodStatusTable pods={pods} loading={statusLoading} />
-          )}
-          {view === 'health' && (
-            <HealthDiagnostics sections={healthSections} loading={healthLoading} />
-          )}
-        </div>
-      </div>
-
-      <div
-        className="shrink-0"
-        style={{ borderTop: '1px solid #2a2418', paddingTop: '12px', marginTop: '12px' }}
-      >
-        <h2 className="text-base font-semibold mb-3" style={{ color: 'var(--color-primary)' }}>
-          Server Control
-        </h2>
-        <div className="flex flex-wrap gap-2">
-          {ACTIONS.map(action => (
-            <Button
-              key={action.cmd}
-              variant={action.danger ? 'danger-soft' : 'outline'}
-              onPress={() => setConfirmCmd(action)}
-              isDisabled={runningCmd !== null}
-              size="sm"
-            >
-              {action.label}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      <Modal>
-        <Modal.Backdrop isOpen={confirmCmd !== null} onOpenChange={v => { if (!v) setConfirmCmd(null) }}>
-          <Modal.Container>
-            <Modal.Dialog>
-              <Modal.CloseTrigger />
-              <Modal.Header>
-                <Modal.Heading>{confirmCmd?.label ?? ''} Server</Modal.Heading>
-              </Modal.Header>
-              <Modal.Body>
-                <p style={{ color: 'var(--color-text)' }}>{confirmCmd?.msg ?? ''}</p>
-              </Modal.Body>
-              <Modal.Footer>
-                <Button variant="tertiary" onPress={() => setConfirmCmd(null)}>Cancel</Button>
-                <Button
-                  variant={confirmCmd?.danger ? 'danger' : 'primary'}
-                  onPress={() => confirmCmd && runCmd(confirmCmd)}
-                >
-                  Confirm {confirmCmd?.label ?? ''}
+            ) : (
+              <>
+                <Button size="sm" variant="ghost" onPress={fetchHealth} isDisabled={healthLoading}>
+                  {healthLoading ? <Spinner size="sm" color="current" /> : '↻ Run Diagnostics'}
                 </Button>
-              </Modal.Footer>
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
+                <Button size="sm" variant="outline" onPress={() => exportHealthBundle(false)} isDisabled={healthSections.length === 0 || healthLoading}>
+                  Export Raw Bundle
+                </Button>
+                <Button size="sm" variant="outline" onPress={() => exportHealthBundle(true)} isDisabled={healthSections.length === 0 || healthLoading}>
+                  Export Redacted Bundle
+                </Button>
+              </>
+            )}
+            {view === 'health' && healthNamespace && (
+              <span className="text-xs" style={{ color: 'var(--color-text-dim)' }}>
+                ns: {healthNamespace}{healthCheckedAt ? ` · ${healthCheckedAt}` : ''}
+              </span>
+            )}
+          </div>
 
-      <Modal>
-        <Modal.Backdrop
-          isOpen={runningCmd !== null}
-          onOpenChange={v => { if (!v && cmdDone) { setRunningCmd(null); setCmdOutput(null) } }}
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+            {view === 'pods' && (
+              <PodStatusTable pods={pods} loading={statusLoading} />
+            )}
+            {view === 'health' && (
+              <HealthDiagnostics sections={healthSections} loading={healthLoading} />
+            )}
+          </div>
+        </div>
+
+        <div
+          className="shrink-0"
+          style={{ borderTop: '1px solid #2a2418', paddingTop: '12px', marginTop: '12px' }}
         >
-          <Modal.Container>
-            <Modal.Dialog>
-              <Modal.Header>
-                <Modal.Heading>{runningCmd ?? ''}</Modal.Heading>
-              </Modal.Header>
-              <Modal.Body>
-                {!cmdDone ? (
-                  <div className="flex flex-col items-center gap-4 py-6">
-                    <Spinner size="lg" />
-                    <p className="text-sm" style={{ color: 'var(--color-text-dim)' }}>
-                      Running {runningCmd?.toLowerCase() ?? ''}... this may take a moment.
-                    </p>
-                  </div>
-                ) : (
-                  <div
-                    className="rounded-lg p-3 font-mono text-xs overflow-auto max-h-60"
-                    style={{ background: '#0a0806', color: '#a8d8a8', border: '1px solid #2a2418' }}
-                  >
-                    <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{cmdOutput}</pre>
-                  </div>
+          <h2 className="text-base font-semibold mb-3" style={{ color: 'var(--color-primary)' }}>
+            Server Control
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {ACTIONS.map(action => (
+              <Button
+                key={action.cmd}
+                variant={action.danger ? 'danger-soft' : 'outline'}
+                onPress={() => runCmd(action)}
+                isDisabled={runningCmd !== null}
+                size="sm"
+              >
+                {action.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        <Modal>
+          <Modal.Backdrop
+            isOpen={runningCmd !== null}
+            onOpenChange={v => { if (!v && cmdDone) { setRunningCmd(null); setCmdOutput(null) } }}
+          >
+            <Modal.Container>
+              <Modal.Dialog>
+                <Modal.Header>
+                  <Modal.Heading>{runningCmd ?? ''}</Modal.Heading>
+                </Modal.Header>
+                <Modal.Body>
+                  {!cmdDone ? (
+                    <div className="flex flex-col items-center gap-4 py-6">
+                      <Spinner size="lg" />
+                      <p className="text-sm" style={{ color: 'var(--color-text-dim)' }}>
+                        Running {runningCmd?.toLowerCase() ?? ''}... this may take a moment.
+                      </p>
+                    </div>
+                  ) : (
+                    <div
+                      className="rounded-lg p-3 font-mono text-xs overflow-auto max-h-60"
+                      style={{ background: '#0a0806', color: '#a8d8a8', border: '1px solid #2a2418' }}
+                    >
+                      <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{cmdOutput}</pre>
+                    </div>
+                  )}
+                </Modal.Body>
+                {cmdDone && (
+                  <Modal.Footer>
+                    <Button onPress={() => { setRunningCmd(null); setCmdOutput(null) }}>
+                      Close
+                    </Button>
+                  </Modal.Footer>
                 )}
-              </Modal.Body>
-              {cmdDone && (
-                <Modal.Footer>
-                  <Button onPress={() => { setRunningCmd(null); setCmdOutput(null) }}>
-                    Close
-                  </Button>
-                </Modal.Footer>
-              )}
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
-    </div>
+              </Modal.Dialog>
+            </Modal.Container>
+          </Modal.Backdrop>
+        </Modal>
+      </div>
+      {confirmationDialog}
+    </>
   )
 }
 
