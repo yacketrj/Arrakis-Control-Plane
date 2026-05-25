@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Button, Modal, Spinner, toast } from '@heroui/react'
 import { api } from '../api/client'
-import type { Player, SpecTrack } from '../api/client'
+import type { JourneyNode, Player, SpecTrack } from '../api/client'
 import { mutationConfirmationCancelledMessage, useMutationConfirmation } from '../hooks/useMutationConfirmation'
 
-type ActionSection = 'resources' | 'specs'
+type ActionSection = 'resources' | 'specs' | 'journey'
 
 const ACTION_SECTIONS: { key: ActionSection; label: string }[] = [
   { key: 'resources', label: 'Stats' },
   { key: 'specs', label: 'Specs' },
+  { key: 'journey', label: 'Journey' },
 ]
 
 const XP_TRACKS = ['Combat', 'Crafting', 'Gathering', 'Exploration', 'Sabotage']
@@ -43,6 +44,10 @@ export default function PlayerActionsModalConfirmed({ player, open, onClose }: {
   const [specsLoaded, setSpecsLoaded] = useState(false)
   const [specsLoading, setSpecsLoading] = useState(false)
   const [specXPInputs, setSpecXPInputs] = useState<Record<string, number>>({})
+  const [nodes, setNodes] = useState<JourneyNode[]>([])
+  const [nodesLoaded, setNodesLoaded] = useState(false)
+  const [nodesLoading, setNodesLoading] = useState(false)
+  const [nodeSearch, setNodeSearch] = useState('')
   const { confirmMutation, confirmationDialog } = useMutationConfirmation()
 
   useEffect(() => {
@@ -51,6 +56,9 @@ export default function PlayerActionsModalConfirmed({ player, open, onClose }: {
       setPlayerSpecs([])
       setSpecsLoaded(false)
       setSpecXPInputs({})
+      setNodes([])
+      setNodesLoaded(false)
+      setNodeSearch('')
       setCharXPCurrent(null)
       return
     }
@@ -75,6 +83,15 @@ export default function PlayerActionsModalConfirmed({ player, open, onClose }: {
       .catch((e: unknown) => toast.danger(e instanceof Error ? e.message : String(e)))
       .finally(() => setSpecsLoading(false))
   }, [section, specsLoaded, open, player.controller_id])
+
+  useEffect(() => {
+    if (section !== 'journey' || nodesLoaded || !open) return
+    setNodesLoading(true)
+    api.players.journey(player.account_id)
+      .then(rows => { setNodes(rows); setNodesLoaded(true) })
+      .catch((e: unknown) => toast.danger(e instanceof Error ? e.message : String(e)))
+      .finally(() => setNodesLoading(false))
+  }, [section, nodesLoaded, open, player.account_id])
 
   const target = `actor:${player.id} · ctrl:${player.controller_id} · acct:${player.account_id}`
 
@@ -148,6 +165,12 @@ export default function PlayerActionsModalConfirmed({ player, open, onClose }: {
     return { track, currentXP: found ? found.xp : 0, inputVal: specXPInputs[track] ?? (found ? found.xp : 0) }
   }), [playerSpecs, specXPInputs])
 
+  const filteredNodes = useMemo(() => {
+    if (!nodeSearch) return nodes
+    const q = nodeSearch.toLowerCase()
+    return nodes.filter(node => node.node_id.toLowerCase().includes(q))
+  }, [nodes, nodeSearch])
+
   return (
     <>
       <Modal>
@@ -204,6 +227,37 @@ export default function PlayerActionsModalConfirmed({ player, open, onClose }: {
                             <thead><tr style={{ background: '#1a1610', borderBottom: '1px solid #2a2418' }}>{['Track', 'Current XP', 'Set XP', ''].map((h, idx) => <th key={idx} className="text-left px-3 py-2 font-semibold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>{h}</th>)}</tr></thead>
                             <tbody>{specRows.map((row, i) => <tr key={row.track} style={{ borderBottom: '1px solid #1a1610', background: i % 2 === 0 ? '#0d0b07' : '#0f0d09' }}><td className="px-3 py-2 font-semibold" style={{ color: 'var(--color-text)' }}>{row.track}</td><td className="px-3 py-2 font-mono" style={{ color: 'var(--color-text-dim)' }}>{row.currentXP.toLocaleString()}</td><td className="px-3 py-2"><input type="number" min={0} max={44182} value={row.inputVal} onChange={event => setSpecXPInputs(prev => ({ ...prev, [row.track]: Math.max(0, Math.min(44182, parseInt(event.target.value) || 0)) }))} className="rounded px-2 py-1 text-sm border w-28" style={inputStyle()} /></td><td className="px-3 py-2"><Button size="sm" variant="ghost" isDisabled={busy} onPress={() => runConfirmed({ path: '/api/v1/players/set-spec-xp', title: 'Set specialization XP', summary: `Set ${row.track} XP to ${row.inputVal} for ${player.name}.`, details: [`Track: ${row.track}`, `XP: ${row.inputVal}`], confirmLabel: 'Set XP', successLabel: `Set ${row.track} XP to ${row.inputVal}`, run: reason => api.players.setSpecXP(player.controller_id, row.track, row.inputVal, reason), after: () => setPlayerSpecs(prev => prev.find(spec => spec.track_type === row.track) ? prev.map(spec => spec.track_type === row.track ? { ...spec, xp: row.inputVal } : spec) : [...prev, { player_id: player.controller_id, track_type: row.track, xp: row.inputVal, level: 0 }]) })}>Set</Button></td></tr>)}</tbody>
                           </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {section === 'journey' && (
+                    <div className="flex flex-col gap-3 flex-1 min-h-0">
+                      <div className="flex items-center gap-3 shrink-0">
+                        <input className="flex-1 rounded px-2 py-1.5 text-xs border" style={inputStyle()} placeholder="Filter journey nodes..." value={nodeSearch} onChange={event => setNodeSearch(event.target.value)} />
+                        <Button size="sm" variant="ghost" onPress={() => setNodesLoaded(false)} isDisabled={nodesLoading}>{nodesLoading ? <Spinner size="sm" color="current" /> : 'Refresh'}</Button>
+                      </div>
+                      {nodesLoading ? <div className="flex justify-center py-8"><Spinner size="lg" /></div> : (
+                        <div className="overflow-y-auto rounded-lg flex-1 min-h-0" style={{ border: '1px solid #2a2418', background: '#0a0806' }}>
+                          <table className="w-full text-xs">
+                            <thead><tr style={{ background: '#1a1610', borderBottom: '1px solid #2a2418', position: 'sticky', top: 0 }}>{['Node ID', 'Done', 'Revealed', 'Reward', ''].map(h => <th key={h} className="text-left px-3 py-2 font-semibold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>{h}</th>)}</tr></thead>
+                            <tbody>
+                              {filteredNodes.map((node, i) => (
+                                <tr key={node.node_id} style={{ borderBottom: '1px solid #1a1610', background: i % 2 === 0 ? '#0d0b07' : '#0f0d09' }}>
+                                  <td className="px-3 py-1.5 font-mono" style={{ color: 'var(--color-text)' }}>{node.node_id}</td>
+                                  <td className="px-3 py-1.5">{node.is_complete ? '✓' : '—'}</td>
+                                  <td className="px-3 py-1.5">{node.is_revealed ? '✓' : '—'}</td>
+                                  <td className="px-3 py-1.5">{node.has_pending_reward ? '✓' : '—'}</td>
+                                  <td className="px-3 py-1.5"><div className="flex gap-1">
+                                    <Button size="sm" variant="ghost" isDisabled={busy} onPress={() => runConfirmed({ path: '/api/v1/players/journey/complete', title: 'Complete journey node', summary: `Complete journey node ${node.node_id} for ${player.name}.`, details: [`Node: ${node.node_id}`], confirmLabel: 'Complete node', successLabel: `Completed ${node.node_id}`, run: reason => api.players.journeyComplete(player.account_id, node.node_id, reason), after: () => setNodes(prev => prev.map(row => row.node_id === node.node_id || row.node_id.startsWith(node.node_id + '.') ? { ...row, is_complete: true, is_revealed: true } : row)) })}>{node.is_complete ? 'Re-do' : 'Complete'}</Button>
+                                    <Button size="sm" variant="danger-soft" isDisabled={busy} onPress={() => runConfirmed({ path: '/api/v1/players/journey/reset', title: 'Reset journey node', summary: `Reset journey node ${node.node_id} for ${player.name}.`, details: [`Node: ${node.node_id}`], confirmLabel: 'Reset node', successLabel: `Reset ${node.node_id}`, run: reason => api.players.journeyReset(player.account_id, node.node_id, reason), after: () => setNodes(prev => prev.map(row => row.node_id === node.node_id || row.node_id.startsWith(node.node_id + '.') ? { ...row, is_complete: false, has_pending_reward: false } : row)) })}>Reset</Button>
+                                  </div></td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          {filteredNodes.length === 0 && <div className="text-center py-8 text-xs" style={{ color: 'var(--color-text-dim)' }}>{nodes.length === 0 ? 'No journey nodes found' : 'No matching nodes'}</div>}
                         </div>
                       )}
                     </div>
