@@ -1,29 +1,29 @@
 # Dune Admin Release Notes
 
-## Current update: Player 360 read-only frontend tab
+## Current update: Player 360 launcher from Players table
 
 ### Why this update was made
 
-Player 360 now has a protected read-only backend profile endpoint, so this slice adds the first frontend surface for operators. The goal is to let operators load one consolidated support view without changing the existing Players, Inventory, Give Item, or Actions workflows and without introducing any new mutation paths.
+Player 360 compiled cleanly as a protected read-only backend and standalone frontend tab. This slice adds the operator shortcut that was planned after validation: a row-level `360` launcher from the existing Players table.
 
 ### What changed
 
-- Added `web/src/api/playerProfile.ts` with Player 360 response types and a protected profile fetch helper.
-- Added `web/src/tabs/Player360Tab.tsx` as a standalone read-only Player 360 page.
-- Added `Player 360` to the main app navigation in `web/src/App.tsx`.
-- Removed the unused Player 360 modal prototype so the supported frontend path is the standalone tab.
-- Updated `docs/player-360-profile.md` and `docs/admin-implementation-tasks.md` with the frontend status and validation focus.
+- Added `web/src/tabs/PlayersTabWith360Launcher.tsx` as a wrapper around the existing Players tab.
+- Added a read-only `360` button beside existing player row actions.
+- Updated `web/src/App.tsx` so the Players tab uses the launcher wrapper.
+- Updated `web/src/tabs/Player360Tab.tsx` so Player 360 reads the selected player ID and auto-loads the profile.
+- Updated `docs/player-360-profile.md` with the launcher status.
 
 ### Security and operator impact
 
 - Player 360 remains read-only.
+- No existing Inventory, Give Item, or Actions flows were changed.
 - No new player mutation paths were added.
-- Existing player workflows remain unchanged until the standalone tab validates cleanly.
-- The frontend surfaces section-level partial-data warnings without exposing raw backend internals.
+- The launcher stores only the selected player actor ID in browser local storage.
 
 ### Validation
 
-Expected validation:
+Expected validation after this launcher slice:
 
 ```bash
 gofmt -w *.go
@@ -35,6 +35,12 @@ npm run typecheck
 npm run lint
 npm run build
 ```
+
+---
+
+## Previous update: Player 360 read-only frontend tab
+
+Added the standalone read-only Player 360 frontend tab and navigation entry.
 
 ---
 
