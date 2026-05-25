@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Added extracted confirmed player admin-actions modal at `web/src/tabs/PlayerAdminActionsModal.tsx`.
+- Added dedicated confirmed player move modal at `web/src/tabs/PlayerTeleportModal.tsx`.
+- Added confirmed player resource, XP, specialization, and journey node actions modal at `web/src/tabs/PlayerActionsModalConfirmed.tsx`.
+- Added extracted confirmed inventory modal at `web/src/tabs/InventoryModal.tsx`.
 - Added shared frontend mutation confirmation hook at `web/src/hooks/useMutationConfirmation.tsx`.
 - Added mutation confirmation support for backend classification lookup, conservative fallback classification, risk/warning display, target context, rollback guidance, and admin reason capture.
 - Added validated Player 360 v1 read-only profile workflow with backend endpoint, standalone tab, and Players-table launcher.
@@ -61,6 +65,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Updated the active Players-table wrapper so Give Item, Inventory, Actions, Move, Admin, and Player 360 workflows route through extracted modal surfaces rather than expanding `PlayersTab.tsx`.
+- Updated Give Item, Inventory repair/delete, player resource/spec actions, journey node actions, player move, and player admin actions to use shared mutation confirmation and required admin reason capture.
 - Updated `docs/mutation-safety-framework.md` with the shared frontend confirmation hook, integration pattern, limitations, and follow-up migration tasks.
 - Updated `docs/admin-implementation-tasks.md` so the active focus is migrating existing high-risk workflows to the shared confirmation hook before Player 360 quick actions.
 - Updated `PATCH_NOTES.md` with the shared frontend mutation confirmation foundation status.
@@ -124,6 +130,8 @@ All notable changes to this project will be documented in this file.
 
 ### Security
 
+- Routed the active Players-table mutation workflows through shared confirmation and required admin reason capture: Give Item, Inventory repair/delete, resource/spec actions, journey node actions, player move, and player admin actions.
+- Kept Player 360 read-only while the high-risk player mutation surface was migrated into extracted confirmed modals.
 - Added shared frontend confirmation support so future high-risk UI actions can display mutation safety metadata and capture an admin reason before sending the mutation request.
 - Kept Player 360 quick actions blocked until existing high-risk workflows are migrated to shared confirmation and reason capture.
 - Validated Player 360 v1 as a protected read-only support surface with no new player mutation paths.
