@@ -1,4 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { api } from '../api/client'
+import type { Player } from '../api/client'
+import InventoryModal from './InventoryModal'
 import PlayersTab from './PlayersTab'
 
 const player360EventName = 'dune-admin-open-player-360'
@@ -43,22 +46,78 @@ function installLaunchButtons(root: HTMLElement) {
   }
 }
 
+function playerIdFromInventoryClick(target: EventTarget | null): number | null {
+  if (!(target instanceof HTMLElement)) return null
+  const button = target.closest('button')
+  if (!button) return null
+  if (button.textContent?.trim() !== 'Inventory') return null
+
+  const row = button.closest('tr')
+  const playerId = row?.querySelector('td')?.textContent?.trim()
+  if (!playerId || !/^\d+$/.test(playerId)) return null
+  return Number(playerId)
+}
+
 export default function PlayersTabWith360Launcher() {
   const rootRef = useRef<HTMLDivElement | null>(null)
+  const [players, setPlayers] = useState<Player[]>([])
+  const [inventoryPlayer, setInventoryPlayer] = useState<Player | null>(null)
+  const [showInventory, setShowInventory] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    api.players.list()
+      .then(rows => { if (active) setPlayers(rows) })
+      .catch(() => {})
+    return () => { active = false }
+  }, [])
 
   useEffect(() => {
     const root = rootRef.current
     if (!root) return
 
+    const handleInventoryClick = async (event: MouseEvent) => {
+      const playerId = playerIdFromInventoryClick(event.target)
+      if (!playerId) return
+
+      event.preventDefault()
+      event.stopPropagation()
+      event.stopImmediatePropagation()
+
+      let player = players.find(row => row.id === playerId) ?? null
+      if (!player) {
+        try {
+          const refreshed = await api.players.list()
+          setPlayers(refreshed)
+          player = refreshed.find(row => row.id === playerId) ?? null
+        } catch {
+          player = null
+        }
+      }
+
+      if (!player) return
+      setInventoryPlayer(player)
+      setShowInventory(true)
+    }
+
     installLaunchButtons(root)
+    root.addEventListener('click', handleInventoryClick, true)
     const observer = new MutationObserver(() => installLaunchButtons(root))
     observer.observe(root, { childList: true, subtree: true })
-    return () => observer.disconnect()
-  }, [])
+    return () => {
+      observer.disconnect()
+      root.removeEventListener('click', handleInventoryClick, true)
+    }
+  }, [players])
 
   return (
-    <div ref={rootRef} className="h-full">
-      <PlayersTab />
+    <div className="h-full">
+      <div ref={rootRef} className="h-full">
+        <PlayersTab />
+      </div>
+      {inventoryPlayer && (
+        <InventoryModal player={inventoryPlayer} open={showInventory} onClose={() => setShowInventory(false)} />
+      )}
     </div>
   )
 }
