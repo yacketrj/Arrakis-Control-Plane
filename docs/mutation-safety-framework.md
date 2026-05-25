@@ -18,6 +18,11 @@ This is a P0 foundation layer for features such as Player 360 quick actions, Inv
   - `web/src/tabs/PlayerActionsModalConfirmed.tsx`
   - `web/src/tabs/PlayerTeleportModal.tsx`
   - `web/src/tabs/PlayerAdminActionsModal.tsx`
+- Confirmed non-player mutation surfaces for current high-risk admin workflows:
+  - Storage add/remove item flows in `web/src/tabs/StorageTab.tsx`
+  - Database SQL execution in `web/src/tabs/DatabaseTab.tsx`
+  - Battlegroup server control in `web/src/tabs/BattlegroupTab.tsx`
+  - Blueprint import in `web/src/tabs/BlueprintsTab.tsx`
 - Optional `reason` capture from JSON request bodies.
 - Optional `X-Admin-Reason` header capture for admin workflows.
 - Environment-controlled reason enforcement for high-risk and destructive actions.
@@ -84,6 +89,24 @@ Currently covered by shared confirmation and required reason capture:
 
 Player 360 remains read-only. No Player 360 quick actions have been added.
 
+## Current non-player mutation coverage
+
+Currently covered by shared confirmation and required reason capture:
+
+- Storage add item to container.
+- Storage remove item from container.
+- Database Run SQL.
+- Battlegroup Server Control:
+  - Start
+  - Stop
+  - Restart
+  - Update
+  - Backup
+  - Restore
+- Blueprint import.
+
+Read-only views remain frictionless where possible, including database table/describe/sample/search views, Battlegroup pod/status/health diagnostics, Battlegroup support-bundle export, and Blueprint export.
+
 ## Risk levels
 
 | Risk | Meaning |
@@ -114,7 +137,7 @@ Reason text can be supplied in the `X-Admin-Reason` header or in a JSON request 
 
 Reason enforcement is controlled by `ADMIN_REQUIRE_REASON`. When enabled, high-risk and destructive requests must include a reason. When disabled, reason text is still captured when supplied.
 
-Frontend confirmed modals force reason collection for active Players-table mutation workflows before the request is sent.
+Frontend confirmed modals force reason collection for active high-risk workflows before the request is sent.
 
 ## Security rules
 
@@ -127,26 +150,25 @@ Frontend confirmed modals force reason collection for active Players-table mutat
 - Keep mutation preview metadata separate from actual authorization checks.
 - Keep Player 360 read-only until quick actions are explicitly implemented as new confirmed workflows.
 - Prefer extracted workflow modals over further expansion of legacy `PlayersTab.tsx`.
+- Preserve low-friction read-only views while confirming write, exec, import, or destructive flows.
 
 ## Current limitations
 
 - Operator identity is still based on shared admin-token access rather than named operator accounts.
-- Legacy inline modal code still exists in `PlayersTab.tsx` as cleanup debt, although the active wrapper path now routes the covered workflows through extracted confirmed modals.
 - Rollback hints describe operator guidance, but the backend does not yet create automatic before-change snapshots.
 - Reason enforcement is environment-controlled and not yet configurable from the UI.
 - Typed mutation wrappers are still needed for workflow-specific before/after metadata.
-- Storage, Database SQL, Battlegroup Exec, Blueprint import, and future Inventory Studio workflows still need shared confirmation review.
+- Future Inventory Studio v2 workflows and future Player 360 quick actions still need shared confirmation review as they are implemented.
 
 ## Follow-up tasks
 
-1. Remove legacy inline modal code from `PlayersTab.tsx` after extracted workflow routing is stable.
-2. Add Player 360 quick actions only as new confirmed workflows with reason capture and target metadata.
-3. Migrate Storage, Database SQL, Battlegroup Exec, Blueprint import, and future Inventory Studio actions to `useMutationConfirmation`.
-4. Add typed backend mutation wrappers per high-risk endpoint.
-5. Add before-change snapshot helpers for inventory, journey/progression, teleport, and storage operations.
-6. Add named operator identity when authentication supports individual users.
-7. Add audit export and filtering support.
-8. Add UI visibility for reason-enforcement state.
+1. Add Player 360 quick actions only as new confirmed workflows with reason capture and target metadata.
+2. Add shared confirmation to future Inventory Studio v2 workflows as they are implemented.
+3. Add typed backend mutation wrappers per high-risk endpoint.
+4. Add before-change snapshot helpers for inventory, journey/progression, teleport, storage, SQL, battlegroup exec, and blueprint import operations.
+5. Add named operator identity when authentication supports individual users.
+6. Add audit export and filtering support.
+7. Add UI visibility for reason-enforcement state.
 
 ## Validation
 
