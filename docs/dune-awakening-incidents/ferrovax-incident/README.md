@@ -60,6 +60,15 @@ Hyper-V NAT: no entries returned by Get-NetNat
 Hyper-V static NAT mappings: no entries returned by Get-NetNatStaticMapping
 ```
 
+### Additional Screenshot Confirmation
+
+```text
+Evidence type: screenshot of Hyper-V host PowerShell output
+Assessment: screenshot confirms the same Hyper-V host discovery values already recorded above
+Security note: unrelated token/credential material is visible in the background of the screenshot and is intentionally not reproduced in this incident record
+Handling note: future screenshots should be cropped to the terminal output or taken with credential files closed
+```
+
 ## Current Intake State
 
 ```text
@@ -73,7 +82,7 @@ Known working behavior: local management/status screen reports healthy services
 Known failing behavior: server does not appear in the in-game server list
 First known failure time UTC: unknown
 Recent changes: system was physically relocated near router and connected by wired Ethernet
-Evidence files received: local-status screenshot; Hyper-V host networking output
+Evidence files received: local-status screenshot; Hyper-V host networking output; Hyper-V host PowerShell screenshot
 Next evidence required: guest OS/runtime discovery, server registration/listing logs, active listener output, advertised address, and router/firewall/NAT path
 ```
 
