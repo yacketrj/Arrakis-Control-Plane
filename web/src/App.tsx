@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState, type ReactNode } from 'react'
+import { Suspense, lazy, useEffect, useState, type ReactNode } from 'react'
 import { useStatus } from './hooks/useStatus'
 import { getAdminToken, setAdminToken } from './api/client'
 
@@ -32,6 +32,12 @@ export default function App() {
   const [backendUrl, setBackendUrl] = useState(() => localStorage.getItem('dune_admin_backend') || '')
   const [tokenInput, setTokenInput] = useState(() => getAdminToken())
   const [activeTab, setActiveTab] = useState<TabId>('battlegroup')
+
+  useEffect(() => {
+    const openPlayer360 = () => setActiveTab('player-360')
+    window.addEventListener('dune-admin-open-player-360', openPlayer360)
+    return () => window.removeEventListener('dune-admin-open-player-360', openPlayer360)
+  }, [])
 
   const saveBackendSettings = () => {
     const trimmedUrl = backendUrl.trim()
@@ -239,7 +245,7 @@ function TabFallback() {
   )
 }
 
-function ConnectionBadge({ label, connected }: { label: boolean extends never ? never : string; connected: boolean }) {
+function ConnectionBadge({ label, connected }: { label: string; connected: boolean }) {
   return (
     <div className="flex items-center gap-1.5">
       <div className="w-2 h-2 rounded-full" style={{ background: connected ? 'var(--color-success)' : '#555' }} />
