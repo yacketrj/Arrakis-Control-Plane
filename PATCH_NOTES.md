@@ -1,6 +1,44 @@
 # Dune Admin Release Notes
 
-## Current update: Admin audit and mutation-safety documentation sync
+## Current update: Player 360 roadmap and design foundation
+
+### Why this update was made
+
+The DA Manager roadmap reached a clean transition point between the P0 safety foundation and the P1 operator-support surface. Admin Audit is implemented, Mutation Safety has a backend foundation, and Player 360 Profile is now the next feature slice. The roadmap still pointed at the completed audit foundation as the next implementation step, so the planning documents needed to be corrected before code work begins.
+
+### What changed
+
+- Updated `docs/admin-feature-design-and-priorities.md` with the current roadmap position between Phase 1 and Phase 2.
+- Marked Admin Action Audit Log as implemented foundation work in the feature roadmap.
+- Clarified Mutation Safety Framework as an in-progress backend foundation with remaining frontend confirmation and typed wrapper work.
+- Corrected the Player 360 roadmap entry to fold Currency and Online Status into Player Info.
+- Corrected the Battlegroup Status v2 roadmap row so Prometheus/Grafana graph work remains a future diagnostic improvement.
+- Added `docs/player-360-profile.md` as the design document for the next P1 read-only implementation slice.
+
+### Security and operator impact
+
+- Keeps the project aligned with the read-only-before-write rule.
+- Prevents Player 360 from becoming another mutation surface before visibility, preview, reason flow, and audit expectations are clear.
+- Defines Player 360 v1 as a protected read-only support view that aggregates existing player context without adding new high-risk actions.
+- Keeps future quick actions dependent on Mutation Safety and audit controls.
+
+### Validation
+
+Documentation-only update. Expected validation before implementation work continues:
+
+```bash
+go test ./...
+cd web
+npm install
+npm audit --audit-level=high
+npm run typecheck
+npm run lint
+npm run build
+```
+
+---
+
+## Previous update: Admin audit and mutation-safety documentation sync
 
 ### Why this update was made
 
