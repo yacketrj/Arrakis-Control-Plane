@@ -57,9 +57,11 @@ export default function App() {
     window.location.reload()
   }
 
-  const dbUnavailableStatus = getAdminToken() && status && !status.db_connected ? status : null
+  const browserAccessConfigured = Boolean(getAdminToken())
+  const dbUnavailableStatus = browserAccessConfigured && status && !status.db_connected ? status : null
   const dbUnavailable = dbUnavailableStatus !== null
-  const activeTabBlocked = dbUnavailable && dbBackedTabs.has(activeTab)
+  const activeTabBlockedByAccess = !browserAccessConfigured
+  const activeTabBlockedByDb = dbUnavailable && dbBackedTabs.has(activeTab)
 
   return (
     <div className="h-screen flex flex-col overflow-hidden" style={{ background: 'var(--color-background)' }}>
@@ -88,7 +90,7 @@ export default function App() {
           )}
           <button
             onClick={() => setShowBackendConfig(v => !v)}
-            title="Configure backend URL and admin token"
+            title="Configure backend URL and browser access"
             style={{
               background: 'transparent',
               border: '1px solid #2a2418',
@@ -105,7 +107,8 @@ export default function App() {
         </div>
       </div>
 
-      {dbUnavailableStatus && <DbUnavailableBanner status={dbUnavailableStatus} />}
+      {!browserAccessConfigured && <AccessBanner onConfigure={() => setShowBackendConfig(true)} />}
+      {browserAccessConfigured && dbUnavailableStatus && <DbUnavailableBanner status={dbUnavailableStatus} />}
 
       {showBackendConfig && (
         <div
@@ -144,18 +147,18 @@ export default function App() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <label style={{ fontSize: '11px', color: 'var(--color-text-dim)' }}>
-                Admin Token
+                Browser Access Key
               </label>
               <input
                 type="password"
                 value={tokenInput}
                 onChange={e => setTokenInput(e.target.value)}
-                placeholder="ADMIN_TOKEN from backend .env"
+                placeholder="Paste value from backend configuration"
                 style={{ background: 'var(--color-surface)', border: '1px solid #2a2418', borderRadius: '4px', color: 'var(--color-text)', fontFamily: 'monospace', fontSize: '12px', outline: 'none', padding: '6px 10px' }}
                 onKeyDown={e => { if (e.key === 'Enter') saveBackendSettings() }}
               />
               <span style={{ fontSize: '11px', color: 'var(--color-text-dim)' }}>
-                Stored locally in this browser and sent to the backend as X-Admin-Token.
+                Stored locally in this browser and sent to the backend with protected requests.
               </span>
             </div>
 
@@ -176,14 +179,14 @@ export default function App() {
           <div role="tablist" aria-label="Admin sections" className="flex gap-1 overflow-x-auto">
             {tabs.map(tab => {
               const selected = activeTab === tab.id
-              const blocked = dbUnavailable && dbBackedTabs.has(tab.id)
+              const blocked = activeTabBlockedByAccess || (dbUnavailable && dbBackedTabs.has(tab.id))
               return (
                 <button
                   key={tab.id}
                   role="tab"
                   aria-selected={selected}
                   onClick={() => setActiveTab(tab.id)}
-                  title={blocked ? 'DB connection required' : undefined}
+                  title={blocked ? 'Configuration required' : undefined}
                   style={{
                     background: selected ? 'var(--color-surface)' : 'transparent',
                     border: '1px solid #2a2418',
@@ -204,7 +207,7 @@ export default function App() {
           </div>
         </div>
         <div className={panelClass(activeTab)}>
-          {activeTabBlocked && dbUnavailableStatus ? <DbBlockedPanel status={dbUnavailableStatus} /> : <LazyTab>{renderTab(activeTab)}</LazyTab>}
+          {activeTabBlockedByAccess ? <AccessSetupPanel onConfigure={() => setShowBackendConfig(true)} /> : activeTabBlockedByDb && dbUnavailableStatus ? <DbBlockedPanel status={dbUnavailableStatus} /> : <LazyTab>{renderTab(activeTab)}</LazyTab>}
         </div>
       </div>
     </div>
@@ -264,6 +267,26 @@ function ConnectionBadge({ label, connected }: { label: string; connected: boole
     <div className="flex items-center gap-1.5">
       <div className="w-2 h-2 rounded-full" style={{ background: connected ? 'var(--color-success)' : '#555' }} />
       <span style={{ color: connected ? 'var(--color-text)' : 'var(--color-text-dim)' }}>{label}</span>
+    </div>
+  )
+}
+
+function AccessBanner({ onConfigure }: { onConfigure: () => void }) {
+  return (
+    <div className="px-6 py-2 text-xs flex items-center justify-between" style={{ background: '#2a1a0a', borderBottom: '1px solid #5a3a10', color: '#f0a830' }}>
+      <span><strong>Browser access is not configured.</strong> Protected tools are blocked until backend settings are saved.</span>
+      <button onClick={onConfigure} style={{ background: 'transparent', border: '1px solid #5a3a10', borderRadius: 4, color: '#f0a830', cursor: 'pointer', fontSize: 12, padding: '3px 8px' }}>Open Settings</button>
+    </div>
+  )
+}
+
+function AccessSetupPanel({ onConfigure }: { onConfigure: () => void }) {
+  return (
+    <div className="rounded-lg p-6 text-sm" style={{ background: '#0d0b07', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
+      <h2 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>Backend settings required</h2>
+      <p>This browser does not have the local access key saved, so protected API calls are blocked before they reach the backend.</p>
+      <p className="mt-2">Open settings, confirm the backend URL, paste the configured access value from the backend environment, then save and reload.</p>
+      <button onClick={onConfigure} style={{ marginTop: 16, background: 'var(--color-primary)', border: 'none', borderRadius: 4, color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, padding: '6px 12px' }}>Open Settings</button>
     </div>
   )
 }
