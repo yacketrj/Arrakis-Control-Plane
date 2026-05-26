@@ -4,7 +4,7 @@
 
 Inventory Studio v2 is the protected operator surface for inspecting and safely adjusting player inventory state.
 
-The feature started as a read-only inspection tool and now includes narrow confirmed item workflows. Every write path must preserve the same safety pattern:
+Every write path must preserve the same safety pattern:
 
 1. Operator selects a specific player and target.
 2. Operator reviews current inventory state.
@@ -13,7 +13,8 @@ The feature started as a read-only inspection tool and now includes narrow confi
 5. An admin reason is required.
 6. The mutation request includes the captured reason.
 7. Inventory is reloaded after success.
-8. Audit visibility remains available through the admin audit log.
+8. A post-action diff is displayed in the UI.
+9. Audit visibility remains available through the admin audit log.
 
 ## Current UI location
 
@@ -34,30 +35,13 @@ web/src/tabs/InventoryStudioTab.tsx
 ### Player selection
 
 - Loads players from the existing protected player list endpoint.
-- Supports search by:
-  - player name
-  - actor ID
-  - account ID
-  - controller ID
-  - class
-  - map
+- Supports search by player name, actor ID, account ID, controller ID, class, and map.
 
 ### Inventory inspection
 
 - Loads inventory rows for the selected player.
-- Supports inventory filtering by:
-  - item template
-  - item display name
-  - item row ID
-  - quality
-- Displays selected-item details:
-  - item ID
-  - template ID
-  - stack size
-  - quality
-  - durability
-  - max durability
-  - raw JSON inspection
+- Supports inventory filtering by item template, item display name, item row ID, and quality.
+- Displays selected-item details, including raw JSON inspection.
 
 ### Snapshot export
 
@@ -74,20 +58,7 @@ Snapshot exports include:
 
 Operators can load a previously exported Inventory Studio snapshot and compare it against the currently loaded inventory.
 
-The comparison detects:
-
-- added item rows
-- removed item rows
-- changed item rows
-
-Changed field detection currently covers:
-
-- template ID
-- name
-- stack size
-- quality
-- durability
-- max durability
+The comparison detects added, removed, and changed item rows. Changed field detection covers template ID, name, stack size, quality, durability, and max durability.
 
 Comparison is local in the browser. It does not upload the prior snapshot to the backend.
 
@@ -95,12 +66,7 @@ Comparison is local in the browser. It does not upload the prior snapshot to the
 
 Inventory Studio loads item templates from the existing protected templates endpoint.
 
-The catalog supports:
-
-- refresh
-- search by template ID
-- search by display name
-- selected-template detail display
+The catalog supports refresh, search by template ID or display name, and selected-template detail display.
 
 ### Confirmed item add
 
@@ -121,6 +87,7 @@ Safety behavior:
 - required admin reason capture
 - reason passed into `api.players.giveItem`
 - inventory reload after success
+- post-action diff display
 
 ### Confirmed item repair
 
@@ -133,6 +100,7 @@ Safety behavior:
 - required admin reason capture
 - reason passed into `api.players.repairItem`
 - inventory reload after success
+- post-action diff display
 
 ### Confirmed item removal
 
@@ -145,6 +113,23 @@ Safety behavior:
 - required admin reason capture
 - reason passed into `api.players.deleteItem`
 - inventory reload after success
+- post-action diff display
+
+### Post-action diff panel
+
+After a confirmed add, repair, or removal completes, Inventory Studio compares the before-action in-memory inventory list against the reloaded inventory.
+
+The panel displays:
+
+- action name
+- target
+- before item count
+- after item count
+- diff count
+- checked timestamp
+- added, removed, and changed item rows
+
+This is browser-local review state. It is not persisted server-side.
 
 ## Current non-goals
 
@@ -164,19 +149,19 @@ The current implementation does not yet include:
 - Do not add inventory writes without shared mutation confirmation.
 - Do not send inventory writes without an admin reason.
 - Do not bypass the before-action snapshot behavior for item add, repair, removal, or future edit workflows.
+- Do not bypass post-action diff review for confirmed Inventory Studio workflows.
 - Do not add Player 360 quick actions that mutate inventory until they reuse this same safety pattern.
 - Prefer one narrow confirmed workflow at a time over broad inventory editing surfaces.
 - Keep catalog browsing and snapshot comparison usable without requiring mutation confirmation.
 
 ## Recommended next work
 
-1. Add automatic post-action comparison by retaining the before-action snapshot in UI state and comparing it against the reloaded inventory.
-2. Add a dedicated Inventory Studio action history panel for the current browser session.
-3. Add stack-size edit only after before/after preview is displayed.
-4. Add quality edit only after before/after preview is displayed.
-5. Add server-side before-change snapshot persistence for inventory mutations.
-6. Add typed backend mutation wrappers for inventory operations.
-7. Add audit export and filtering improvements.
+1. Add a dedicated Inventory Studio action history panel for the current browser session.
+2. Add stack-size edit only after before/after preview is displayed.
+3. Add quality edit only after before/after preview is displayed.
+4. Add server-side before-change snapshot persistence for inventory mutations.
+5. Add typed backend mutation wrappers for inventory operations.
+6. Add audit export and filtering improvements.
 
 ## Validation
 
