@@ -18,6 +18,7 @@ var version = "dev" // set by goreleaser ldflags
 var (
 	captureMode       bool
 	setupMode         bool
+	diagnoseMode      bool
 	serverRuntime     string
 	sshHost           string
 	sshUser           string
@@ -98,6 +99,7 @@ func init() {
 	flag.StringVar(&listenAddr, "addr", envOr("LISTEN_ADDR", ":8080"), "HTTP listen address")
 	flag.BoolVar(&captureMode, "capture", false, "Capture RabbitMQ messages (grant + notifications) and print to stdout")
 	flag.BoolVar(&setupMode, "setup", false, "Interactive setup wizard — writes .env")
+	flag.BoolVar(&diagnoseMode, "diagnose", false, "Run staged SSH/runtime/DB connectivity diagnostics and exit")
 }
 
 func resolveKeyPath() string {
@@ -185,6 +187,27 @@ func printConfigErrors(errs []string) {
 	}
 }
 
+func printDiagnostics(payload connectivityDiagnosticsPayload) {
+	fmt.Printf("Connectivity diagnostics: ok=%t runtime=%s tunnel_mode=%s\n", payload.OK, payload.Runtime, payload.Mode)
+	for _, stage := range payload.Stages {
+		state := "FAIL"
+		if stage.OK {
+			state = "OK"
+		}
+		fmt.Printf("[%s] %s", state, stage.Name)
+		if stage.Detail != "" {
+			fmt.Printf(" - %s", stage.Detail)
+		}
+		if stage.Error != "" {
+			fmt.Printf(" - %s", stage.Error)
+		}
+		fmt.Println()
+	}
+	if payload.NextAction != "" {
+		fmt.Println("Next action:", payload.NextAction)
+	}
+}
+
 func main() {
 	flag.Parse()
 	serverRuntime = normalizeRuntime(serverRuntime)
@@ -192,6 +215,15 @@ func main() {
 	// Explicit -setup flag: reconfigure and exit (don't start server).
 	if setupMode {
 		runSetup()
+		return
+	}
+
+	if diagnoseMode {
+		payload := runConnectivityDiagnostics()
+		printDiagnostics(payload)
+		if !payload.OK {
+			os.Exit(1)
+		}
 		return
 	}
 
