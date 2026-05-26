@@ -24,6 +24,11 @@ function safeFilenamePart(value: string): string {
   return value.trim().replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'unknown'
 }
 
+function clampInt(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) return min
+  return Math.max(min, Math.min(max, Math.trunc(value)))
+}
+
 type InventorySnapshot = {
   exported_at?: string
   mode?: string
@@ -44,13 +49,9 @@ function snapshotItems(snapshot: InventorySnapshot): InventoryItem[] {
   return Array.isArray(snapshot.items) ? snapshot.items : []
 }
 
-function itemComparisonKey(item: InventoryItem): string {
-  return String(item.id)
-}
-
 function compareInventorySnapshots(before: InventoryItem[], after: InventoryItem[]): InventoryDiffRow[] {
-  const beforeMap = new Map(before.map(item => [itemComparisonKey(item), item]))
-  const afterMap = new Map(after.map(item => [itemComparisonKey(item), item]))
+  const beforeMap = new Map(before.map(item => [String(item.id), item]))
+  const afterMap = new Map(after.map(item => [String(item.id), item]))
   const keys = Array.from(new Set([...beforeMap.keys(), ...afterMap.keys()])).sort((a, b) => Number(a) - Number(b))
   const diffs: InventoryDiffRow[] = []
 
@@ -95,6 +96,8 @@ export default function InventoryStudioTab() {
   const [templatesLoading, setTemplatesLoading] = useState(false)
   const [templateSearch, setTemplateSearch] = useState('')
   const [selectedTemplateId, setSelectedTemplateId] = useState('')
+  const [addQty, setAddQty] = useState(1)
+  const [addQuality, setAddQuality] = useState(1)
   const [mutationBusy, setMutationBusy] = useState(false)
   const { confirmMutation, confirmationDialog } = useMutationConfirmation()
 
@@ -182,7 +185,7 @@ export default function InventoryStudioTab() {
     if (!selectedPlayer) return
     downloadJson(`inventory-snapshot-${safeFilenamePart(selectedPlayer.name)}-${selectedPlayer.id}.json`, {
       exported_at: new Date().toISOString(),
-      mode: 'read-only-inventory-studio-v2-foundation',
+      mode: 'inventory-studio-snapshot',
       player: selectedPlayer,
       item_count: items.length,
       items,
@@ -190,17 +193,70 @@ export default function InventoryStudioTab() {
     toast.success('Inventory snapshot exported')
   }
 
-  const exportBeforeActionSnapshot = (action: string, item: InventoryItem) => {
+  const exportBeforeActionSnapshot = (action: string, details: Record<string, unknown>) => {
     if (!selectedPlayer) return
-    downloadJson(`inventory-before-${action}-${safeFilenamePart(selectedPlayer.name)}-${selectedPlayer.id}-item-${item.id}.json`, {
+    downloadJson(`inventory-before-${action}-${safeFilenamePart(selectedPlayer.name)}-${selectedPlayer.id}-${safeFilenamePart(new Date().toISOString())}.json`, {
       exported_at: new Date().toISOString(),
       mode: 'inventory-studio-before-action-snapshot',
       action,
       player: selectedPlayer,
-      target_item: item,
+      ...details,
       item_count: items.length,
       items,
     })
+  }
+
+  const addSelectedTemplateItem = async () => {
+    if (!selectedPlayer || !selectedTemplate) return
+    const qty = clampInt(addQty, 1, 9999)
+    const quality = clampInt(addQuality, 0, 5)
+
+    let reason: string | undefined
+    try {
+      reason = await confirmMutation({
+        method: 'POST',
+        path: '/api/v1/players/give-item',
+        title: 'Add catalog item to inventory',
+        summary: `Add ${qty}× ${selectedTemplate.id} to ${selectedPlayer.name}.`,
+        target: `actor:${selectedPlayer.id} · template:${selectedTemplate.id}`,
+        details: [
+          `Player: ${selectedPlayer.name}`,
+          `Online state: ${selectedPlayer.online_status || 'Offline'}`,
+          `Template: ${selectedTemplate.id}`,
+          `Catalog name: ${selectedTemplate.name || '—'}`,
+          `Quantity: ${qty}`,
+          `Quality: ${quality}`,
+          'This uses the direct inventory write path for the selected player.',
+          'A before-action inventory snapshot will be downloaded before the add request is sent.',
+        ],
+        confirmLabel: 'Add item',
+        forceReason: true,
+      })
+    } catch (e: unknown) {
+      if (e instanceof Error && e.message === mutationConfirmationCancelledMessage) {
+        toast.warning('Cancelled')
+        return
+      }
+      toast.danger(e instanceof Error ? e.message : String(e))
+      return
+    }
+
+    if (!reason) {
+      toast.warning('Cancelled: admin reason is required for this action')
+      return
+    }
+
+    setMutationBusy(true)
+    try {
+      exportBeforeActionSnapshot('add', { target_template: selectedTemplate, quantity: qty, quality })
+      await api.players.giveItem(selectedPlayer.id, selectedTemplate.id, qty, quality, reason)
+      toast.success(`Added ${qty}× ${selectedTemplate.id}`)
+      await loadInventory(selectedPlayer)
+    } catch (e: unknown) {
+      toast.danger(e instanceof Error ? e.message : String(e))
+    } finally {
+      setMutationBusy(false)
+    }
   }
 
   const repairSelectedItem = async () => {
@@ -241,7 +297,7 @@ export default function InventoryStudioTab() {
 
     setMutationBusy(true)
     try {
-      exportBeforeActionSnapshot('repair', selectedItem)
+      exportBeforeActionSnapshot('repair', { target_item: selectedItem })
       await api.players.repairItem(selectedItem.id, reason)
       toast.success(`Repaired ${itemLabel(selectedItem)}`)
       await loadInventory(selectedPlayer)
@@ -292,7 +348,7 @@ export default function InventoryStudioTab() {
 
     setMutationBusy(true)
     try {
-      exportBeforeActionSnapshot('delete', selectedItem)
+      exportBeforeActionSnapshot('delete', { target_item: selectedItem })
       await api.players.deleteItem(selectedItem.id, reason)
       toast.success(`Removed ${itemLabel(selectedItem)}`)
       await loadInventory(selectedPlayer)
@@ -323,7 +379,7 @@ export default function InventoryStudioTab() {
     <>
       <div className="flex flex-col gap-3 h-full min-h-0 overflow-hidden">
         <div className="rounded-lg px-4 py-2 text-xs" style={{ background: '#0f0d09', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
-          <strong style={{ color: 'var(--color-primary)' }}>Inventory Studio v2:</strong> player inventory inspection, filtering, selected-item detail, snapshot export, local snapshot comparison, item catalog browsing, and confirmed selected-item repair/removal with before-action snapshots.
+          <strong style={{ color: 'var(--color-primary)' }}>Inventory Studio v2:</strong> player inventory inspection, filtering, selected-item detail, snapshot export, local snapshot comparison, item catalog browsing, and confirmed add/repair/removal with before-action snapshots.
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr_420px] gap-3 flex-1 min-h-0 overflow-hidden">
@@ -478,6 +534,36 @@ export default function InventoryStudioTab() {
                   <div className="mt-2 grid grid-cols-1 gap-2">
                     <Detail label="Selected Template" value={selectedTemplate.id} />
                     <Detail label="Catalog Name" value={selectedTemplate.name || '—'} />
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="flex flex-col gap-1" style={{ color: 'var(--color-text-dim)' }}>
+                        Quantity
+                        <input
+                          type="number"
+                          min={1}
+                          max={9999}
+                          value={addQty}
+                          onChange={event => setAddQty(clampInt(Number(event.target.value), 1, 9999))}
+                          className="rounded px-2 py-1 text-xs border"
+                          style={{ background: '#0d0b07', color: 'var(--color-text)', borderColor: '#2a2418', outline: 'none' }}
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1" style={{ color: 'var(--color-text-dim)' }}>
+                        Quality
+                        <input
+                          type="number"
+                          min={0}
+                          max={5}
+                          value={addQuality}
+                          onChange={event => setAddQuality(clampInt(Number(event.target.value), 0, 5))}
+                          className="rounded px-2 py-1 text-xs border"
+                          style={{ background: '#0d0b07', color: 'var(--color-text)', borderColor: '#2a2418', outline: 'none' }}
+                        />
+                      </label>
+                    </div>
+                    <Button size="sm" onPress={addSelectedTemplateItem} isDisabled={!selectedPlayer || mutationBusy}>
+                      {mutationBusy ? <Spinner size="sm" color="current" /> : null}
+                      Add Selected Catalog Item
+                    </Button>
                   </div>
                 )}
               </div>
