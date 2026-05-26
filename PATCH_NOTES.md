@@ -1,32 +1,33 @@
 # Dune Admin Release Notes
 
-## Current update: Inventory Studio v2 post-action diff panel
+## Current update: Startup hardening and DB-down UI gating
 
 ### Why this update was made
 
-Inventory Studio v2 now has confirmed add, repair, and removal workflows. Operators need an immediate view of what changed after a confirmed inventory action completes. This update adds a post-action diff panel that compares the in-memory before-action inventory state against the reloaded inventory after mutation.
+Startup and database connectivity are release-critical. If SSH, tunnel, discovery, or DB connection fails, the application must not look operational while DB-backed tools are unusable.
 
 ### What changed
 
-- Updated `web/src/tabs/InventoryStudioTab.tsx` with a post-action diff panel.
-- Retained the in-memory before-action inventory list for add, repair, and removal operations.
-- Compared the before-action inventory against the reloaded inventory after successful mutation.
-- Added post-action summary fields:
-  - action
-  - target
-  - before item count
-  - after item count
-  - diff count
-  - checked timestamp
-- Reused the existing diff rendering for added, removed, and changed item rows.
-- Refactored the Inventory Studio component into smaller local helper components to reduce future edit risk.
+- Added `config_paths.go` with config-safe local path expansion and validation.
+- Added support for documented Windows percent-variable home-directory SSH key paths.
+- Rejected unsupported PowerShell-style path expressions during validation.
+- Tightened runtime validation for SSH, DB, admin token, tunnel mode, and port configuration.
+- Changed startup so invalid configuration exits and tells the operator to rerun setup.
+- Changed connection failure messaging from ambiguous startup behavior to explicit degraded mode.
+- Added frontend DB-down gating for DB-backed tabs.
+- Added a DB-unavailable banner when backend status reports `db_connected=false`.
+- Added a DB-required panel with SSH/DB/tunnel state and reconnect retry.
+- Added frontend startup diagnostic typing.
+- Expanded the production security release gate for startup reliability, config validation, injection resistance, logging redaction, encryption in transit, and secret-at-rest requirements.
+- Added Battlegroup config-management and observability design notes from operator review intake.
 
 ### Security and operator impact
 
-- Confirmed Inventory Studio actions now provide immediate before/after review in the UI.
-- Local before-action snapshot export remains in place before each mutation request is sent.
-- Shared mutation confirmation and required admin reason capture remain in place.
-- Player 360 remains read-only.
+- Invalid configuration should fail earlier and more clearly.
+- DB-backed tabs no longer present as usable when DB connectivity is down.
+- Secret values are validated as opaque values for presence/control characters.
+- Full encrypted secret storage remains a P0 release-gate item.
+- The direct DB connection-construction patch was blocked by the connector safety filter and should be validated from the local checkout if `update.ps1` reports compile or startup issues.
 
 ### Validation
 
@@ -36,7 +37,13 @@ Validation required in the Windows development environment:
 .\update.ps1
 ```
 
-GitHub Actions also runs Linux and Windows validation on push.
+Also manually validate startup repair, unsupported path rejection, supported path expansion, and DB-down frontend gating.
+
+---
+
+## Previous update: Inventory Studio v2 post-action diff panel
+
+Inventory Studio v2 added a post-action diff panel for confirmed add, repair, and removal workflows.
 
 ---
 
@@ -61,9 +68,3 @@ Inventory Studio v2 added confirmed selected-item repair with a before-action in
 ## Previous update: Inventory Studio v2 item catalog browser
 
 Inventory Studio v2 added a read-only item catalog browser.
-
----
-
-## Previous update: Inventory Studio v2 snapshot comparison
-
-Inventory Studio v2 added local comparison against a previously exported inventory snapshot while remaining read-only.
