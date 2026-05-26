@@ -6,9 +6,12 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 )
+
+const diagnosticStageTimeout = 8 * time.Second
 
 type connectivityDiagnosticStage struct {
 	Name   string `json:"name"`
@@ -23,6 +26,13 @@ type connectivityDiagnosticsPayload struct {
 	Runtime    string                        `json:"runtime"`
 	Stages     []connectivityDiagnosticStage `json:"stages"`
 	NextAction string                        `json:"next_action,omitempty"`
+}
+
+type dbDiscoveryResult struct {
+	ns   string
+	pod  string
+	host string
+	err  error
 }
 
 func diagnosticOK(name, detail string) connectivityDiagnosticStage {
@@ -52,8 +62,24 @@ func runRemoteDiagnostic(client *ssh.Client, command string) (string, error) {
 		return "", err
 	}
 	defer sess.Close()
-	out, err := sess.CombinedOutput(command)
-	return strings.TrimSpace(string(out)), err
+
+	type result struct {
+		out string
+		err error
+	}
+	ch := make(chan result, 1)
+	go func() {
+		out, err := sess.CombinedOutput(command)
+		ch <- result{out: strings.TrimSpace(string(out)), err: err}
+	}()
+
+	select {
+	case res := <-ch:
+		return res.out, res.err
+	case <-time.After(diagnosticStageTimeout):
+		_ = sess.Close()
+		return "", fmt.Errorf("remote command timed out after %s", diagnosticStageTimeout)
+	}
 }
 
 func diagnosticRuntimeDetail(client *ssh.Client) string {
@@ -62,6 +88,40 @@ func diagnosticRuntimeDetail(client *ssh.Client) string {
 		return "remote runtime tools could not be queried"
 	}
 	return out
+}
+
+func discoverDBPodWithTimeout(client *ssh.Client) (string, string, string, error) {
+	ch := make(chan dbDiscoveryResult, 1)
+	go func() {
+		ns, pod, host, err := discoverDBPod(client)
+		ch <- dbDiscoveryResult{ns: ns, pod: pod, host: host, err: err}
+	}()
+
+	select {
+	case res := <-ch:
+		return res.ns, res.pod, res.host, res.err
+	case <-time.After(diagnosticStageTimeout):
+		return "", "", "", fmt.Errorf("database discovery timed out after %s", diagnosticStageTimeout)
+	}
+}
+
+func sshDialRemoteWithTimeout(client *ssh.Client, remoteAddr string) (net.Conn, error) {
+	type result struct {
+		conn net.Conn
+		err  error
+	}
+	ch := make(chan result, 1)
+	go func() {
+		conn, err := client.Dial("tcp", remoteAddr)
+		ch <- result{conn: conn, err: err}
+	}()
+
+	select {
+	case res := <-ch:
+		return res.conn, res.err
+	case <-time.After(diagnosticStageTimeout):
+		return nil, fmt.Errorf("remote TCP dial timed out after %s", diagnosticStageTimeout)
+	}
 }
 
 func runConnectivityDiagnostics() connectivityDiagnosticsPayload {
@@ -88,14 +148,14 @@ func runConnectivityDiagnostics() connectivityDiagnosticsPayload {
 
 	stages = append(stages, diagnosticOK("remote_runtime_tools", diagnosticRuntimeDetail(client)))
 
-	ns, pod, host, err := discoverDBPod(client)
+	ns, pod, host, err := discoverDBPodWithTimeout(client)
 	if err != nil {
 		return diagnosticFail("db_discovery", err, "Verify runtime mode, DB pod/container naming, battlegroup state, and discovery commands on the remote host.", stages)
 	}
 	stages = append(stages, diagnosticOK("db_discovery", fmt.Sprintf("namespace=%s pod=%s endpoint=%s", ns, pod, host)))
 
 	remoteAddr := fmt.Sprintf("%s:%d", host, dbPort)
-	remoteConn, err := client.Dial("tcp", remoteAddr)
+	remoteConn, err := sshDialRemoteWithTimeout(client, remoteAddr)
 	if err != nil {
 		return diagnosticFail("remote_db_tcp", err, "DB endpoint was discovered but is not reachable through SSH from the remote host context.", stages)
 	}
