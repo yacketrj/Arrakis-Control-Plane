@@ -57,7 +57,8 @@ export default function App() {
     window.location.reload()
   }
 
-  const dbUnavailable = Boolean(getAdminToken() && status && !status.db_connected)
+  const dbUnavailableStatus = getAdminToken() && status && !status.db_connected ? status : null
+  const dbUnavailable = dbUnavailableStatus !== null
   const activeTabBlocked = dbUnavailable && dbBackedTabs.has(activeTab)
 
   return (
@@ -104,7 +105,7 @@ export default function App() {
         </div>
       </div>
 
-      {dbUnavailable && <DbUnavailableBanner status={status} />}
+      {dbUnavailableStatus && <DbUnavailableBanner status={dbUnavailableStatus} />}
 
       {showBackendConfig && (
         <div
@@ -203,7 +204,7 @@ export default function App() {
           </div>
         </div>
         <div className={panelClass(activeTab)}>
-          {activeTabBlocked ? <DbBlockedPanel status={status} /> : <LazyTab>{renderTab(activeTab)}</LazyTab>}
+          {activeTabBlocked && dbUnavailableStatus ? <DbBlockedPanel status={dbUnavailableStatus} /> : <LazyTab>{renderTab(activeTab)}</LazyTab>}
         </div>
       </div>
     </div>
