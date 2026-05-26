@@ -1,25 +1,25 @@
 # Dune Admin Release Notes
 
-## Current update: Inventory Studio v2 snapshot comparison
+## Current update: Inventory Studio v2 item catalog browser
 
 ### Why this update was made
 
-Inventory Studio v2 needs safe before/after visibility before item editing workflows are added. This update adds local comparison against a previously exported inventory snapshot while keeping the feature read-only.
+Inventory Studio v2 needs a validated item catalog browsing surface before future inventory edit workflows are introduced. This update adds a read-only catalog browser inside Inventory Studio.
 
 ### What changed
 
-- Updated `web/src/tabs/InventoryStudioTab.tsx` with snapshot comparison support.
-- Added local JSON snapshot loading from a previously exported Inventory Studio snapshot.
-- Added inventory diff detection for added, removed, and changed item rows.
-- Added diff details for template, name, stack, quality, durability, and max durability changes.
-- Added current-vs-snapshot summary counts.
-- Kept comparison entirely local in the browser.
+- Updated `web/src/tabs/InventoryStudioTab.tsx` with item catalog browsing.
+- Loaded item templates from the existing player template endpoint.
+- Added catalog refresh.
+- Added catalog search by template ID and display name.
+- Added selected-template detail display.
+- Kept the catalog browser read-only.
 
 ### Security and operator impact
 
 - Inventory Studio v2 remains read-only.
 - No item edit controls were added in this slice.
-- Snapshot compare gives operators a safer review path before future confirmed edit workflows are added.
+- Catalog browsing prepares the UI for future confirmed add/edit workflows without introducing new mutation paths.
 - Player 360 remains read-only.
 
 ### Validation
@@ -31,6 +31,12 @@ Validation required in the Windows development environment:
 ```
 
 GitHub Actions also runs Linux and Windows validation on push.
+
+---
+
+## Previous update: Inventory Studio v2 snapshot comparison
+
+Inventory Studio v2 added local comparison against a previously exported inventory snapshot while remaining read-only.
 
 ---
 
@@ -61,9 +67,3 @@ Battlegroup Exec server-control actions were migrated to shared mutation confirm
 ## Previous update: Database SQL shared mutation confirmation migration
 
 Database SQL was migrated to shared mutation confirmation with required admin reason capture.
-
----
-
-## Previous update: Storage shared mutation confirmation migration
-
-Storage container add/remove item operations were migrated to shared mutation confirmation with required admin reason capture.
