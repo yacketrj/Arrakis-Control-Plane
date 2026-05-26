@@ -1,0 +1,82 @@
+name: CI Linux Validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-linux-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Linux compile and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.3'
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Verify Go formatting
+        run: |
+          files="$(gofmt -l *.go)"
+          if [ -n "$files" ]; then
+            echo "Go files need formatting:"
+            echo "$files"
+            exit 1
+          fi
+
+      - name: Verify Go modules
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+          go mod verify
+
+      - name: Run Go vet
+        run: go vet ./...
+
+      - name: Run Go tests
+        run: go test -v ./...
+
+      - name: Build Go backend
+        run: go build -trimpath -o dist/linux/dune-admin .
+
+      - name: Install frontend dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Audit frontend dependencies
+        working-directory: web
+        run: npm audit --audit-level=high
+
+      - name: Typecheck frontend
+        working-directory: web
+        run: npm run typecheck
+
+      - name: Lint frontend
+        working-directory: web
+        run: npm run lint
+
+      - name: Build frontend
+        working-directory: web
+        run: npm run build
