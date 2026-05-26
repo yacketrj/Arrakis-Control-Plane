@@ -16,13 +16,13 @@ const StorageTab = lazy(() => import('./tabs/StorageTab'))
 type TabId = 'battlegroup' | 'players' | 'player-360' | 'inventory-studio' | 'database' | 'db-routines' | 'audit' | 'logs' | 'blueprints' | 'storage'
 
 const tabs: Array<{ id: TabId; label: string }> = [
+  { id: 'audit', label: 'Audit' },
   { id: 'battlegroup', label: 'Battlegroup' },
   { id: 'players', label: 'Players' },
   { id: 'player-360', label: 'Player 360' },
   { id: 'inventory-studio', label: 'Inventory Studio' },
   { id: 'database', label: 'Database' },
   { id: 'db-routines', label: 'DB Routines' },
-  { id: 'audit', label: 'Audit' },
   { id: 'logs', label: 'Logs' },
   { id: 'blueprints', label: 'Blueprints' },
   { id: 'storage', label: 'Storage' },
@@ -35,7 +35,7 @@ export default function App() {
   const [showBackendConfig, setShowBackendConfig] = useState(false)
   const [backendUrl, setBackendUrl] = useState(() => localStorage.getItem('dune_admin_backend') || '')
   const [tokenInput, setTokenInput] = useState(() => getAdminToken())
-  const [activeTab, setActiveTab] = useState<TabId>('battlegroup')
+  const [activeTab, setActiveTab] = useState<TabId>('audit')
 
   useEffect(() => {
     const openPlayer360 = () => setActiveTab('player-360')
