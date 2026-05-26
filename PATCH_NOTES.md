@@ -1,51 +1,43 @@
 # Dune Admin Release Notes
 
-## Current update: GitHub CI validation workflows
+## Current update: Inventory Studio v2 read-only foundation
 
 ### Why this update was made
 
-Local `update.ps1` validation remains important because it tests the operator's Windows development environment, but it cannot be run from the assistant runtime. This update adds GitHub-hosted validation workflows so pushes and pull requests receive independent Linux and Windows compile/test signals.
+Inventory Studio v2 is the next P1 operator-support feature after Player 360 and the shared confirmation work. This update starts Inventory Studio as a read-only inspection and snapshot page.
 
 ### What changed
 
-- Added `.github/workflows/ci-linux.yml`.
-- Added `.github/workflows/ci-windows.yml`.
-- Both workflows run on push, pull request, and manual dispatch.
-- Both workflows validate:
-  - Go formatting
-  - Go module tidiness
-  - Go module verification
-  - `go vet ./...`
-  - `go test -v ./...`
-  - backend build
-  - frontend dependency install with `npm ci`
-  - frontend audit with `npm audit --audit-level=high`
-  - frontend typecheck
-  - frontend lint
-  - frontend build
-- Linux builds `dist/linux/dune-admin`.
-- Windows builds `dist/windows/dune-admin.exe`.
+- Added `web/src/tabs/InventoryStudioTab.tsx`.
+- Added an `Inventory Studio` tab to app navigation.
+- Added player search and selection.
+- Added inventory loading for the selected player.
+- Added inventory filtering by item template, item name, item ID, and quality.
+- Added selected-item read-only detail view.
+- Added raw selected-item JSON inspection.
+- Added inventory snapshot export as JSON.
 
 ### Security and operator impact
 
-- GitHub CI now provides a VM-like validation signal for repository pushes.
-- Local `update.ps1` remains the final environment-specific Windows validation path.
-- CI does not replace local testing for machine-specific PATH, locked files, local credentials, or operator runtime configuration.
+- Inventory Studio v2 starts with visibility and snapshot export only.
+- No item edit controls were added in this slice.
+- Player 360 remains read-only.
 
 ### Validation
 
-Validation runs automatically on push and pull request. Manual validation is available from the GitHub Actions tab with:
-
-```text
-CI Linux Validation
-CI Windows Validation
-```
-
-Local validation remains:
+Validation required in the Windows development environment:
 
 ```powershell
 .\update.ps1
 ```
+
+GitHub Actions also runs Linux and Windows validation on push.
+
+---
+
+## Previous update: GitHub CI validation workflows
+
+GitHub-hosted Linux and Windows validation workflows were added for push, pull request, and manual dispatch.
 
 ---
 
@@ -70,27 +62,3 @@ Database SQL was migrated to shared mutation confirmation with required admin re
 ## Previous update: Storage shared mutation confirmation migration
 
 Storage container add/remove item operations were migrated to shared mutation confirmation with required admin reason capture.
-
----
-
-## Previous update: Confirmed player admin actions workflow
-
-Player admin actions were migrated to a dedicated confirmed modal with required admin reason capture.
-
----
-
-## Previous update: Confirmed player move workflow
-
-Player move actions were migrated to a dedicated confirmed modal with required admin reason capture and online-state safeguards.
-
----
-
-## Previous update: Journey node shared mutation confirmation migration
-
-Journey node complete/reset actions were migrated to the confirmed Player Actions modal with required admin reason capture.
-
----
-
-## Previous update: Player resource/action shared mutation confirmation migration
-
-Resource, XP, specialization, and faction reputation actions were migrated to the confirmed Player Actions modal with required admin reason capture.
