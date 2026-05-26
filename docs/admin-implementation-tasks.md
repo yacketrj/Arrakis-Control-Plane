@@ -37,9 +37,11 @@ Every feature task must update:
 | P0 | Battlegroup Exec confirmation migration | Done | `docs/mutation-safety-framework.md` | Windows `update.ps1` validation |
 | P0 | Blueprint import confirmation migration | Done | `docs/mutation-safety-framework.md` | Windows `update.ps1` validation |
 | P1 | Player 360 Profile | Done | `docs/player-360-profile.md` | Go + frontend validation clean |
-| P1 | Inventory Studio v2 read-only foundation | Done | `docs/inventory-studio.md` required | Windows `update.ps1` validation |
-| P1 | Inventory Studio v2 snapshot compare | Done | `docs/inventory-studio.md` required | Windows `update.ps1` validation |
-| P1 | Inventory Studio v2 confirmed edit workflows | Planned | `docs/inventory-studio.md` required | Go + frontend tests |
+| P1 | Inventory Studio v2 read-only foundation | Done | `docs/inventory-studio.md` | Windows `update.ps1` validation |
+| P1 | Inventory Studio v2 snapshot compare | Done | `docs/inventory-studio.md` | Windows `update.ps1` validation |
+| P1 | Inventory Studio v2 item catalog browser | Done | `docs/inventory-studio.md` | Windows `update.ps1` validation |
+| P1 | Inventory Studio v2 confirmed add/repair/remove workflows | Done | `docs/inventory-studio.md` | Windows `update.ps1` validation |
+| P1 | Inventory Studio v2 post-action diff panel | Next | `docs/inventory-studio.md` | Go + frontend tests |
 | P1 | Battlegroup Status v2 | Planned | `docs/battlegroup-status-v2.md` required | Go + frontend tests |
 | P1 | Broadcast Center | Planned | `docs/broadcast-center.md` required | Go + frontend tests |
 | P1 | Safe Offline Teleport / Rescue | Planned | `docs/safe-teleport-rescue.md` required | Go + frontend tests |
@@ -57,7 +59,7 @@ Every feature task must update:
 
 ### 1. Inventory Studio v2
 
-Read-only Inventory Studio v2 foundation is now in place:
+Inventory Studio v2 now includes:
 
 - Player search and selection.
 - Inventory loading for the selected player.
@@ -65,8 +67,14 @@ Read-only Inventory Studio v2 foundation is now in place:
 - Selected-item details and raw JSON inspection.
 - Snapshot export.
 - Local comparison against a previously exported inventory snapshot.
+- Item catalog browsing.
+- Confirmed catalog item add.
+- Confirmed selected-item repair.
+- Confirmed selected-item removal.
+- Before-action snapshot export for confirmed workflows.
+- Shared mutation confirmation and required admin reason capture for confirmed workflows.
 
-Next Inventory Studio work should add confirmed edit workflows only after documenting and validating before/after snapshot behavior.
+Next Inventory Studio work should add an automatic post-action diff panel that compares the before-action snapshot against the reloaded inventory after add, repair, or removal.
 
 ### 2. Harden Mutation Safety Framework v1
 
@@ -81,7 +89,7 @@ The explicit current mutation-confirmation migration set is complete for:
 Next framework hardening tasks:
 
 - Typed backend mutation wrappers.
-- Before-change snapshot helpers.
+- Server-side before-change snapshot helpers.
 - Audit export and filtering.
 - UI visibility for reason-enforcement state.
 
