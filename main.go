@@ -33,6 +33,7 @@ var (
 	dbName            string
 	dbSchema          string
 	listenAddr        string
+	startupConnectErr string
 )
 
 func loadDotEnv() {
@@ -208,7 +209,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Auto-run setup only when .env is missing or required values are missing/invalid.
+	// Auto-run setup when .env is missing or required values are missing/invalid.
 	alreadyConnected := false
 	if needsSetup() {
 		if _, err := os.Stat(".env"); err == nil {
@@ -231,17 +232,22 @@ func main() {
 	}()
 
 	if !alreadyConnected {
-		// Connect synchronously (SSH + DB).
+		if errs := requiredConfigErrors(); len(errs) > 0 {
+			printConfigErrors(errs)
+			fmt.Fprintln(os.Stderr, "Run .\\dune-admin.exe -setup to repair configuration.")
+			os.Exit(1)
+		}
+		// Connect synchronously. If this fails, the API starts in degraded mode so /api/v1/status and /api/v1/reconnect remain available.
 		if msg, ok := cmdConnect().(msgConnect); ok && msg.err != nil {
-			fmt.Fprintln(os.Stderr, "connect:", msg.err)
-			fmt.Fprintln(os.Stderr, "Starting server anyway — use /api/v1/reconnect to retry")
+			startupConnectErr = msg.err.Error()
+			fmt.Fprintln(os.Stderr, "connect:", startupConnectErr)
+			fmt.Fprintln(os.Stderr, "Startup degraded: DB-backed features are disabled until /api/v1/reconnect succeeds.")
 		} else {
 			if msg, ok := cmdFetchItemTemplates().(msgItemTemplates); ok {
 				mergeItemTemplates(msg.templates)
 			}
 		}
 	} else {
-		// Already connected by setup; just populate item templates.
 		if msg, ok := cmdFetchItemTemplates().(msgItemTemplates); ok {
 			mergeItemTemplates(msg.templates)
 		}
