@@ -49,17 +49,6 @@ func expandSupportedConfigPath(raw string) (string, error) {
 	return filepath.Clean(path), nil
 }
 
-// expandLocalPath is intentionally limited to config-safe expansion rules.
-// Supported forms: ~ and Windows-style %VAR% variables such as %USERPROFILE%.
-// Unsupported forms such as $env:USERPROFILE are rejected by validation callers.
-func expandLocalPath(raw string) string {
-	path, err := expandSupportedConfigPath(raw)
-	if err != nil {
-		return strings.TrimSpace(raw)
-	}
-	return path
-}
-
 func validateReadableFilePath(label, raw string) (string, error) {
 	path, err := expandSupportedConfigPath(raw)
 	if err != nil {
