@@ -1,25 +1,27 @@
 # Dune Admin Release Notes
 
-## Current update: Inventory Studio v2 confirmed item removal
+## Current update: Inventory Studio v2 confirmed catalog item add
 
 ### Why this update was made
 
-Inventory Studio v2 now supports the second narrow confirmed edit workflow. This update adds confirmed selected-item removal with a before-action inventory snapshot, shared mutation confirmation, and required admin reason capture.
+Inventory Studio v2 now supports a controlled add workflow from the validated item catalog. This update adds confirmed catalog-item add with quantity and quality inputs, a before-action inventory snapshot, shared mutation confirmation, and required admin reason capture.
 
 ### What changed
 
-- Updated `web/src/tabs/InventoryStudioTab.tsx` with a confirmed selected-item removal action.
-- Added automatic before-action snapshot export before the delete request is sent.
+- Updated `web/src/tabs/InventoryStudioTab.tsx` with a confirmed catalog item add action.
+- Added quantity and quality inputs for the selected catalog template.
+- Added client-side clamping for quantity and quality values.
+- Added automatic before-action snapshot export before the add request is sent.
 - Added shared mutation confirmation through `useMutationConfirmation`.
 - Added required admin reason capture.
-- Added selected player, online state, item ID, template, stack size, and quality details to the confirmation flow.
-- Passed the captured reason into `api.players.deleteItem`.
-- Reloaded the selected player inventory after successful removal.
+- Added selected player, online state, template, catalog name, quantity, and quality details to the confirmation flow.
+- Passed the captured reason into `api.players.giveItem`.
+- Reloaded the selected player inventory after successful add.
 
 ### Security and operator impact
 
-- Inventory Studio v2 now supports confirmed repair and confirmed removal for the selected item.
-- Removal is destructive and remains scoped to one selected inventory row.
+- Inventory Studio v2 now supports confirmed add, repair, and removal workflows.
+- Add uses the direct inventory write path and remains scoped to one selected player and one selected catalog template.
 - A local before-action snapshot is exported before the mutation request is sent.
 - Player 360 remains read-only.
 
@@ -32,6 +34,12 @@ Validation required in the Windows development environment:
 ```
 
 GitHub Actions also runs Linux and Windows validation on push.
+
+---
+
+## Previous update: Inventory Studio v2 confirmed item removal
+
+Inventory Studio v2 added confirmed selected-item removal with a before-action inventory snapshot.
 
 ---
 
@@ -56,9 +64,3 @@ Inventory Studio v2 added local comparison against a previously exported invento
 ## Previous update: Inventory Studio v2 read-only foundation
 
 Inventory Studio v2 was added as a read-only player inventory inspection and snapshot page.
-
----
-
-## Previous update: GitHub CI validation workflows
-
-GitHub-hosted Linux and Windows validation workflows were added for push, pull request, and manual dispatch.
