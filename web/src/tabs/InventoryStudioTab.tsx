@@ -23,6 +23,62 @@ function safeFilenamePart(value: string): string {
   return value.trim().replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'unknown'
 }
 
+type InventorySnapshot = {
+  exported_at?: string
+  mode?: string
+  player?: Player
+  item_count?: number
+  items?: InventoryItem[]
+}
+
+type InventoryDiffRow = {
+  key: string
+  status: 'added' | 'removed' | 'changed'
+  before?: InventoryItem
+  after?: InventoryItem
+  changes: string[]
+}
+
+function snapshotItems(snapshot: InventorySnapshot): InventoryItem[] {
+  return Array.isArray(snapshot.items) ? snapshot.items : []
+}
+
+function itemComparisonKey(item: InventoryItem): string {
+  return String(item.id)
+}
+
+function compareInventorySnapshots(before: InventoryItem[], after: InventoryItem[]): InventoryDiffRow[] {
+  const beforeMap = new Map(before.map(item => [itemComparisonKey(item), item]))
+  const afterMap = new Map(after.map(item => [itemComparisonKey(item), item]))
+  const keys = Array.from(new Set([...beforeMap.keys(), ...afterMap.keys()])).sort((a, b) => Number(a) - Number(b))
+  const diffs: InventoryDiffRow[] = []
+
+  for (const key of keys) {
+    const oldItem = beforeMap.get(key)
+    const newItem = afterMap.get(key)
+    if (!oldItem && newItem) {
+      diffs.push({ key, status: 'added', after: newItem, changes: ['Item row added'] })
+      continue
+    }
+    if (oldItem && !newItem) {
+      diffs.push({ key, status: 'removed', before: oldItem, changes: ['Item row removed'] })
+      continue
+    }
+    if (!oldItem || !newItem) continue
+
+    const changes: string[] = []
+    if (oldItem.template_id !== newItem.template_id) changes.push(`Template: ${oldItem.template_id} → ${newItem.template_id}`)
+    if (oldItem.name !== newItem.name) changes.push(`Name: ${oldItem.name || '—'} → ${newItem.name || '—'}`)
+    if (oldItem.stack_size !== newItem.stack_size) changes.push(`Stack: ${oldItem.stack_size} → ${newItem.stack_size}`)
+    if (oldItem.quality !== newItem.quality) changes.push(`Quality: ${oldItem.quality} → ${newItem.quality}`)
+    if (oldItem.durability !== newItem.durability) changes.push(`Durability: ${oldItem.durability} → ${newItem.durability}`)
+    if (oldItem.max_durability !== newItem.max_durability) changes.push(`Max durability: ${oldItem.max_durability} → ${newItem.max_durability}`)
+    if (changes.length > 0) diffs.push({ key, status: 'changed', before: oldItem, after: newItem, changes })
+  }
+
+  return diffs
+}
+
 export default function InventoryStudioTab() {
   const [players, setPlayers] = useState<Player[]>([])
   const [playersLoading, setPlayersLoading] = useState(false)
@@ -32,6 +88,8 @@ export default function InventoryStudioTab() {
   const [itemsLoading, setItemsLoading] = useState(false)
   const [itemSearch, setItemSearch] = useState('')
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null)
+  const [comparisonSnapshot, setComparisonSnapshot] = useState<InventorySnapshot | null>(null)
+  const [comparisonName, setComparisonName] = useState('')
 
   const loadPlayers = async () => {
     setPlayersLoading(true)
@@ -48,6 +106,8 @@ export default function InventoryStudioTab() {
     setSelectedPlayer(player)
     setItems([])
     setSelectedItemId(null)
+    setComparisonSnapshot(null)
+    setComparisonName('')
     setItemsLoading(true)
     try {
       const rows = await api.players.inventory(player.id)
@@ -87,6 +147,8 @@ export default function InventoryStudioTab() {
   }, [items, itemSearch])
 
   const selectedItem = useMemo(() => items.find(item => item.id === selectedItemId) ?? null, [items, selectedItemId])
+  const comparisonItems = useMemo(() => comparisonSnapshot ? snapshotItems(comparisonSnapshot) : [], [comparisonSnapshot])
+  const comparisonDiffs = useMemo(() => comparisonSnapshot ? compareInventorySnapshots(comparisonItems, items) : [], [comparisonItems, comparisonSnapshot, items])
 
   const exportSnapshot = () => {
     if (!selectedPlayer) return
@@ -100,13 +162,29 @@ export default function InventoryStudioTab() {
     toast.success('Inventory snapshot exported')
   }
 
+  const loadComparisonSnapshot = async (file: File | null) => {
+    if (!file) return
+    try {
+      const text = await file.text()
+      const parsed = JSON.parse(text) as InventorySnapshot
+      if (!Array.isArray(parsed.items)) throw new Error('Snapshot does not contain an items array')
+      setComparisonSnapshot(parsed)
+      setComparisonName(file.name)
+      toast.success(`Loaded comparison snapshot with ${parsed.items.length} item row(s)`)
+    } catch (e: unknown) {
+      setComparisonSnapshot(null)
+      setComparisonName('')
+      toast.danger(e instanceof Error ? e.message : String(e))
+    }
+  }
+
   return (
     <div className="flex flex-col gap-3 h-full min-h-0 overflow-hidden">
       <div className="rounded-lg px-4 py-2 text-xs" style={{ background: '#0f0d09', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
-        <strong style={{ color: 'var(--color-primary)' }}>Inventory Studio v2 foundation:</strong> read-only player inventory inspection, filtering, selected-item detail, and snapshot export. Item edits will be added later as confirmed workflows with before/after snapshots.
+        <strong style={{ color: 'var(--color-primary)' }}>Inventory Studio v2 foundation:</strong> read-only player inventory inspection, filtering, selected-item detail, snapshot export, and local snapshot comparison. Item edits will be added later as confirmed workflows with before/after snapshots.
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr_360px] gap-3 flex-1 min-h-0 overflow-hidden">
+      <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr_400px] gap-3 flex-1 min-h-0 overflow-hidden">
         <section className="rounded-lg flex flex-col min-h-0 overflow-hidden" style={{ border: '1px solid #2a2418', background: 'var(--color-surface)' }}>
           <div className="flex items-center justify-between px-3 py-2 shrink-0" style={{ borderBottom: '1px solid #2a2418' }}>
             <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>Players</span>
@@ -218,32 +296,74 @@ export default function InventoryStudioTab() {
 
         <section className="rounded-lg flex flex-col min-h-0 overflow-hidden" style={{ border: '1px solid #2a2418', background: 'var(--color-surface)' }}>
           <div className="px-3 py-2 shrink-0" style={{ borderBottom: '1px solid #2a2418' }}>
-            <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>Selected Item</div>
-            <div className="text-xs" style={{ color: 'var(--color-text-dim)' }}>Read-only details</div>
+            <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>Inspector</div>
+            <div className="text-xs" style={{ color: 'var(--color-text-dim)' }}>Selected item and snapshot diff</div>
           </div>
-          {!selectedItem ? (
-            <div className="flex items-center justify-center flex-1 text-sm p-4 text-center" style={{ color: 'var(--color-text-dim)' }}>
-              Select an inventory row to inspect item details.
+          <div className="overflow-y-auto flex-1 p-3 text-xs min-h-0">
+            <div className="rounded p-3" style={{ background: '#0a0806', border: '1px solid #2a2418' }}>
+              <div className="font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>Snapshot Compare</div>
+              <input
+                type="file"
+                accept=".json,application/json"
+                className="text-xs"
+                style={{ color: 'var(--color-text-dim)' }}
+                disabled={!selectedPlayer || items.length === 0}
+                onChange={event => loadComparisonSnapshot(event.target.files?.[0] ?? null)}
+              />
+              {comparisonName && <div className="mt-2 font-mono" style={{ color: 'var(--color-text-dim)' }}>{comparisonName}</div>}
+              {comparisonSnapshot && (
+                <div className="grid grid-cols-3 gap-2 mt-3">
+                  <Detail label="Before" value={String(comparisonItems.length)} />
+                  <Detail label="Current" value={String(items.length)} />
+                  <Detail label="Diffs" value={String(comparisonDiffs.length)} />
+                </div>
+              )}
+              {comparisonSnapshot && comparisonDiffs.length === 0 && <div className="mt-3" style={{ color: 'var(--color-success)' }}>No differences detected against loaded snapshot.</div>}
+              {comparisonDiffs.length > 0 && (
+                <div className="mt-3 flex flex-col gap-2">
+                  {comparisonDiffs.slice(0, 25).map(diff => (
+                    <div key={`${diff.status}-${diff.key}`} className="rounded p-2" style={{ background: '#0f0d09', border: '1px solid #2a2418' }}>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold" style={{ color: diff.status === 'removed' ? '#e88' : diff.status === 'added' ? 'var(--color-success)' : '#f0a830' }}>{diff.status.toUpperCase()}</span>
+                        <span className="font-mono" style={{ color: 'var(--color-text-dim)' }}>item:{diff.key}</span>
+                      </div>
+                      <div className="mt-1" style={{ color: 'var(--color-text)' }}>{itemLabel(diff.after ?? diff.before as InventoryItem)}</div>
+                      <ul className="mt-1 pl-4" style={{ color: 'var(--color-text-dim)', listStyle: 'disc' }}>
+                        {diff.changes.map(change => <li key={change}>{change}</li>)}
+                      </ul>
+                    </div>
+                  ))}
+                  {comparisonDiffs.length > 25 && <div style={{ color: 'var(--color-text-dim)' }}>Showing first 25 of {comparisonDiffs.length} differences.</div>}
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="overflow-y-auto flex-1 p-3 text-xs min-h-0">
-              <div className="font-semibold text-sm" style={{ color: 'var(--color-text)' }}>{itemLabel(selectedItem)}</div>
-              <div className="font-mono mt-1" style={{ color: 'var(--color-text-dim)' }}>{selectedItem.template_id}</div>
-              <div className="grid grid-cols-2 gap-2 mt-4">
-                <Detail label="Item ID" value={String(selectedItem.id)} />
-                <Detail label="Stack" value={String(selectedItem.stack_size)} />
-                <Detail label="Quality" value={String(selectedItem.quality)} />
-                <Detail label="Durability" value={`${selectedItem.durability} / ${selectedItem.max_durability}`} />
-              </div>
-              <div className="rounded p-3 mt-4" style={{ background: '#0a0806', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
-                <div className="font-semibold mb-1" style={{ color: 'var(--color-primary)' }}>Next editing phase</div>
-                <p>Future edits will require a before snapshot, after preview, shared mutation confirmation, admin reason capture, and audit visibility before any write is sent.</p>
-              </div>
-              <pre className="rounded p-3 mt-4 overflow-auto" style={{ background: '#0a0806', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
-                {JSON.stringify(selectedItem, null, 2)}
-              </pre>
+
+            <div className="mt-3">
+              {!selectedItem ? (
+                <div className="flex items-center justify-center text-sm p-4 text-center" style={{ color: 'var(--color-text-dim)' }}>
+                  Select an inventory row to inspect item details.
+                </div>
+              ) : (
+                <>
+                  <div className="font-semibold text-sm" style={{ color: 'var(--color-text)' }}>{itemLabel(selectedItem)}</div>
+                  <div className="font-mono mt-1" style={{ color: 'var(--color-text-dim)' }}>{selectedItem.template_id}</div>
+                  <div className="grid grid-cols-2 gap-2 mt-4">
+                    <Detail label="Item ID" value={String(selectedItem.id)} />
+                    <Detail label="Stack" value={String(selectedItem.stack_size)} />
+                    <Detail label="Quality" value={String(selectedItem.quality)} />
+                    <Detail label="Durability" value={`${selectedItem.durability} / ${selectedItem.max_durability}`} />
+                  </div>
+                  <div className="rounded p-3 mt-4" style={{ background: '#0a0806', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
+                    <div className="font-semibold mb-1" style={{ color: 'var(--color-primary)' }}>Next editing phase</div>
+                    <p>Future edits will require a before snapshot, after preview, shared mutation confirmation, admin reason capture, and audit visibility before any write is sent.</p>
+                  </div>
+                  <pre className="rounded p-3 mt-4 overflow-auto" style={{ background: '#0a0806', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
+                    {JSON.stringify(selectedItem, null, 2)}
+                  </pre>
+                </>
+              )}
             </div>
-          )}
+          </div>
         </section>
       </div>
     </div>
