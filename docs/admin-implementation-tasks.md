@@ -37,7 +37,9 @@ Every feature task must update:
 | P0 | Battlegroup Exec confirmation migration | Done | `docs/mutation-safety-framework.md` | Windows `update.ps1` validation |
 | P0 | Blueprint import confirmation migration | Done | `docs/mutation-safety-framework.md` | Windows `update.ps1` validation |
 | P1 | Player 360 Profile | Done | `docs/player-360-profile.md` | Go + frontend validation clean |
-| P1 | Inventory Studio v2 | Planned | `docs/inventory-studio.md` required | Go + frontend tests |
+| P1 | Inventory Studio v2 read-only foundation | Done | `docs/inventory-studio.md` required | Windows `update.ps1` validation |
+| P1 | Inventory Studio v2 snapshot compare | Done | `docs/inventory-studio.md` required | Windows `update.ps1` validation |
+| P1 | Inventory Studio v2 confirmed edit workflows | Planned | `docs/inventory-studio.md` required | Go + frontend tests |
 | P1 | Battlegroup Status v2 | Planned | `docs/battlegroup-status-v2.md` required | Go + frontend tests |
 | P1 | Broadcast Center | Planned | `docs/broadcast-center.md` required | Go + frontend tests |
 | P1 | Safe Offline Teleport / Rescue | Planned | `docs/safe-teleport-rescue.md` required | Go + frontend tests |
@@ -53,7 +55,20 @@ Every feature task must update:
 
 ## Current implementation focus
 
-### 1. Harden Mutation Safety Framework v1
+### 1. Inventory Studio v2
+
+Read-only Inventory Studio v2 foundation is now in place:
+
+- Player search and selection.
+- Inventory loading for the selected player.
+- Inventory filtering.
+- Selected-item details and raw JSON inspection.
+- Snapshot export.
+- Local comparison against a previously exported inventory snapshot.
+
+Next Inventory Studio work should add confirmed edit workflows only after documenting and validating before/after snapshot behavior.
+
+### 2. Harden Mutation Safety Framework v1
 
 The explicit current mutation-confirmation migration set is complete for:
 
@@ -69,12 +84,6 @@ Next framework hardening tasks:
 - Before-change snapshot helpers.
 - Audit export and filtering.
 - UI visibility for reason-enforcement state.
-
-### 2. Preserve extracted workflow architecture
-
-- Keep player mutation workflows in extracted workflow components.
-- Prefer focused workflow components over further expansion of `PlayersTab.tsx`.
-- Keep `PlayersTabWith360Launcher.tsx` as the active routing layer for table-level player support workflows.
 
 ### 3. Preserve Player 360 validated state
 
