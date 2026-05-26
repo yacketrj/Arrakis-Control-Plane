@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -65,27 +64,24 @@ func diagnosticRuntimeDetail(client *ssh.Client) string {
 	return out
 }
 
-func handleConnectivityDiagnostics(w http.ResponseWriter, r *http.Request) {
+func runConnectivityDiagnostics() connectivityDiagnosticsPayload {
 	var stages []connectivityDiagnosticStage
 
 	if errs := requiredConfigErrors(); len(errs) > 0 {
 		stages = append(stages, connectivityDiagnosticStage{Name: "config", OK: false, Error: redactDiagnosticText(strings.Join(errs, "; "))})
-		jsonOK(w, connectivityDiagnosticsPayload{OK: false, Mode: normalizedTunnelMode(), Runtime: normalizeRuntime(serverRuntime), Stages: stages, NextAction: "Run setup and correct invalid configuration values."})
-		return
+		return connectivityDiagnosticsPayload{OK: false, Mode: normalizedTunnelMode(), Runtime: normalizeRuntime(serverRuntime), Stages: stages, NextAction: "Run setup and correct invalid configuration values."}
 	}
 	stages = append(stages, diagnosticOK("config", "required configuration values passed validation"))
 
 	keyPath, err := resolveValidatedKeyPath()
 	if err != nil {
-		jsonOK(w, diagnosticFail("ssh_key", err, "Verify the configured SSH private key path and file permissions.", stages))
-		return
+		return diagnosticFail("ssh_key", err, "Verify the configured SSH private key path and file permissions.", stages)
 	}
 	stages = append(stages, diagnosticOK("ssh_key", fmt.Sprintf("readable key file: %s", filepath.Base(keyPath))))
 
 	client, err := dialSSH(keyPath)
 	if err != nil {
-		jsonOK(w, diagnosticFail("ssh_dial", err, "Verify SSH host, port, username, private key, firewall, and bastion reachability.", stages))
-		return
+		return diagnosticFail("ssh_dial", err, "Verify SSH host, port, username, private key, firewall, and bastion reachability.", stages)
 	}
 	defer client.Close()
 	stages = append(stages, diagnosticOK("ssh_dial", "SSH connection established"))
@@ -94,16 +90,14 @@ func handleConnectivityDiagnostics(w http.ResponseWriter, r *http.Request) {
 
 	ns, pod, host, err := discoverDBPod(client)
 	if err != nil {
-		jsonOK(w, diagnosticFail("db_discovery", err, "Verify runtime mode, DB pod/container naming, battlegroup state, and discovery commands on the remote host.", stages))
-		return
+		return diagnosticFail("db_discovery", err, "Verify runtime mode, DB pod/container naming, battlegroup state, and discovery commands on the remote host.", stages)
 	}
 	stages = append(stages, diagnosticOK("db_discovery", fmt.Sprintf("namespace=%s pod=%s endpoint=%s", ns, pod, host)))
 
 	remoteAddr := fmt.Sprintf("%s:%d", host, dbPort)
 	remoteConn, err := client.Dial("tcp", remoteAddr)
 	if err != nil {
-		jsonOK(w, diagnosticFail("remote_db_tcp", err, "DB endpoint was discovered but is not reachable through SSH from the remote host context.", stages))
-		return
+		return diagnosticFail("remote_db_tcp", err, "DB endpoint was discovered but is not reachable through SSH from the remote host context.", stages)
 	}
 	_ = remoteConn.Close()
 	stages = append(stages, diagnosticOK("remote_db_tcp", "remote DB endpoint accepted TCP connection through SSH client"))
@@ -114,13 +108,15 @@ func handleConnectivityDiagnostics(w http.ResponseWriter, r *http.Request) {
 	}
 	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", bindHost, 0))
 	if err != nil {
-		jsonOK(w, diagnosticFail("local_tunnel_bind", err, "Local tunnel bind failed. Verify local bind host and whether another process or policy blocks local listening sockets.", stages))
-		return
+		return diagnosticFail("local_tunnel_bind", err, "Local tunnel bind failed. Verify local bind host and whether another process or policy blocks local listening sockets.", stages)
 	}
 	localAddr := listener.Addr().String()
 	_ = listener.Close()
 	stages = append(stages, diagnosticOK("local_tunnel_bind", fmt.Sprintf("local bind available at %s", localAddr)))
 
-	_ = time.Now()
-	jsonOK(w, connectivityDiagnosticsPayload{OK: true, Mode: normalizedTunnelMode(), Runtime: normalizeRuntime(serverRuntime), Stages: stages})
+	return connectivityDiagnosticsPayload{OK: true, Mode: normalizedTunnelMode(), Runtime: normalizeRuntime(serverRuntime), Stages: stages}
+}
+
+func handleConnectivityDiagnostics(w http.ResponseWriter, r *http.Request) {
+	jsonOK(w, runConnectivityDiagnostics())
 }
