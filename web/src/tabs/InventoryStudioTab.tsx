@@ -4,9 +4,14 @@ import { api } from '../api/client'
 import type { InventoryItem, ItemTemplate, Player } from '../api/client'
 import { mutationConfirmationCancelledMessage, useMutationConfirmation } from '../hooks/useMutationConfirmation'
 
-function itemLabel(item: InventoryItem): string {
-  return item.name || item.template_id || `item:${item.id}`
-}
+type InventorySnapshot = { exported_at?: string; mode?: string; player?: Player; item_count?: number; items?: InventoryItem[] }
+type InventoryDiffRow = { key: string; status: 'added' | 'removed' | 'changed'; before?: InventoryItem; after?: InventoryItem; changes: string[] }
+type LastActionDiff = { action: string; target: string; beforeCount: number; afterCount: number; diffs: InventoryDiffRow[]; checkedAt: string } | null
+
+function itemLabel(item: InventoryItem): string { return item.name || item.template_id || `item:${item.id}` }
+function safeFilenamePart(value: string): string { return value.trim().replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'unknown' }
+function clampInt(value: number, min: number, max: number): number { return Number.isFinite(value) ? Math.max(min, Math.min(max, Math.trunc(value))) : min }
+function snapshotItems(snapshot: InventorySnapshot): InventoryItem[] { return Array.isArray(snapshot.items) ? snapshot.items : [] }
 
 function downloadJson(filename: string, data: unknown): void {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' })
@@ -20,35 +25,6 @@ function downloadJson(filename: string, data: unknown): void {
   URL.revokeObjectURL(url)
 }
 
-function safeFilenamePart(value: string): string {
-  return value.trim().replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'unknown'
-}
-
-function clampInt(value: number, min: number, max: number): number {
-  if (!Number.isFinite(value)) return min
-  return Math.max(min, Math.min(max, Math.trunc(value)))
-}
-
-type InventorySnapshot = {
-  exported_at?: string
-  mode?: string
-  player?: Player
-  item_count?: number
-  items?: InventoryItem[]
-}
-
-type InventoryDiffRow = {
-  key: string
-  status: 'added' | 'removed' | 'changed'
-  before?: InventoryItem
-  after?: InventoryItem
-  changes: string[]
-}
-
-function snapshotItems(snapshot: InventorySnapshot): InventoryItem[] {
-  return Array.isArray(snapshot.items) ? snapshot.items : []
-}
-
 function compareInventorySnapshots(before: InventoryItem[], after: InventoryItem[]): InventoryDiffRow[] {
   const beforeMap = new Map(before.map(item => [String(item.id), item]))
   const afterMap = new Map(after.map(item => [String(item.id), item]))
@@ -58,14 +34,8 @@ function compareInventorySnapshots(before: InventoryItem[], after: InventoryItem
   for (const key of keys) {
     const oldItem = beforeMap.get(key)
     const newItem = afterMap.get(key)
-    if (!oldItem && newItem) {
-      diffs.push({ key, status: 'added', after: newItem, changes: ['Item row added'] })
-      continue
-    }
-    if (oldItem && !newItem) {
-      diffs.push({ key, status: 'removed', before: oldItem, changes: ['Item row removed'] })
-      continue
-    }
+    if (!oldItem && newItem) { diffs.push({ key, status: 'added', after: newItem, changes: ['Item row added'] }); continue }
+    if (oldItem && !newItem) { diffs.push({ key, status: 'removed', before: oldItem, changes: ['Item row removed'] }); continue }
     if (!oldItem || !newItem) continue
 
     const changes: string[] = []
@@ -77,7 +47,6 @@ function compareInventorySnapshots(before: InventoryItem[], after: InventoryItem
     if (oldItem.max_durability !== newItem.max_durability) changes.push(`Max durability: ${oldItem.max_durability} → ${newItem.max_durability}`)
     if (changes.length > 0) diffs.push({ key, status: 'changed', before: oldItem, after: newItem, changes })
   }
-
   return diffs
 }
 
@@ -90,280 +59,157 @@ export default function InventoryStudioTab() {
   const [itemsLoading, setItemsLoading] = useState(false)
   const [itemSearch, setItemSearch] = useState('')
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null)
-  const [comparisonSnapshot, setComparisonSnapshot] = useState<InventorySnapshot | null>(null)
-  const [comparisonName, setComparisonName] = useState('')
   const [templates, setTemplates] = useState<ItemTemplate[]>([])
   const [templatesLoading, setTemplatesLoading] = useState(false)
   const [templateSearch, setTemplateSearch] = useState('')
   const [selectedTemplateId, setSelectedTemplateId] = useState('')
   const [addQty, setAddQty] = useState(1)
   const [addQuality, setAddQuality] = useState(1)
+  const [comparisonSnapshot, setComparisonSnapshot] = useState<InventorySnapshot | null>(null)
+  const [comparisonName, setComparisonName] = useState('')
+  const [lastActionDiff, setLastActionDiff] = useState<LastActionDiff>(null)
   const [mutationBusy, setMutationBusy] = useState(false)
   const { confirmMutation, confirmationDialog } = useMutationConfirmation()
-
-  const loadPlayers = async () => {
-    setPlayersLoading(true)
-    try {
-      setPlayers(await api.players.list())
-    } catch (e: unknown) {
-      toast.danger(e instanceof Error ? e.message : String(e))
-    } finally {
-      setPlayersLoading(false)
-    }
-  }
-
-  const loadTemplates = async () => {
-    setTemplatesLoading(true)
-    try {
-      setTemplates(await api.players.templates())
-    } catch (e: unknown) {
-      toast.danger(e instanceof Error ? e.message : String(e))
-    } finally {
-      setTemplatesLoading(false)
-    }
-  }
-
-  const loadInventory = async (player: Player) => {
-    setSelectedPlayer(player)
-    setItems([])
-    setSelectedItemId(null)
-    setComparisonSnapshot(null)
-    setComparisonName('')
-    setItemsLoading(true)
-    try {
-      const rows = await api.players.inventory(player.id)
-      setItems(rows)
-      setSelectedItemId(rows[0]?.id ?? null)
-    } catch (e: unknown) {
-      toast.danger(e instanceof Error ? e.message : String(e))
-    } finally {
-      setItemsLoading(false)
-    }
-  }
-
-  useEffect(() => { loadPlayers(); loadTemplates() }, [])
-
-  const filteredPlayers = useMemo(() => {
-    const q = playerSearch.toLowerCase().trim()
-    if (!q) return players
-    return players.filter(player =>
-      player.name.toLowerCase().includes(q) ||
-      player.class.toLowerCase().includes(q) ||
-      player.map.toLowerCase().includes(q) ||
-      String(player.id).includes(q) ||
-      String(player.account_id).includes(q) ||
-      String(player.controller_id).includes(q)
-    )
-  }, [players, playerSearch])
-
-  const filteredItems = useMemo(() => {
-    const q = itemSearch.toLowerCase().trim()
-    if (!q) return items
-    return items.filter(item =>
-      item.template_id.toLowerCase().includes(q) ||
-      item.name.toLowerCase().includes(q) ||
-      String(item.id).includes(q) ||
-      String(item.quality).includes(q)
-    )
-  }, [items, itemSearch])
-
-  const filteredTemplates = useMemo(() => {
-    const q = templateSearch.toLowerCase().trim()
-    if (!q) return templates.slice(0, 80)
-    return templates.filter(template =>
-      template.id.toLowerCase().includes(q) ||
-      template.name.toLowerCase().includes(q)
-    ).slice(0, 120)
-  }, [templates, templateSearch])
 
   const selectedItem = useMemo(() => items.find(item => item.id === selectedItemId) ?? null, [items, selectedItemId])
   const selectedTemplate = useMemo(() => templates.find(template => template.id === selectedTemplateId) ?? null, [selectedTemplateId, templates])
   const comparisonItems = useMemo(() => comparisonSnapshot ? snapshotItems(comparisonSnapshot) : [], [comparisonSnapshot])
   const comparisonDiffs = useMemo(() => comparisonSnapshot ? compareInventorySnapshots(comparisonItems, items) : [], [comparisonItems, comparisonSnapshot, items])
 
+  const filteredPlayers = useMemo(() => {
+    const q = playerSearch.toLowerCase().trim()
+    if (!q) return players
+    return players.filter(p => p.name.toLowerCase().includes(q) || p.class.toLowerCase().includes(q) || p.map.toLowerCase().includes(q) || String(p.id).includes(q) || String(p.account_id).includes(q) || String(p.controller_id).includes(q))
+  }, [players, playerSearch])
+
+  const filteredItems = useMemo(() => {
+    const q = itemSearch.toLowerCase().trim()
+    if (!q) return items
+    return items.filter(i => i.template_id.toLowerCase().includes(q) || i.name.toLowerCase().includes(q) || String(i.id).includes(q) || String(i.quality).includes(q))
+  }, [items, itemSearch])
+
+  const filteredTemplates = useMemo(() => {
+    const q = templateSearch.toLowerCase().trim()
+    const rows = q ? templates.filter(t => t.id.toLowerCase().includes(q) || t.name.toLowerCase().includes(q)) : templates
+    return rows.slice(0, q ? 120 : 80)
+  }, [templates, templateSearch])
+
+  const loadPlayers = async () => {
+    setPlayersLoading(true)
+    try { setPlayers(await api.players.list()) } catch (e: unknown) { toast.danger(e instanceof Error ? e.message : String(e)) } finally { setPlayersLoading(false) }
+  }
+
+  const loadTemplates = async () => {
+    setTemplatesLoading(true)
+    try { setTemplates(await api.players.templates()) } catch (e: unknown) { toast.danger(e instanceof Error ? e.message : String(e)) } finally { setTemplatesLoading(false) }
+  }
+
+  const reloadInventory = async (player: Player, reset = false): Promise<InventoryItem[]> => {
+    if (reset) {
+      setSelectedPlayer(player)
+      setItems([])
+      setSelectedItemId(null)
+      setComparisonSnapshot(null)
+      setComparisonName('')
+      setLastActionDiff(null)
+    }
+    setItemsLoading(true)
+    try {
+      const rows = await api.players.inventory(player.id)
+      setItems(rows)
+      setSelectedItemId(prev => rows.some(item => item.id === prev) ? prev : rows[0]?.id ?? null)
+      return rows
+    } catch (e: unknown) {
+      toast.danger(e instanceof Error ? e.message : String(e))
+      return []
+    } finally { setItemsLoading(false) }
+  }
+
+  useEffect(() => { loadPlayers(); loadTemplates() }, [])
+
   const exportSnapshot = () => {
     if (!selectedPlayer) return
-    downloadJson(`inventory-snapshot-${safeFilenamePart(selectedPlayer.name)}-${selectedPlayer.id}.json`, {
-      exported_at: new Date().toISOString(),
-      mode: 'inventory-studio-snapshot',
-      player: selectedPlayer,
-      item_count: items.length,
-      items,
-    })
+    downloadJson(`inventory-snapshot-${safeFilenamePart(selectedPlayer.name)}-${selectedPlayer.id}.json`, { exported_at: new Date().toISOString(), mode: 'inventory-studio-snapshot', player: selectedPlayer, item_count: items.length, items })
     toast.success('Inventory snapshot exported')
   }
 
-  const exportBeforeActionSnapshot = (action: string, details: Record<string, unknown>) => {
+  const exportBeforeActionSnapshot = (action: string, beforeItems: InventoryItem[], details: Record<string, unknown>) => {
     if (!selectedPlayer) return
-    downloadJson(`inventory-before-${action}-${safeFilenamePart(selectedPlayer.name)}-${selectedPlayer.id}-${safeFilenamePart(new Date().toISOString())}.json`, {
-      exported_at: new Date().toISOString(),
-      mode: 'inventory-studio-before-action-snapshot',
-      action,
-      player: selectedPlayer,
-      ...details,
-      item_count: items.length,
-      items,
-    })
+    downloadJson(`inventory-before-${action}-${safeFilenamePart(selectedPlayer.name)}-${selectedPlayer.id}-${safeFilenamePart(new Date().toISOString())}.json`, { exported_at: new Date().toISOString(), mode: 'inventory-studio-before-action-snapshot', action, player: selectedPlayer, ...details, item_count: beforeItems.length, items: beforeItems })
+  }
+
+  const setPostActionDiff = (action: string, target: string, beforeItems: InventoryItem[], afterItems: InventoryItem[]) => {
+    setLastActionDiff({ action, target, beforeCount: beforeItems.length, afterCount: afterItems.length, diffs: compareInventorySnapshots(beforeItems, afterItems), checkedAt: new Date().toISOString() })
+  }
+
+  const handleMutationCancel = (e: unknown) => {
+    if (e instanceof Error && e.message === mutationConfirmationCancelledMessage) toast.warning('Cancelled')
+    else toast.danger(e instanceof Error ? e.message : String(e))
   }
 
   const addSelectedTemplateItem = async () => {
     if (!selectedPlayer || !selectedTemplate) return
     const qty = clampInt(addQty, 1, 9999)
     const quality = clampInt(addQuality, 0, 5)
-
     let reason: string | undefined
     try {
-      reason = await confirmMutation({
-        method: 'POST',
-        path: '/api/v1/players/give-item',
-        title: 'Add catalog item to inventory',
-        summary: `Add ${qty}× ${selectedTemplate.id} to ${selectedPlayer.name}.`,
-        target: `actor:${selectedPlayer.id} · template:${selectedTemplate.id}`,
-        details: [
-          `Player: ${selectedPlayer.name}`,
-          `Online state: ${selectedPlayer.online_status || 'Offline'}`,
-          `Template: ${selectedTemplate.id}`,
-          `Catalog name: ${selectedTemplate.name || '—'}`,
-          `Quantity: ${qty}`,
-          `Quality: ${quality}`,
-          'This uses the direct inventory write path for the selected player.',
-          'A before-action inventory snapshot will be downloaded before the add request is sent.',
-        ],
-        confirmLabel: 'Add item',
-        forceReason: true,
-      })
-    } catch (e: unknown) {
-      if (e instanceof Error && e.message === mutationConfirmationCancelledMessage) {
-        toast.warning('Cancelled')
-        return
-      }
-      toast.danger(e instanceof Error ? e.message : String(e))
-      return
-    }
-
-    if (!reason) {
-      toast.warning('Cancelled: admin reason is required for this action')
-      return
-    }
+      reason = await confirmMutation({ method: 'POST', path: '/api/v1/players/give-item', title: 'Add catalog item to inventory', summary: `Add ${qty}× ${selectedTemplate.id} to ${selectedPlayer.name}.`, target: `actor:${selectedPlayer.id} · template:${selectedTemplate.id}`, details: [`Player: ${selectedPlayer.name}`, `Online state: ${selectedPlayer.online_status || 'Offline'}`, `Template: ${selectedTemplate.id}`, `Catalog name: ${selectedTemplate.name || '—'}`, `Quantity: ${qty}`, `Quality: ${quality}`, 'This uses the direct inventory write path for the selected player.', 'A before-action inventory snapshot will be downloaded before the add request is sent.'], confirmLabel: 'Add item', forceReason: true })
+    } catch (e: unknown) { handleMutationCancel(e); return }
+    if (!reason) { toast.warning('Cancelled: admin reason is required for this action'); return }
 
     setMutationBusy(true)
+    const beforeItems = [...items]
     try {
-      exportBeforeActionSnapshot('add', { target_template: selectedTemplate, quantity: qty, quality })
+      exportBeforeActionSnapshot('add', beforeItems, { target_template: selectedTemplate, quantity: qty, quality })
       await api.players.giveItem(selectedPlayer.id, selectedTemplate.id, qty, quality, reason)
+      const afterItems = await reloadInventory(selectedPlayer)
+      setPostActionDiff('add', selectedTemplate.id, beforeItems, afterItems)
       toast.success(`Added ${qty}× ${selectedTemplate.id}`)
-      await loadInventory(selectedPlayer)
-    } catch (e: unknown) {
-      toast.danger(e instanceof Error ? e.message : String(e))
-    } finally {
-      setMutationBusy(false)
-    }
+    } catch (e: unknown) { toast.danger(e instanceof Error ? e.message : String(e)) } finally { setMutationBusy(false) }
   }
 
   const repairSelectedItem = async () => {
     if (!selectedPlayer || !selectedItem) return
-
     let reason: string | undefined
     try {
-      reason = await confirmMutation({
-        method: 'POST',
-        path: '/api/v1/players/repair-item',
-        title: 'Repair selected inventory item',
-        summary: `Repair ${itemLabel(selectedItem)} for ${selectedPlayer.name}.`,
-        target: `actor:${selectedPlayer.id} · item:${selectedItem.id}`,
-        details: [
-          `Player: ${selectedPlayer.name}`,
-          `Online state: ${selectedPlayer.online_status || 'Offline'}`,
-          `Item ID: ${selectedItem.id}`,
-          `Template: ${selectedItem.template_id}`,
-          `Current durability: ${selectedItem.durability} / ${selectedItem.max_durability}`,
-          'A before-action inventory snapshot will be downloaded before the repair request is sent.',
-        ],
-        confirmLabel: 'Repair item',
-        forceReason: true,
-      })
-    } catch (e: unknown) {
-      if (e instanceof Error && e.message === mutationConfirmationCancelledMessage) {
-        toast.warning('Cancelled')
-        return
-      }
-      toast.danger(e instanceof Error ? e.message : String(e))
-      return
-    }
-
-    if (!reason) {
-      toast.warning('Cancelled: admin reason is required for this action')
-      return
-    }
+      reason = await confirmMutation({ method: 'POST', path: '/api/v1/players/repair-item', title: 'Repair selected inventory item', summary: `Repair ${itemLabel(selectedItem)} for ${selectedPlayer.name}.`, target: `actor:${selectedPlayer.id} · item:${selectedItem.id}`, details: [`Player: ${selectedPlayer.name}`, `Online state: ${selectedPlayer.online_status || 'Offline'}`, `Item ID: ${selectedItem.id}`, `Template: ${selectedItem.template_id}`, `Current durability: ${selectedItem.durability} / ${selectedItem.max_durability}`, 'A before-action inventory snapshot will be downloaded before the repair request is sent.'], confirmLabel: 'Repair item', forceReason: true })
+    } catch (e: unknown) { handleMutationCancel(e); return }
+    if (!reason) { toast.warning('Cancelled: admin reason is required for this action'); return }
 
     setMutationBusy(true)
+    const beforeItems = [...items]
     try {
-      exportBeforeActionSnapshot('repair', { target_item: selectedItem })
+      exportBeforeActionSnapshot('repair', beforeItems, { target_item: selectedItem })
       await api.players.repairItem(selectedItem.id, reason)
+      const afterItems = await reloadInventory(selectedPlayer)
+      setPostActionDiff('repair', itemLabel(selectedItem), beforeItems, afterItems)
       toast.success(`Repaired ${itemLabel(selectedItem)}`)
-      await loadInventory(selectedPlayer)
-    } catch (e: unknown) {
-      toast.danger(e instanceof Error ? e.message : String(e))
-    } finally {
-      setMutationBusy(false)
-    }
+    } catch (e: unknown) { toast.danger(e instanceof Error ? e.message : String(e)) } finally { setMutationBusy(false) }
   }
 
   const deleteSelectedItem = async () => {
     if (!selectedPlayer || !selectedItem) return
-
     let reason: string | undefined
     try {
-      reason = await confirmMutation({
-        method: 'DELETE',
-        path: `/api/v1/players/item/${selectedItem.id}`,
-        title: 'Remove selected inventory item',
-        summary: `Remove ${itemLabel(selectedItem)} from ${selectedPlayer.name}.`,
-        target: `actor:${selectedPlayer.id} · item:${selectedItem.id}`,
-        details: [
-          `Player: ${selectedPlayer.name}`,
-          `Online state: ${selectedPlayer.online_status || 'Offline'}`,
-          `Item ID: ${selectedItem.id}`,
-          `Template: ${selectedItem.template_id}`,
-          `Stack size: ${selectedItem.stack_size}`,
-          `Quality: ${selectedItem.quality}`,
-          'This removes a persisted inventory row for the selected player.',
-          'A before-action inventory snapshot will be downloaded before the delete request is sent.',
-        ],
-        confirmLabel: 'Remove item',
-        forceReason: true,
-      })
-    } catch (e: unknown) {
-      if (e instanceof Error && e.message === mutationConfirmationCancelledMessage) {
-        toast.warning('Cancelled')
-        return
-      }
-      toast.danger(e instanceof Error ? e.message : String(e))
-      return
-    }
-
-    if (!reason) {
-      toast.warning('Cancelled: admin reason is required for this action')
-      return
-    }
+      reason = await confirmMutation({ method: 'DELETE', path: `/api/v1/players/item/${selectedItem.id}`, title: 'Remove selected inventory item', summary: `Remove ${itemLabel(selectedItem)} from ${selectedPlayer.name}.`, target: `actor:${selectedPlayer.id} · item:${selectedItem.id}`, details: [`Player: ${selectedPlayer.name}`, `Online state: ${selectedPlayer.online_status || 'Offline'}`, `Item ID: ${selectedItem.id}`, `Template: ${selectedItem.template_id}`, `Stack size: ${selectedItem.stack_size}`, `Quality: ${selectedItem.quality}`, 'This removes a persisted inventory row for the selected player.', 'A before-action inventory snapshot will be downloaded before the delete request is sent.'], confirmLabel: 'Remove item', forceReason: true })
+    } catch (e: unknown) { handleMutationCancel(e); return }
+    if (!reason) { toast.warning('Cancelled: admin reason is required for this action'); return }
 
     setMutationBusy(true)
+    const beforeItems = [...items]
     try {
-      exportBeforeActionSnapshot('delete', { target_item: selectedItem })
+      exportBeforeActionSnapshot('delete', beforeItems, { target_item: selectedItem })
       await api.players.deleteItem(selectedItem.id, reason)
+      const afterItems = await reloadInventory(selectedPlayer)
+      setPostActionDiff('delete', itemLabel(selectedItem), beforeItems, afterItems)
       toast.success(`Removed ${itemLabel(selectedItem)}`)
-      await loadInventory(selectedPlayer)
-    } catch (e: unknown) {
-      toast.danger(e instanceof Error ? e.message : String(e))
-    } finally {
-      setMutationBusy(false)
-    }
+    } catch (e: unknown) { toast.danger(e instanceof Error ? e.message : String(e)) } finally { setMutationBusy(false) }
   }
 
   const loadComparisonSnapshot = async (file: File | null) => {
     if (!file) return
     try {
-      const text = await file.text()
-      const parsed = JSON.parse(text) as InventorySnapshot
+      const parsed = JSON.parse(await file.text()) as InventorySnapshot
       if (!Array.isArray(parsed.items)) throw new Error('Snapshot does not contain an items array')
       setComparisonSnapshot(parsed)
       setComparisonName(file.name)
@@ -379,267 +225,32 @@ export default function InventoryStudioTab() {
     <>
       <div className="flex flex-col gap-3 h-full min-h-0 overflow-hidden">
         <div className="rounded-lg px-4 py-2 text-xs" style={{ background: '#0f0d09', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
-          <strong style={{ color: 'var(--color-primary)' }}>Inventory Studio v2:</strong> player inventory inspection, filtering, selected-item detail, snapshot export, local snapshot comparison, item catalog browsing, and confirmed add/repair/removal with before-action snapshots.
+          <strong style={{ color: 'var(--color-primary)' }}>Inventory Studio v2:</strong> inventory inspection, snapshot export/compare, catalog browsing, confirmed add/repair/removal, and post-action diff review.
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr_420px] gap-3 flex-1 min-h-0 overflow-hidden">
           <section className="rounded-lg flex flex-col min-h-0 overflow-hidden" style={{ border: '1px solid #2a2418', background: 'var(--color-surface)' }}>
-            <div className="flex items-center justify-between px-3 py-2 shrink-0" style={{ borderBottom: '1px solid #2a2418' }}>
-              <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>Players</span>
-              <Button size="sm" variant="ghost" onPress={loadPlayers} isDisabled={playersLoading}>{playersLoading ? <Spinner size="sm" color="current" /> : 'Refresh'}</Button>
-            </div>
-            <div className="p-2 shrink-0">
-              <input
-                className="w-full rounded px-2 py-1.5 text-xs border"
-                style={{ background: '#0d0b07', color: 'var(--color-text)', borderColor: '#2a2418', outline: 'none' }}
-                placeholder="Search player, actor, account, controller..."
-                value={playerSearch}
-                onChange={e => setPlayerSearch(e.target.value)}
-              />
-            </div>
+            <Header title="Players" right={<Button size="sm" variant="ghost" onPress={loadPlayers} isDisabled={playersLoading}>{playersLoading ? <Spinner size="sm" color="current" /> : 'Refresh'}</Button>} />
+            <div className="p-2 shrink-0"><TextInput placeholder="Search player, actor, account, controller..." value={playerSearch} onChange={setPlayerSearch} /></div>
             <div className="overflow-y-auto flex-1 min-h-0">
-              {filteredPlayers.map(player => (
-                <button
-                  key={player.id}
-                  type="button"
-                  onClick={() => loadInventory(player)}
-                  className="w-full text-left px-3 py-2 text-xs"
-                  style={{
-                    borderBottom: '1px solid #1a1610',
-                    borderLeft: selectedPlayer?.id === player.id ? '2px solid var(--color-primary)' : '2px solid transparent',
-                    background: selectedPlayer?.id === player.id ? '#241e12' : 'transparent',
-                    color: 'var(--color-text)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold truncate">{player.name}</span>
-                    <span className="font-mono" style={{ color: 'var(--color-text-dim)' }}>#{player.id}</span>
-                  </div>
-                  <div className="mt-0.5 truncate" style={{ color: 'var(--color-text-dim)' }}>
-                    {player.class || 'Unknown'} · {player.map || 'unknown'} · {player.online_status || 'Offline'}
-                  </div>
-                </button>
-              ))}
-              {filteredPlayers.length === 0 && (
-                <div className="px-3 py-8 text-center text-xs" style={{ color: 'var(--color-text-dim)' }}>No matching players</div>
-              )}
+              {filteredPlayers.map(player => <button key={player.id} type="button" onClick={() => reloadInventory(player, true)} className="w-full text-left px-3 py-2 text-xs" style={{ borderBottom: '1px solid #1a1610', borderLeft: selectedPlayer?.id === player.id ? '2px solid var(--color-primary)' : '2px solid transparent', background: selectedPlayer?.id === player.id ? '#241e12' : 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}><div className="flex items-center justify-between gap-2"><span className="font-semibold truncate">{player.name}</span><span className="font-mono" style={{ color: 'var(--color-text-dim)' }}>#{player.id}</span></div><div className="mt-0.5 truncate" style={{ color: 'var(--color-text-dim)' }}>{player.class || 'Unknown'} · {player.map || 'unknown'} · {player.online_status || 'Offline'}</div></button>)}
+              {filteredPlayers.length === 0 && <EmptyText text="No matching players" />}
             </div>
           </section>
 
           <section className="rounded-lg flex flex-col min-h-0 overflow-hidden" style={{ border: '1px solid #2a2418', background: 'var(--color-surface)' }}>
-            <div className="flex items-center justify-between gap-3 px-3 py-2 shrink-0" style={{ borderBottom: '1px solid #2a2418' }}>
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>Inventory</div>
-                <div className="text-xs" style={{ color: 'var(--color-text-dim)' }}>
-                  {selectedPlayer ? `${selectedPlayer.name} · ${items.length} item row(s)` : 'Select a player'}
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button size="sm" variant="ghost" isDisabled={!selectedPlayer || itemsLoading} onPress={() => selectedPlayer && loadInventory(selectedPlayer)}>{itemsLoading ? <Spinner size="sm" color="current" /> : 'Refresh'}</Button>
-                <Button size="sm" variant="outline" isDisabled={!selectedPlayer || items.length === 0} onPress={exportSnapshot}>Export Snapshot</Button>
-              </div>
-            </div>
-            <div className="p-2 shrink-0">
-              <input
-                className="w-full rounded px-2 py-1.5 text-xs border"
-                style={{ background: '#0d0b07', color: 'var(--color-text)', borderColor: '#2a2418', outline: 'none' }}
-                placeholder="Search item template, name, ID, quality..."
-                value={itemSearch}
-                onChange={e => setItemSearch(e.target.value)}
-                disabled={!selectedPlayer}
-              />
-            </div>
-            {itemsLoading ? (
-              <div className="flex justify-center py-12"><Spinner size="lg" /></div>
-            ) : !selectedPlayer ? (
-              <div className="flex items-center justify-center flex-1 text-sm" style={{ color: 'var(--color-text-dim)' }}>Select a player to load inventory.</div>
-            ) : filteredItems.length === 0 ? (
-              <div className="flex items-center justify-center flex-1 text-sm" style={{ color: 'var(--color-text-dim)' }}>{items.length === 0 ? 'No inventory rows found.' : 'No matching items.'}</div>
-            ) : (
-              <div className="overflow-auto flex-1 min-h-0">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr style={{ background: '#1a1610', borderBottom: '1px solid #2a2418', position: 'sticky', top: 0 }}>
-                      {['Item', 'Stack', 'Quality', 'Durability'].map(header => (
-                        <th key={header} className="text-left px-3 py-2 font-semibold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>{header}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredItems.map((item, index) => (
-                      <tr
-                        key={item.id}
-                        onClick={() => setSelectedItemId(item.id)}
-                        style={{
-                          borderBottom: '1px solid #1a1610',
-                          background: selectedItemId === item.id ? '#241e12' : index % 2 === 0 ? '#0d0b07' : '#0f0d09',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <td className="px-3 py-2">
-                          <div className="font-semibold" style={{ color: 'var(--color-text)' }}>{itemLabel(item)}</div>
-                          <div className="font-mono" style={{ color: 'var(--color-text-dim)' }}>{item.template_id}</div>
-                        </td>
-                        <td className="px-3 py-2" style={{ color: 'var(--color-text-dim)' }}>{item.stack_size}</td>
-                        <td className="px-3 py-2" style={{ color: 'var(--color-text-dim)' }}>{item.quality}</td>
-                        <td className="px-3 py-2" style={{ color: 'var(--color-text-dim)' }}>{item.durability} / {item.max_durability}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <Header title="Inventory" subtitle={selectedPlayer ? `${selectedPlayer.name} · ${items.length} item row(s)` : 'Select a player'} right={<div className="flex gap-2"><Button size="sm" variant="ghost" isDisabled={!selectedPlayer || itemsLoading} onPress={() => selectedPlayer && reloadInventory(selectedPlayer)}>{itemsLoading ? <Spinner size="sm" color="current" /> : 'Refresh'}</Button><Button size="sm" variant="outline" isDisabled={!selectedPlayer || items.length === 0} onPress={exportSnapshot}>Export Snapshot</Button></div>} />
+            <div className="p-2 shrink-0"><TextInput placeholder="Search item template, name, ID, quality..." value={itemSearch} onChange={setItemSearch} disabled={!selectedPlayer} /></div>
+            {itemsLoading ? <div className="flex justify-center py-12"><Spinner size="lg" /></div> : !selectedPlayer ? <EmptyText text="Select a player to load inventory." /> : filteredItems.length === 0 ? <EmptyText text={items.length === 0 ? 'No inventory rows found.' : 'No matching items.'} /> : <InventoryTable items={filteredItems} selectedItemId={selectedItemId} onSelect={setSelectedItemId} />}
           </section>
 
           <section className="rounded-lg flex flex-col min-h-0 overflow-hidden" style={{ border: '1px solid #2a2418', background: 'var(--color-surface)' }}>
-            <div className="px-3 py-2 shrink-0" style={{ borderBottom: '1px solid #2a2418' }}>
-              <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>Inspector</div>
-              <div className="text-xs" style={{ color: 'var(--color-text-dim)' }}>Selected item, catalog, and snapshot diff</div>
-            </div>
+            <Header title="Inspector" subtitle="Catalog, selected item, and diffs" />
             <div className="overflow-y-auto flex-1 p-3 text-xs min-h-0">
-              <div className="rounded p-3" style={{ background: '#0a0806', border: '1px solid #2a2418' }}>
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className="font-semibold" style={{ color: 'var(--color-primary)' }}>Item Catalog</div>
-                  <Button size="sm" variant="ghost" onPress={loadTemplates} isDisabled={templatesLoading}>{templatesLoading ? <Spinner size="sm" color="current" /> : 'Refresh'}</Button>
-                </div>
-                <input
-                  className="w-full rounded px-2 py-1.5 text-xs border"
-                  style={{ background: '#0d0b07', color: 'var(--color-text)', borderColor: '#2a2418', outline: 'none' }}
-                  placeholder="Search catalog template ID or name..."
-                  value={templateSearch}
-                  onChange={event => setTemplateSearch(event.target.value)}
-                />
-                <div className="mt-2 rounded overflow-y-auto" style={{ border: '1px solid #2a2418', maxHeight: 180 }}>
-                  {templatesLoading ? (
-                    <div className="flex justify-center py-4"><Spinner size="sm" /></div>
-                  ) : filteredTemplates.length === 0 ? (
-                    <div className="px-3 py-4 text-center" style={{ color: 'var(--color-text-dim)' }}>No matching templates</div>
-                  ) : (
-                    filteredTemplates.map(template => (
-                      <button
-                        key={template.id}
-                        type="button"
-                        onClick={() => setSelectedTemplateId(template.id)}
-                        className="w-full text-left px-2 py-1.5"
-                        style={{ borderBottom: '1px solid #1a1610', background: selectedTemplateId === template.id ? '#241e12' : 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}
-                      >
-                        <div className="font-mono truncate" style={{ color: selectedTemplateId === template.id ? 'var(--color-primary)' : 'var(--color-text)' }}>{template.id}</div>
-                        {template.name && <div className="truncate" style={{ color: 'var(--color-text-dim)' }}>{template.name}</div>}
-                      </button>
-                    ))
-                  )}
-                </div>
-                {selectedTemplate && (
-                  <div className="mt-2 grid grid-cols-1 gap-2">
-                    <Detail label="Selected Template" value={selectedTemplate.id} />
-                    <Detail label="Catalog Name" value={selectedTemplate.name || '—'} />
-                    <div className="grid grid-cols-2 gap-2">
-                      <label className="flex flex-col gap-1" style={{ color: 'var(--color-text-dim)' }}>
-                        Quantity
-                        <input
-                          type="number"
-                          min={1}
-                          max={9999}
-                          value={addQty}
-                          onChange={event => setAddQty(clampInt(Number(event.target.value), 1, 9999))}
-                          className="rounded px-2 py-1 text-xs border"
-                          style={{ background: '#0d0b07', color: 'var(--color-text)', borderColor: '#2a2418', outline: 'none' }}
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1" style={{ color: 'var(--color-text-dim)' }}>
-                        Quality
-                        <input
-                          type="number"
-                          min={0}
-                          max={5}
-                          value={addQuality}
-                          onChange={event => setAddQuality(clampInt(Number(event.target.value), 0, 5))}
-                          className="rounded px-2 py-1 text-xs border"
-                          style={{ background: '#0d0b07', color: 'var(--color-text)', borderColor: '#2a2418', outline: 'none' }}
-                        />
-                      </label>
-                    </div>
-                    <Button size="sm" onPress={addSelectedTemplateItem} isDisabled={!selectedPlayer || mutationBusy}>
-                      {mutationBusy ? <Spinner size="sm" color="current" /> : null}
-                      Add Selected Catalog Item
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              <div className="rounded p-3 mt-3" style={{ background: '#0a0806', border: '1px solid #2a2418' }}>
-                <div className="font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>Snapshot Compare</div>
-                <input
-                  type="file"
-                  accept=".json,application/json"
-                  className="text-xs"
-                  style={{ color: 'var(--color-text-dim)' }}
-                  disabled={!selectedPlayer || items.length === 0}
-                  onChange={event => loadComparisonSnapshot(event.target.files?.[0] ?? null)}
-                />
-                {comparisonName && <div className="mt-2 font-mono" style={{ color: 'var(--color-text-dim)' }}>{comparisonName}</div>}
-                {comparisonSnapshot && (
-                  <div className="grid grid-cols-3 gap-2 mt-3">
-                    <Detail label="Before" value={String(comparisonItems.length)} />
-                    <Detail label="Current" value={String(items.length)} />
-                    <Detail label="Diffs" value={String(comparisonDiffs.length)} />
-                  </div>
-                )}
-                {comparisonSnapshot && comparisonDiffs.length === 0 && <div className="mt-3" style={{ color: 'var(--color-success)' }}>No differences detected against loaded snapshot.</div>}
-                {comparisonDiffs.length > 0 && (
-                  <div className="mt-3 flex flex-col gap-2">
-                    {comparisonDiffs.slice(0, 25).map(diff => (
-                      <div key={`${diff.status}-${diff.key}`} className="rounded p-2" style={{ background: '#0f0d09', border: '1px solid #2a2418' }}>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-semibold" style={{ color: diff.status === 'removed' ? '#e88' : diff.status === 'added' ? 'var(--color-success)' : '#f0a830' }}>{diff.status.toUpperCase()}</span>
-                          <span className="font-mono" style={{ color: 'var(--color-text-dim)' }}>item:{diff.key}</span>
-                        </div>
-                        <div className="mt-1" style={{ color: 'var(--color-text)' }}>{itemLabel(diff.after ?? diff.before as InventoryItem)}</div>
-                        <ul className="mt-1 pl-4" style={{ color: 'var(--color-text-dim)', listStyle: 'disc' }}>
-                          {diff.changes.map(change => <li key={change}>{change}</li>)}
-                        </ul>
-                      </div>
-                    ))}
-                    {comparisonDiffs.length > 25 && <div style={{ color: 'var(--color-text-dim)' }}>Showing first 25 of {comparisonDiffs.length} differences.</div>}
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-3">
-                {!selectedItem ? (
-                  <div className="flex items-center justify-center text-sm p-4 text-center" style={{ color: 'var(--color-text-dim)' }}>
-                    Select an inventory row to inspect item details.
-                  </div>
-                ) : (
-                  <>
-                    <div className="font-semibold text-sm" style={{ color: 'var(--color-text)' }}>{itemLabel(selectedItem)}</div>
-                    <div className="font-mono mt-1" style={{ color: 'var(--color-text-dim)' }}>{selectedItem.template_id}</div>
-                    <div className="grid grid-cols-2 gap-2 mt-4">
-                      <Detail label="Item ID" value={String(selectedItem.id)} />
-                      <Detail label="Stack" value={String(selectedItem.stack_size)} />
-                      <Detail label="Quality" value={String(selectedItem.quality)} />
-                      <Detail label="Durability" value={`${selectedItem.durability} / ${selectedItem.max_durability}`} />
-                    </div>
-                    <div className="rounded p-3 mt-4" style={{ background: '#0a0806', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
-                      <div className="font-semibold mb-1" style={{ color: 'var(--color-primary)' }}>Confirmed item actions</div>
-                      <p>Repair and remove actions download a before-action inventory snapshot, then require shared mutation confirmation and an admin reason.</p>
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        <Button size="sm" onPress={repairSelectedItem} isDisabled={mutationBusy}>
-                          {mutationBusy ? <Spinner size="sm" color="current" /> : null}
-                          Repair Selected Item
-                        </Button>
-                        <Button size="sm" variant="danger-soft" onPress={deleteSelectedItem} isDisabled={mutationBusy}>
-                          Remove Selected Item
-                        </Button>
-                      </div>
-                    </div>
-                    <pre className="rounded p-3 mt-4 overflow-auto" style={{ background: '#0a0806', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
-                      {JSON.stringify(selectedItem, null, 2)}
-                    </pre>
-                  </>
-                )}
-              </div>
+              <CatalogPanel templatesLoading={templatesLoading} templates={filteredTemplates} selectedTemplate={selectedTemplate} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} addQty={addQty} addQuality={addQuality} mutationBusy={mutationBusy} selectedPlayer={selectedPlayer} onRefresh={loadTemplates} onSearch={setTemplateSearch} onSelectTemplate={setSelectedTemplateId} onQty={value => setAddQty(clampInt(value, 1, 9999))} onQuality={value => setAddQuality(clampInt(value, 0, 5))} onAdd={addSelectedTemplateItem} />
+              <DiffPanel title="Post-action Diff" emptyText="No confirmed action has been completed in this session." diff={lastActionDiff} />
+              <SnapshotCompare comparisonName={comparisonName} comparisonSnapshot={comparisonSnapshot} beforeCount={comparisonItems.length} currentCount={items.length} diffs={comparisonDiffs} disabled={!selectedPlayer || items.length === 0} onLoad={loadComparisonSnapshot} />
+              <SelectedItemPanel item={selectedItem} mutationBusy={mutationBusy} onRepair={repairSelectedItem} onDelete={deleteSelectedItem} />
             </div>
           </section>
         </div>
@@ -649,11 +260,43 @@ export default function InventoryStudioTab() {
   )
 }
 
-function Detail({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded p-2" style={{ background: '#0a0806', border: '1px solid #2a2418' }}>
-      <div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--color-text-dim)' }}>{label}</div>
-      <div className="font-mono mt-1" style={{ color: 'var(--color-text)' }}>{value || '—'}</div>
-    </div>
-  )
+function Header({ title, subtitle, right }: { title: string; subtitle?: string; right?: React.ReactNode }) {
+  return <div className="flex items-center justify-between gap-3 px-3 py-2 shrink-0" style={{ borderBottom: '1px solid #2a2418' }}><div><div className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>{title}</div>{subtitle && <div className="text-xs" style={{ color: 'var(--color-text-dim)' }}>{subtitle}</div>}</div>{right}</div>
+}
+
+function TextInput({ value, onChange, placeholder, disabled }: { value: string; onChange: (value: string) => void; placeholder: string; disabled?: boolean }) {
+  return <input className="w-full rounded px-2 py-1.5 text-xs border" style={{ background: '#0d0b07', color: 'var(--color-text)', borderColor: '#2a2418', outline: 'none' }} placeholder={placeholder} value={value} onChange={event => onChange(event.target.value)} disabled={disabled} />
+}
+
+function EmptyText({ text }: { text: string }) { return <div className="flex items-center justify-center flex-1 text-sm p-4 text-center" style={{ color: 'var(--color-text-dim)' }}>{text}</div> }
+function Detail({ label, value }: { label: string; value: string }) { return <div className="rounded p-2" style={{ background: '#0a0806', border: '1px solid #2a2418' }}><div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--color-text-dim)' }}>{label}</div><div className="font-mono mt-1" style={{ color: 'var(--color-text)' }}>{value || '—'}</div></div> }
+
+function InventoryTable({ items, selectedItemId, onSelect }: { items: InventoryItem[]; selectedItemId: number | null; onSelect: (id: number) => void }) {
+  return <div className="overflow-auto flex-1 min-h-0"><table className="w-full text-xs"><thead><tr style={{ background: '#1a1610', borderBottom: '1px solid #2a2418', position: 'sticky', top: 0 }}>{['Item', 'Stack', 'Quality', 'Durability'].map(h => <th key={h} className="text-left px-3 py-2 font-semibold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>{h}</th>)}</tr></thead><tbody>{items.map((item, index) => <tr key={item.id} onClick={() => onSelect(item.id)} style={{ borderBottom: '1px solid #1a1610', background: selectedItemId === item.id ? '#241e12' : index % 2 === 0 ? '#0d0b07' : '#0f0d09', cursor: 'pointer' }}><td className="px-3 py-2"><div className="font-semibold" style={{ color: 'var(--color-text)' }}>{itemLabel(item)}</div><div className="font-mono" style={{ color: 'var(--color-text-dim)' }}>{item.template_id}</div></td><td className="px-3 py-2" style={{ color: 'var(--color-text-dim)' }}>{item.stack_size}</td><td className="px-3 py-2" style={{ color: 'var(--color-text-dim)' }}>{item.quality}</td><td className="px-3 py-2" style={{ color: 'var(--color-text-dim)' }}>{item.durability} / {item.max_durability}</td></tr>)}</tbody></table></div>
+}
+
+function CatalogPanel(props: { templatesLoading: boolean; templates: ItemTemplate[]; selectedTemplate: ItemTemplate | null; selectedTemplateId: string; templateSearch: string; addQty: number; addQuality: number; mutationBusy: boolean; selectedPlayer: Player | null; onRefresh: () => void; onSearch: (value: string) => void; onSelectTemplate: (id: string) => void; onQty: (value: number) => void; onQuality: (value: number) => void; onAdd: () => void }) {
+  return <div className="rounded p-3" style={{ background: '#0a0806', border: '1px solid #2a2418' }}><div className="flex items-center justify-between gap-2 mb-2"><div className="font-semibold" style={{ color: 'var(--color-primary)' }}>Item Catalog</div><Button size="sm" variant="ghost" onPress={props.onRefresh} isDisabled={props.templatesLoading}>{props.templatesLoading ? <Spinner size="sm" color="current" /> : 'Refresh'}</Button></div><TextInput placeholder="Search catalog template ID or name..." value={props.templateSearch} onChange={props.onSearch} /><div className="mt-2 rounded overflow-y-auto" style={{ border: '1px solid #2a2418', maxHeight: 180 }}>{props.templatesLoading ? <div className="flex justify-center py-4"><Spinner size="sm" /></div> : props.templates.length === 0 ? <div className="px-3 py-4 text-center" style={{ color: 'var(--color-text-dim)' }}>No matching templates</div> : props.templates.map(template => <button key={template.id} type="button" onClick={() => props.onSelectTemplate(template.id)} className="w-full text-left px-2 py-1.5" style={{ borderBottom: '1px solid #1a1610', background: props.selectedTemplateId === template.id ? '#241e12' : 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}><div className="font-mono truncate" style={{ color: props.selectedTemplateId === template.id ? 'var(--color-primary)' : 'var(--color-text)' }}>{template.id}</div>{template.name && <div className="truncate" style={{ color: 'var(--color-text-dim)' }}>{template.name}</div>}</button>)}</div>{props.selectedTemplate && <div className="mt-2 grid grid-cols-1 gap-2"><Detail label="Selected Template" value={props.selectedTemplate.id} /><Detail label="Catalog Name" value={props.selectedTemplate.name || '—'} /><div className="grid grid-cols-2 gap-2"><NumberField label="Quantity" value={props.addQty} min={1} max={9999} onChange={props.onQty} /><NumberField label="Quality" value={props.addQuality} min={0} max={5} onChange={props.onQuality} /></div><Button size="sm" onPress={props.onAdd} isDisabled={!props.selectedPlayer || props.mutationBusy}>{props.mutationBusy ? <Spinner size="sm" color="current" /> : null}Add Selected Catalog Item</Button></div>}</div>
+}
+
+function NumberField({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void }) {
+  return <label className="flex flex-col gap-1" style={{ color: 'var(--color-text-dim)' }}>{label}<input type="number" min={min} max={max} value={value} onChange={event => onChange(Number(event.target.value))} className="rounded px-2 py-1 text-xs border" style={{ background: '#0d0b07', color: 'var(--color-text)', borderColor: '#2a2418', outline: 'none' }} /></label>
+}
+
+function SnapshotCompare({ comparisonName, comparisonSnapshot, beforeCount, currentCount, diffs, disabled, onLoad }: { comparisonName: string; comparisonSnapshot: InventorySnapshot | null; beforeCount: number; currentCount: number; diffs: InventoryDiffRow[]; disabled: boolean; onLoad: (file: File | null) => void }) {
+  return <div className="rounded p-3 mt-3" style={{ background: '#0a0806', border: '1px solid #2a2418' }}><div className="font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>Snapshot Compare</div><input type="file" accept=".json,application/json" className="text-xs" style={{ color: 'var(--color-text-dim)' }} disabled={disabled} onChange={event => onLoad(event.target.files?.[0] ?? null)} />{comparisonName && <div className="mt-2 font-mono" style={{ color: 'var(--color-text-dim)' }}>{comparisonName}</div>}{comparisonSnapshot && <div className="grid grid-cols-3 gap-2 mt-3"><Detail label="Before" value={String(beforeCount)} /><Detail label="Current" value={String(currentCount)} /><Detail label="Diffs" value={String(diffs.length)} /></div>}{comparisonSnapshot && <DiffList diffs={diffs} emptyText="No differences detected against loaded snapshot." />}</div>
+}
+
+function DiffPanel({ title, emptyText, diff }: { title: string; emptyText: string; diff: LastActionDiff }) {
+  return <div className="rounded p-3 mt-3" style={{ background: '#0a0806', border: '1px solid #2a2418' }}><div className="font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>{title}</div>{!diff ? <div style={{ color: 'var(--color-text-dim)' }}>{emptyText}</div> : <><div className="grid grid-cols-3 gap-2"><Detail label="Action" value={diff.action} /><Detail label="Before/After" value={`${diff.beforeCount} / ${diff.afterCount}`} /><Detail label="Diffs" value={String(diff.diffs.length)} /></div><div className="font-mono mt-2" style={{ color: 'var(--color-text-dim)' }}>{diff.target} · {diff.checkedAt}</div><DiffList diffs={diff.diffs} emptyText="No row-level differences detected after reload." /></>}</div>
+}
+
+function DiffList({ diffs, emptyText }: { diffs: InventoryDiffRow[]; emptyText: string }) {
+  if (diffs.length === 0) return <div className="mt-3" style={{ color: 'var(--color-success)' }}>{emptyText}</div>
+  return <div className="mt-3 flex flex-col gap-2">{diffs.slice(0, 25).map(diff => <div key={`${diff.status}-${diff.key}`} className="rounded p-2" style={{ background: '#0f0d09', border: '1px solid #2a2418' }}><div className="flex items-center justify-between gap-2"><span className="font-semibold" style={{ color: diff.status === 'removed' ? '#e88' : diff.status === 'added' ? 'var(--color-success)' : '#f0a830' }}>{diff.status.toUpperCase()}</span><span className="font-mono" style={{ color: 'var(--color-text-dim)' }}>item:{diff.key}</span></div><div className="mt-1" style={{ color: 'var(--color-text)' }}>{itemLabel((diff.after ?? diff.before) as InventoryItem)}</div><ul className="mt-1 pl-4" style={{ color: 'var(--color-text-dim)', listStyle: 'disc' }}>{diff.changes.map(change => <li key={change}>{change}</li>)}</ul></div>)}{diffs.length > 25 && <div style={{ color: 'var(--color-text-dim)' }}>Showing first 25 of {diffs.length} differences.</div>}</div>
+}
+
+function SelectedItemPanel({ item, mutationBusy, onRepair, onDelete }: { item: InventoryItem | null; mutationBusy: boolean; onRepair: () => void; onDelete: () => void }) {
+  if (!item) return <div className="flex items-center justify-center text-sm p-4 text-center mt-3" style={{ color: 'var(--color-text-dim)' }}>Select an inventory row to inspect item details.</div>
+  return <div className="mt-3"><div className="font-semibold text-sm" style={{ color: 'var(--color-text)' }}>{itemLabel(item)}</div><div className="font-mono mt-1" style={{ color: 'var(--color-text-dim)' }}>{item.template_id}</div><div className="grid grid-cols-2 gap-2 mt-4"><Detail label="Item ID" value={String(item.id)} /><Detail label="Stack" value={String(item.stack_size)} /><Detail label="Quality" value={String(item.quality)} /><Detail label="Durability" value={`${item.durability} / ${item.max_durability}`} /></div><div className="rounded p-3 mt-4" style={{ background: '#0a0806', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}><div className="font-semibold mb-1" style={{ color: 'var(--color-primary)' }}>Confirmed item actions</div><p>Repair and remove actions download a before-action inventory snapshot, then require shared mutation confirmation and an admin reason.</p><div className="flex flex-wrap gap-2 mt-3"><Button size="sm" onPress={onRepair} isDisabled={mutationBusy}>{mutationBusy ? <Spinner size="sm" color="current" /> : null}Repair Selected Item</Button><Button size="sm" variant="danger-soft" onPress={onDelete} isDisabled={mutationBusy}>Remove Selected Item</Button></div></div><pre className="rounded p-3 mt-4 overflow-auto" style={{ background: '#0a0806', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>{JSON.stringify(item, null, 2)}</pre></div>
 }
