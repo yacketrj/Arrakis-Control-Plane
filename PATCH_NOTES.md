@@ -1,28 +1,31 @@
 # Dune Admin Release Notes
 
-## Current update: Inventory Studio v2 confirmed catalog item add
+## Current update: Inventory Studio v2 post-action diff panel
 
 ### Why this update was made
 
-Inventory Studio v2 now supports a controlled add workflow from the validated item catalog. This update adds confirmed catalog-item add with quantity and quality inputs, a before-action inventory snapshot, shared mutation confirmation, and required admin reason capture.
+Inventory Studio v2 now has confirmed add, repair, and removal workflows. Operators need an immediate view of what changed after a confirmed inventory action completes. This update adds a post-action diff panel that compares the in-memory before-action inventory state against the reloaded inventory after mutation.
 
 ### What changed
 
-- Updated `web/src/tabs/InventoryStudioTab.tsx` with a confirmed catalog item add action.
-- Added quantity and quality inputs for the selected catalog template.
-- Added client-side clamping for quantity and quality values.
-- Added automatic before-action snapshot export before the add request is sent.
-- Added shared mutation confirmation through `useMutationConfirmation`.
-- Added required admin reason capture.
-- Added selected player, online state, template, catalog name, quantity, and quality details to the confirmation flow.
-- Passed the captured reason into `api.players.giveItem`.
-- Reloaded the selected player inventory after successful add.
+- Updated `web/src/tabs/InventoryStudioTab.tsx` with a post-action diff panel.
+- Retained the in-memory before-action inventory list for add, repair, and removal operations.
+- Compared the before-action inventory against the reloaded inventory after successful mutation.
+- Added post-action summary fields:
+  - action
+  - target
+  - before item count
+  - after item count
+  - diff count
+  - checked timestamp
+- Reused the existing diff rendering for added, removed, and changed item rows.
+- Refactored the Inventory Studio component into smaller local helper components to reduce future edit risk.
 
 ### Security and operator impact
 
-- Inventory Studio v2 now supports confirmed add, repair, and removal workflows.
-- Add uses the direct inventory write path and remains scoped to one selected player and one selected catalog template.
-- A local before-action snapshot is exported before the mutation request is sent.
+- Confirmed Inventory Studio actions now provide immediate before/after review in the UI.
+- Local before-action snapshot export remains in place before each mutation request is sent.
+- Shared mutation confirmation and required admin reason capture remain in place.
 - Player 360 remains read-only.
 
 ### Validation
@@ -34,6 +37,12 @@ Validation required in the Windows development environment:
 ```
 
 GitHub Actions also runs Linux and Windows validation on push.
+
+---
+
+## Previous update: Inventory Studio v2 confirmed catalog item add
+
+Inventory Studio v2 added confirmed catalog-item add with quantity and quality inputs.
 
 ---
 
@@ -58,9 +67,3 @@ Inventory Studio v2 added a read-only item catalog browser.
 ## Previous update: Inventory Studio v2 snapshot comparison
 
 Inventory Studio v2 added local comparison against a previously exported inventory snapshot while remaining read-only.
-
----
-
-## Previous update: Inventory Studio v2 read-only foundation
-
-Inventory Studio v2 was added as a read-only player inventory inspection and snapshot page.
