@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Button, Spinner, toast } from '@heroui/react'
 import { api } from '../api/client'
-import type { InventoryItem, Player } from '../api/client'
+import type { InventoryItem, ItemTemplate, Player } from '../api/client'
 
 function itemLabel(item: InventoryItem): string {
   return item.name || item.template_id || `item:${item.id}`
@@ -90,6 +90,10 @@ export default function InventoryStudioTab() {
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null)
   const [comparisonSnapshot, setComparisonSnapshot] = useState<InventorySnapshot | null>(null)
   const [comparisonName, setComparisonName] = useState('')
+  const [templates, setTemplates] = useState<ItemTemplate[]>([])
+  const [templatesLoading, setTemplatesLoading] = useState(false)
+  const [templateSearch, setTemplateSearch] = useState('')
+  const [selectedTemplateId, setSelectedTemplateId] = useState('')
 
   const loadPlayers = async () => {
     setPlayersLoading(true)
@@ -99,6 +103,17 @@ export default function InventoryStudioTab() {
       toast.danger(e instanceof Error ? e.message : String(e))
     } finally {
       setPlayersLoading(false)
+    }
+  }
+
+  const loadTemplates = async () => {
+    setTemplatesLoading(true)
+    try {
+      setTemplates(await api.players.templates())
+    } catch (e: unknown) {
+      toast.danger(e instanceof Error ? e.message : String(e))
+    } finally {
+      setTemplatesLoading(false)
     }
   }
 
@@ -120,7 +135,7 @@ export default function InventoryStudioTab() {
     }
   }
 
-  useEffect(() => { loadPlayers() }, [])
+  useEffect(() => { loadPlayers(); loadTemplates() }, [])
 
   const filteredPlayers = useMemo(() => {
     const q = playerSearch.toLowerCase().trim()
@@ -146,7 +161,17 @@ export default function InventoryStudioTab() {
     )
   }, [items, itemSearch])
 
+  const filteredTemplates = useMemo(() => {
+    const q = templateSearch.toLowerCase().trim()
+    if (!q) return templates.slice(0, 80)
+    return templates.filter(template =>
+      template.id.toLowerCase().includes(q) ||
+      template.name.toLowerCase().includes(q)
+    ).slice(0, 120)
+  }, [templates, templateSearch])
+
   const selectedItem = useMemo(() => items.find(item => item.id === selectedItemId) ?? null, [items, selectedItemId])
+  const selectedTemplate = useMemo(() => templates.find(template => template.id === selectedTemplateId) ?? null, [selectedTemplateId, templates])
   const comparisonItems = useMemo(() => comparisonSnapshot ? snapshotItems(comparisonSnapshot) : [], [comparisonSnapshot])
   const comparisonDiffs = useMemo(() => comparisonSnapshot ? compareInventorySnapshots(comparisonItems, items) : [], [comparisonItems, comparisonSnapshot, items])
 
@@ -181,10 +206,10 @@ export default function InventoryStudioTab() {
   return (
     <div className="flex flex-col gap-3 h-full min-h-0 overflow-hidden">
       <div className="rounded-lg px-4 py-2 text-xs" style={{ background: '#0f0d09', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
-        <strong style={{ color: 'var(--color-primary)' }}>Inventory Studio v2 foundation:</strong> read-only player inventory inspection, filtering, selected-item detail, snapshot export, and local snapshot comparison. Item edits will be added later as confirmed workflows with before/after snapshots.
+        <strong style={{ color: 'var(--color-primary)' }}>Inventory Studio v2 foundation:</strong> read-only player inventory inspection, filtering, selected-item detail, snapshot export, local snapshot comparison, and item catalog browsing. Item edits will be added later as confirmed workflows with before/after snapshots.
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr_400px] gap-3 flex-1 min-h-0 overflow-hidden">
+      <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr_420px] gap-3 flex-1 min-h-0 overflow-hidden">
         <section className="rounded-lg flex flex-col min-h-0 overflow-hidden" style={{ border: '1px solid #2a2418', background: 'var(--color-surface)' }}>
           <div className="flex items-center justify-between px-3 py-2 shrink-0" style={{ borderBottom: '1px solid #2a2418' }}>
             <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>Players</span>
@@ -297,10 +322,50 @@ export default function InventoryStudioTab() {
         <section className="rounded-lg flex flex-col min-h-0 overflow-hidden" style={{ border: '1px solid #2a2418', background: 'var(--color-surface)' }}>
           <div className="px-3 py-2 shrink-0" style={{ borderBottom: '1px solid #2a2418' }}>
             <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>Inspector</div>
-            <div className="text-xs" style={{ color: 'var(--color-text-dim)' }}>Selected item and snapshot diff</div>
+            <div className="text-xs" style={{ color: 'var(--color-text-dim)' }}>Selected item, catalog, and snapshot diff</div>
           </div>
           <div className="overflow-y-auto flex-1 p-3 text-xs min-h-0">
             <div className="rounded p-3" style={{ background: '#0a0806', border: '1px solid #2a2418' }}>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="font-semibold" style={{ color: 'var(--color-primary)' }}>Item Catalog</div>
+                <Button size="sm" variant="ghost" onPress={loadTemplates} isDisabled={templatesLoading}>{templatesLoading ? <Spinner size="sm" color="current" /> : 'Refresh'}</Button>
+              </div>
+              <input
+                className="w-full rounded px-2 py-1.5 text-xs border"
+                style={{ background: '#0d0b07', color: 'var(--color-text)', borderColor: '#2a2418', outline: 'none' }}
+                placeholder="Search catalog template ID or name..."
+                value={templateSearch}
+                onChange={event => setTemplateSearch(event.target.value)}
+              />
+              <div className="mt-2 rounded overflow-y-auto" style={{ border: '1px solid #2a2418', maxHeight: 180 }}>
+                {templatesLoading ? (
+                  <div className="flex justify-center py-4"><Spinner size="sm" /></div>
+                ) : filteredTemplates.length === 0 ? (
+                  <div className="px-3 py-4 text-center" style={{ color: 'var(--color-text-dim)' }}>No matching templates</div>
+                ) : (
+                  filteredTemplates.map(template => (
+                    <button
+                      key={template.id}
+                      type="button"
+                      onClick={() => setSelectedTemplateId(template.id)}
+                      className="w-full text-left px-2 py-1.5"
+                      style={{ borderBottom: '1px solid #1a1610', background: selectedTemplateId === template.id ? '#241e12' : 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}
+                    >
+                      <div className="font-mono truncate" style={{ color: selectedTemplateId === template.id ? 'var(--color-primary)' : 'var(--color-text)' }}>{template.id}</div>
+                      {template.name && <div className="truncate" style={{ color: 'var(--color-text-dim)' }}>{template.name}</div>}
+                    </button>
+                  ))
+                )}
+              </div>
+              {selectedTemplate && (
+                <div className="mt-2 grid grid-cols-1 gap-2">
+                  <Detail label="Selected Template" value={selectedTemplate.id} />
+                  <Detail label="Catalog Name" value={selectedTemplate.name || '—'} />
+                </div>
+              )}
+            </div>
+
+            <div className="rounded p-3 mt-3" style={{ background: '#0a0806', border: '1px solid #2a2418' }}>
               <div className="font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>Snapshot Compare</div>
               <input
                 type="file"
