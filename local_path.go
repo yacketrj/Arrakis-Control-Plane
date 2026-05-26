@@ -7,24 +7,15 @@ import (
 	"strings"
 )
 
-var (
-	powerShellEnvPathPattern = regexp.MustCompile(`(?i)\$env:([A-Z_][A-Z0-9_]*)`)
-	windowsEnvPathPattern    = regexp.MustCompile(`%([^%]+)%`)
-)
+var windowsEnvPathPattern = regexp.MustCompile(`%([^%]+)%`)
 
 func expandLocalPath(raw string) string {
 	path := strings.TrimSpace(raw)
 	path = strings.Trim(path, "\"'")
-	path = powerShellEnvPathPattern.ReplaceAllStringFunc(path, func(match string) string {
-		parts := strings.SplitN(match, ":", 2)
-		if len(parts) != 2 {
-			return match
-		}
-		if value := os.Getenv(parts[1]); value != "" {
-			return value
-		}
-		return match
-	})
+
+	// Config files intentionally support Windows percent-variable expansion and
+	// home-directory expansion only. PowerShell expressions are not expanded here;
+	// validation rejects them with a clear operator-facing error.
 	path = windowsEnvPathPattern.ReplaceAllStringFunc(path, func(match string) string {
 		key := strings.Trim(match, "%")
 		if value := os.Getenv(key); value != "" {
@@ -32,7 +23,6 @@ func expandLocalPath(raw string) string {
 		}
 		return match
 	})
-	path = os.ExpandEnv(path)
 	if strings.HasPrefix(path, "~") && (len(path) == 1 || path[1] == '/' || path[1] == '\\') {
 		if home, err := os.UserHomeDir(); err == nil && home != "" {
 			suffix := strings.TrimLeft(path[1:], `/\\`)
