@@ -1,25 +1,26 @@
 # Dune Admin Release Notes
 
-## Current update: Inventory Studio v2 item catalog browser
+## Current update: Inventory Studio v2 confirmed item repair
 
 ### Why this update was made
 
-Inventory Studio v2 needs a validated item catalog browsing surface before future inventory edit workflows are introduced. This update adds a read-only catalog browser inside Inventory Studio.
+Inventory Studio v2 now has enough read-only context for its first narrow edit workflow. This update adds confirmed selected-item repair with a before-action inventory snapshot, shared mutation confirmation, and required admin reason capture.
 
 ### What changed
 
-- Updated `web/src/tabs/InventoryStudioTab.tsx` with item catalog browsing.
-- Loaded item templates from the existing player template endpoint.
-- Added catalog refresh.
-- Added catalog search by template ID and display name.
-- Added selected-template detail display.
-- Kept the catalog browser read-only.
+- Updated `web/src/tabs/InventoryStudioTab.tsx` with a confirmed selected-item repair action.
+- Added automatic before-action snapshot export before the repair request is sent.
+- Added shared mutation confirmation through `useMutationConfirmation`.
+- Added required admin reason capture.
+- Added selected player, online state, item ID, template, and durability details to the confirmation flow.
+- Passed the captured reason into `api.players.repairItem`.
+- Reloaded the selected player inventory after successful repair.
 
 ### Security and operator impact
 
-- Inventory Studio v2 remains read-only.
-- No item edit controls were added in this slice.
-- Catalog browsing prepares the UI for future confirmed add/edit workflows without introducing new mutation paths.
+- Inventory Studio v2 now has its first confirmed edit workflow.
+- Repair remains narrow: it only targets the selected inventory item.
+- A local before-action snapshot is exported before the mutation request is sent.
 - Player 360 remains read-only.
 
 ### Validation
@@ -31,6 +32,12 @@ Validation required in the Windows development environment:
 ```
 
 GitHub Actions also runs Linux and Windows validation on push.
+
+---
+
+## Previous update: Inventory Studio v2 item catalog browser
+
+Inventory Studio v2 added a read-only item catalog browser.
 
 ---
 
@@ -55,15 +62,3 @@ GitHub-hosted Linux and Windows validation workflows were added for push, pull r
 ## Previous update: Blueprint import shared mutation confirmation migration
 
 Blueprint import was migrated to shared mutation confirmation with required admin reason capture.
-
----
-
-## Previous update: Battlegroup Exec shared mutation confirmation migration
-
-Battlegroup Exec server-control actions were migrated to shared mutation confirmation with required admin reason capture.
-
----
-
-## Previous update: Database SQL shared mutation confirmation migration
-
-Database SQL was migrated to shared mutation confirmation with required admin reason capture.
