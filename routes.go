@@ -6,6 +6,7 @@ func registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/public/status", handlePublicStatus)
 	mux.HandleFunc("GET /api/v1/status", handleStatus)
 	mux.HandleFunc("POST /api/v1/reconnect", handleReconnect)
+	mux.HandleFunc("GET /api/v1/connectivity/diagnostics", handleConnectivityDiagnostics)
 	mux.HandleFunc("GET /api/v1/audit/events", handleAdminAuditEvents)
 	mux.HandleFunc("GET /api/v1/mutation-safety/classify", handleMutationSafetyClassify)
 
