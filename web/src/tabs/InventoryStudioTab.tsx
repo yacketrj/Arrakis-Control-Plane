@@ -252,6 +252,57 @@ export default function InventoryStudioTab() {
     }
   }
 
+  const deleteSelectedItem = async () => {
+    if (!selectedPlayer || !selectedItem) return
+
+    let reason: string | undefined
+    try {
+      reason = await confirmMutation({
+        method: 'DELETE',
+        path: `/api/v1/players/item/${selectedItem.id}`,
+        title: 'Remove selected inventory item',
+        summary: `Remove ${itemLabel(selectedItem)} from ${selectedPlayer.name}.`,
+        target: `actor:${selectedPlayer.id} · item:${selectedItem.id}`,
+        details: [
+          `Player: ${selectedPlayer.name}`,
+          `Online state: ${selectedPlayer.online_status || 'Offline'}`,
+          `Item ID: ${selectedItem.id}`,
+          `Template: ${selectedItem.template_id}`,
+          `Stack size: ${selectedItem.stack_size}`,
+          `Quality: ${selectedItem.quality}`,
+          'This removes a persisted inventory row for the selected player.',
+          'A before-action inventory snapshot will be downloaded before the delete request is sent.',
+        ],
+        confirmLabel: 'Remove item',
+        forceReason: true,
+      })
+    } catch (e: unknown) {
+      if (e instanceof Error && e.message === mutationConfirmationCancelledMessage) {
+        toast.warning('Cancelled')
+        return
+      }
+      toast.danger(e instanceof Error ? e.message : String(e))
+      return
+    }
+
+    if (!reason) {
+      toast.warning('Cancelled: admin reason is required for this action')
+      return
+    }
+
+    setMutationBusy(true)
+    try {
+      exportBeforeActionSnapshot('delete', selectedItem)
+      await api.players.deleteItem(selectedItem.id, reason)
+      toast.success(`Removed ${itemLabel(selectedItem)}`)
+      await loadInventory(selectedPlayer)
+    } catch (e: unknown) {
+      toast.danger(e instanceof Error ? e.message : String(e))
+    } finally {
+      setMutationBusy(false)
+    }
+  }
+
   const loadComparisonSnapshot = async (file: File | null) => {
     if (!file) return
     try {
@@ -272,7 +323,7 @@ export default function InventoryStudioTab() {
     <>
       <div className="flex flex-col gap-3 h-full min-h-0 overflow-hidden">
         <div className="rounded-lg px-4 py-2 text-xs" style={{ background: '#0f0d09', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
-          <strong style={{ color: 'var(--color-primary)' }}>Inventory Studio v2:</strong> player inventory inspection, filtering, selected-item detail, snapshot export, local snapshot comparison, item catalog browsing, and confirmed selected-item repair with before-action snapshot.
+          <strong style={{ color: 'var(--color-primary)' }}>Inventory Studio v2:</strong> player inventory inspection, filtering, selected-item detail, snapshot export, local snapshot comparison, item catalog browsing, and confirmed selected-item repair/removal with before-action snapshots.
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr_420px] gap-3 flex-1 min-h-0 overflow-hidden">
@@ -485,12 +536,17 @@ export default function InventoryStudioTab() {
                       <Detail label="Durability" value={`${selectedItem.durability} / ${selectedItem.max_durability}`} />
                     </div>
                     <div className="rounded p-3 mt-4" style={{ background: '#0a0806', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
-                      <div className="font-semibold mb-1" style={{ color: 'var(--color-primary)' }}>Confirmed item action</div>
-                      <p>Repair selected item downloads a before-action inventory snapshot, then requires shared mutation confirmation and an admin reason.</p>
-                      <Button size="sm" className="mt-3" onPress={repairSelectedItem} isDisabled={mutationBusy}>
-                        {mutationBusy ? <Spinner size="sm" color="current" /> : null}
-                        Repair Selected Item
-                      </Button>
+                      <div className="font-semibold mb-1" style={{ color: 'var(--color-primary)' }}>Confirmed item actions</div>
+                      <p>Repair and remove actions download a before-action inventory snapshot, then require shared mutation confirmation and an admin reason.</p>
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        <Button size="sm" onPress={repairSelectedItem} isDisabled={mutationBusy}>
+                          {mutationBusy ? <Spinner size="sm" color="current" /> : null}
+                          Repair Selected Item
+                        </Button>
+                        <Button size="sm" variant="danger-soft" onPress={deleteSelectedItem} isDisabled={mutationBusy}>
+                          Remove Selected Item
+                        </Button>
+                      </div>
                     </div>
                     <pre className="rounded p-3 mt-4 overflow-auto" style={{ background: '#0a0806', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
                       {JSON.stringify(selectedItem, null, 2)}
