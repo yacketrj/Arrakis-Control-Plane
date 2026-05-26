@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useState, type ReactNode } from 'react'
 import { useStatus } from './hooks/useStatus'
-import { getAdminToken, setAdminToken } from './api/client'
+import { api, getAdminToken, setAdminToken, type Status } from './api/client'
 
 const AuditTab = lazy(() => import('./tabs/AuditTab'))
 const BattlegroupTab = lazy(() => import('./tabs/BattlegroupTab'))
@@ -28,6 +28,8 @@ const tabs: Array<{ id: TabId; label: string }> = [
   { id: 'storage', label: 'Storage' },
 ]
 
+const dbBackedTabs = new Set<TabId>(['players', 'player-360', 'inventory-studio', 'database', 'db-routines', 'blueprints', 'storage'])
+
 export default function App() {
   const status = useStatus()
   const [showBackendConfig, setShowBackendConfig] = useState(false)
@@ -54,6 +56,9 @@ export default function App() {
     setAdminToken('')
     window.location.reload()
   }
+
+  const dbUnavailable = Boolean(getAdminToken() && status && !status.db_connected)
+  const activeTabBlocked = dbUnavailable && dbBackedTabs.has(activeTab)
 
   return (
     <div className="h-screen flex flex-col overflow-hidden" style={{ background: 'var(--color-background)' }}>
@@ -98,6 +103,8 @@ export default function App() {
           </button>
         </div>
       </div>
+
+      {dbUnavailable && <DbUnavailableBanner status={status} />}
 
       {showBackendConfig && (
         <div
@@ -168,18 +175,20 @@ export default function App() {
           <div role="tablist" aria-label="Admin sections" className="flex gap-1 overflow-x-auto">
             {tabs.map(tab => {
               const selected = activeTab === tab.id
+              const blocked = dbUnavailable && dbBackedTabs.has(tab.id)
               return (
                 <button
                   key={tab.id}
                   role="tab"
                   aria-selected={selected}
                   onClick={() => setActiveTab(tab.id)}
+                  title={blocked ? 'DB connection required' : undefined}
                   style={{
                     background: selected ? 'var(--color-surface)' : 'transparent',
                     border: '1px solid #2a2418',
                     borderBottomColor: selected ? 'var(--color-primary)' : '#2a2418',
                     borderRadius: '6px 6px 0 0',
-                    color: selected ? 'var(--color-primary)' : 'var(--color-text-dim)',
+                    color: blocked ? '#6b5a48' : selected ? 'var(--color-primary)' : 'var(--color-text-dim)',
                     cursor: 'pointer',
                     fontSize: '12px',
                     fontWeight: selected ? 600 : 400,
@@ -187,14 +196,14 @@ export default function App() {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {tab.label}
+                  {tab.label}{blocked ? ' ⚠' : ''}
                 </button>
               )
             })}
           </div>
         </div>
         <div className={panelClass(activeTab)}>
-          <LazyTab>{renderTab(activeTab)}</LazyTab>
+          {activeTabBlocked ? <DbBlockedPanel status={status} /> : <LazyTab>{renderTab(activeTab)}</LazyTab>}
         </div>
       </div>
     </div>
@@ -256,4 +265,52 @@ function ConnectionBadge({ label, connected }: { label: string; connected: boole
       <span style={{ color: connected ? 'var(--color-text)' : 'var(--color-text-dim)' }}>{label}</span>
     </div>
   )
+}
+
+function DbUnavailableBanner({ status }: { status: Status }) {
+  return (
+    <div className="px-6 py-2 text-xs" style={{ background: '#2a1a0a', borderBottom: '1px solid #5a3a10', color: '#f0a830' }}>
+      <strong>DB unavailable.</strong> DB-backed tabs are gated until SSH/tunnel/database connectivity is restored.
+      {status.startup_connect_error ? <span className="ml-2 font-mono">{status.startup_connect_error}</span> : null}
+    </div>
+  )
+}
+
+function DbBlockedPanel({ status }: { status: Status }) {
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState('')
+  const reconnect = async () => {
+    setBusy(true)
+    setMessage('')
+    try {
+      const next = await api.reconnect()
+      setMessage(next.db_connected ? 'Reconnect succeeded. Reloading...' : 'Reconnect returned but DB is still unavailable.')
+      if (next.db_connected) window.location.reload()
+    } catch (e: unknown) {
+      setMessage(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="rounded-lg p-6 text-sm" style={{ background: '#0d0b07', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
+      <h2 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>Database connection required</h2>
+      <p>This section depends on live database access. The backend is running, but SSH/tunnel/database connectivity is not healthy.</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-4 text-xs">
+        <StatusTile label="SSH" value={status.ssh_connected ? 'connected' : 'not connected'} />
+        <StatusTile label="DB" value={status.db_connected ? 'connected' : 'not connected'} />
+        <StatusTile label="Tunnel Mode" value={status.tunnel_mode || 'unknown'} />
+      </div>
+      {status.startup_connect_error && <pre className="mt-4 rounded p-3 overflow-auto" style={{ background: '#080604', border: '1px solid #2a2418', color: '#f0a830' }}>{status.startup_connect_error}</pre>}
+      <div className="mt-4 flex gap-2 items-center">
+        <button onClick={reconnect} disabled={busy} style={{ background: 'var(--color-primary)', border: 'none', borderRadius: 4, color: '#fff', cursor: busy ? 'wait' : 'pointer', fontSize: 12, fontWeight: 600, padding: '6px 12px' }}>{busy ? 'Reconnecting...' : 'Retry reconnect'}</button>
+        {message && <span style={{ color: 'var(--color-text-dim)' }}>{message}</span>}
+      </div>
+    </div>
+  )
+}
+
+function StatusTile({ label, value }: { label: string; value: string }) {
+  return <div className="rounded p-2" style={{ background: '#080604', border: '1px solid #2a2418' }}><div className="uppercase tracking-wide text-[10px]" style={{ color: 'var(--color-text-dim)' }}>{label}</div><div className="font-mono mt-1" style={{ color: 'var(--color-text)' }}>{value}</div></div>
 }
