@@ -1,34 +1,57 @@
 # Dune Admin Release Notes
 
-## Current update: Blueprint import shared mutation confirmation migration
+## Current update: GitHub CI validation workflows
 
 ### Why this update was made
 
-Blueprint import changes player construction data and should not rely on one-off browser prompts. This update moves blueprint import onto the shared mutation-confirmation hook with required admin reason capture.
+Local `update.ps1` validation remains important because it tests the operator's Windows development environment, but it cannot be run from the assistant runtime. This update adds GitHub-hosted validation workflows so pushes and pull requests receive independent Linux and Windows compile/test signals.
 
 ### What changed
 
-- Updated `web/src/tabs/BlueprintsTab.tsx` to use `useMutationConfirmation` for Import Blueprint.
-- Removed the local `window.prompt` and `window.confirm` sequence from blueprint import.
-- Preserved blueprint list and export behavior as read-only flows.
-- Added shared mutation confirmation and required admin reason capture before `api.blueprints.import` is called.
-- Added player ID, file name, file size, audit-log guidance, and target verification details to the confirmation flow.
-- Passed captured reasons into `api.blueprints.import`.
+- Added `.github/workflows/ci-linux.yml`.
+- Added `.github/workflows/ci-windows.yml`.
+- Both workflows run on push, pull request, and manual dispatch.
+- Both workflows validate:
+  - Go formatting
+  - Go module tidiness
+  - Go module verification
+  - `go vet ./...`
+  - `go test -v ./...`
+  - backend build
+  - frontend dependency install with `npm ci`
+  - frontend audit with `npm audit --audit-level=high`
+  - frontend typecheck
+  - frontend lint
+  - frontend build
+- Linux builds `dist/linux/dune-admin`.
+- Windows builds `dist/windows/dune-admin.exe`.
 
 ### Security and operator impact
 
-- Blueprint import now uses the same shared confirmation foundation as Players, Storage, Database SQL, and Battlegroup Exec mutations.
-- Admin reason capture is required before blueprint import requests are sent.
-- Player 360 remains read-only.
-- The explicit current mutation-safety review targets are now covered. Future Inventory Studio v2 workflows and Player 360 quick actions must still be added only as confirmed workflows.
+- GitHub CI now provides a VM-like validation signal for repository pushes.
+- Local `update.ps1` remains the final environment-specific Windows validation path.
+- CI does not replace local testing for machine-specific PATH, locked files, local credentials, or operator runtime configuration.
 
 ### Validation
 
-Validation required in the Windows development environment:
+Validation runs automatically on push and pull request. Manual validation is available from the GitHub Actions tab with:
+
+```text
+CI Linux Validation
+CI Windows Validation
+```
+
+Local validation remains:
 
 ```powershell
 .\update.ps1
 ```
+
+---
+
+## Previous update: Blueprint import shared mutation confirmation migration
+
+Blueprint import was migrated to shared mutation confirmation with required admin reason capture.
 
 ---
 
@@ -71,9 +94,3 @@ Journey node complete/reset actions were migrated to the confirmed Player Action
 ## Previous update: Player resource/action shared mutation confirmation migration
 
 Resource, XP, specialization, and faction reputation actions were migrated to the confirmed Player Actions modal with required admin reason capture.
-
----
-
-## Previous update: Inventory repair/delete shared mutation confirmation migration
-
-Inventory repair/delete was migrated to the extracted confirmed inventory modal with required admin reason capture.
