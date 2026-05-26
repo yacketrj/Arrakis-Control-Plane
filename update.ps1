@@ -14,7 +14,8 @@ param(
   [switch]$SkipNpmRepair,
   [switch]$SkipAutoCommit,
   [switch]$SkipAutoPush,
-  [switch]$AllowDirtyWorktree
+  [switch]$AllowDirtyWorktree,
+  [switch]$SkipRootBinaryCopy
 )
 
 Set-StrictMode -Version Latest
@@ -185,6 +186,7 @@ function Invoke-AutoPushIfNeeded {
   Invoke-Native 'git' @('push')
   Write-Host 'Auto-push completed.' -ForegroundColor Green
 }
+
 function Resolve-OutputDirectory {
   param(
     [Parameter(Mandatory = $true)][string]$Root,
@@ -290,6 +292,7 @@ try {
   $WebRoot = Join-Path $RepoRoot 'web'
   $BuildOutputDir = Resolve-OutputDirectory -Root $RepoRoot -RequestedOutputDir $OutputDir
   $BackendBinary = Join-Path $BuildOutputDir 'dune-admin.exe'
+  $RepoRootBinary = Join-Path $RepoRoot 'dune-admin.exe'
 
   Set-Location $RepoRoot
   Write-Host "Repo folder:    $RepoRoot"
@@ -319,6 +322,19 @@ try {
 
   if (-not (Test-Path $BackendBinary)) {
     throw "Backend build completed, but expected binary was not found: $BackendBinary"
+  }
+
+  $binaryInfo = Get-Item -LiteralPath $BackendBinary
+  Write-Host ("Backend build output: {0} ({1} bytes, modified {2})" -f $binaryInfo.FullName, $binaryInfo.Length, $binaryInfo.LastWriteTime) -ForegroundColor Green
+
+  if (-not $SkipRootBinaryCopy) {
+    Invoke-Step 'Copy backend binary to repo root' {
+      Copy-Item -Force -LiteralPath $BackendBinary -Destination $RepoRootBinary
+      $rootBinaryInfo = Get-Item -LiteralPath $RepoRootBinary
+      Write-Host ("Repo root binary:    {0} ({1} bytes, modified {2})" -f $rootBinaryInfo.FullName, $rootBinaryInfo.Length, $rootBinaryInfo.LastWriteTime) -ForegroundColor Green
+    }
+  } else {
+    Write-Host 'Skipping repo-root binary copy because -SkipRootBinaryCopy was supplied.' -ForegroundColor Yellow
   }
 
   foreach ($asset in @('.env.example', 'README.md')) {
@@ -405,6 +421,7 @@ if ($UpdateSucceeded) {
   Write-Host ""
   Write-Host 'Update complete.' -ForegroundColor Green
   Write-Host "Backend binary: $BackendBinary"
+  Write-Host "Repo root exe:   $RepoRootBinary"
   if (-not $SkipWebBuild) {
     Write-Host "Frontend build:  $WebRoot\dist"
   }
