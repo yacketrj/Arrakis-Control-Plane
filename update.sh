@@ -18,6 +18,7 @@ SKIP_AUTO_COMMIT=0
 SKIP_AUTO_PUSH=0
 ALLOW_DIRTY_WORKTREE=0
 SKIP_ROOT_BINARY_COPY=0
+SKIP_PREREQ_INSTALL=0
 
 INITIAL_DIR="$(pwd)"
 UPDATE_SUCCEEDED=0
@@ -46,6 +47,7 @@ Options:
   --skip-auto-push             Do not auto-push when branch is ahead.
   --allow-dirty-worktree       Allow git pull with local changes present.
   --skip-root-binary-copy      Do not copy dist binary back to repo root.
+  --skip-prereq-install        Do not auto-install missing Git/Go/Node/npm tools.
   -h, --help                   Show help.
 EOF
 }
@@ -69,6 +71,7 @@ while [[ $# -gt 0 ]]; do
     --skip-auto-push) SKIP_AUTO_PUSH=1; shift ;;
     --allow-dirty-worktree) ALLOW_DIRTY_WORKTREE=1; shift ;;
     --skip-root-binary-copy) SKIP_ROOT_BINARY_COPY=1; shift ;;
+    --skip-prereq-install) SKIP_PREREQ_INSTALL=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -98,14 +101,80 @@ step() {
   "$@"
 }
 
+sudo_run() {
+  if [[ "$(id -u)" -eq 0 ]]; then
+    run "$@"
+  elif command -v sudo >/dev/null 2>&1; then
+    run sudo "$@"
+  else
+    echo "sudo is required to install missing prerequisites. Install $* manually or rerun as root." >&2
+    exit 1
+  fi
+}
+
+refresh_common_paths() {
+  export PATH="$PATH:/usr/local/go/bin:/usr/local/bin:/opt/homebrew/bin:$HOME/go/bin"
+}
+
+install_with_package_manager() {
+  local logical_name="$1"
+  shift
+
+  if [[ "$SKIP_PREREQ_INSTALL" -eq 1 ]]; then
+    echo "$logical_name was not found on PATH and prerequisite auto-install is disabled." >&2
+    exit 1
+  fi
+
+  section "Install prerequisite: $logical_name"
+
+  if command -v apt-get >/dev/null 2>&1; then
+    sudo_run apt-get update
+    sudo_run apt-get install -y "$@"
+  elif command -v dnf >/dev/null 2>&1; then
+    sudo_run dnf install -y "$@"
+  elif command -v yum >/dev/null 2>&1; then
+    sudo_run yum install -y "$@"
+  elif command -v pacman >/dev/null 2>&1; then
+    sudo_run pacman -Sy --needed --noconfirm "$@"
+  elif command -v apk >/dev/null 2>&1; then
+    sudo_run apk add --no-cache "$@"
+  elif command -v brew >/dev/null 2>&1; then
+    run brew install "$@"
+  else
+    echo "No supported package manager was found. Install $logical_name manually." >&2
+    exit 1
+  fi
+
+  refresh_common_paths
+}
+
+install_prerequisite_for_command() {
+  local name="$1"
+  case "$name" in
+    git) install_with_package_manager "Git" git ;;
+    go) install_with_package_manager "Go" golang-go ;;
+    node) install_with_package_manager "Node.js" nodejs npm ;;
+    npm) install_with_package_manager "npm" nodejs npm ;;
+    gh) install_with_package_manager "GitHub CLI" gh ;;
+    *) echo "No auto-install mapping exists for missing command: $name" >&2; exit 1 ;;
+  esac
+}
+
 require_cmd() {
   local name="$1"
   local hint="${2:-}"
+  if command -v "$name" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  echo "$name was not found on PATH. Attempting prerequisite auto-install."
+  install_prerequisite_for_command "$name"
+
   if ! command -v "$name" >/dev/null 2>&1; then
     if [[ -n "$hint" ]]; then
-      echo "$name was not found on PATH. $hint" >&2
+      echo "$name is still unavailable after auto-install. $hint" >&2
     else
-      echo "$name was not found on PATH." >&2
+      echo "$name is still unavailable after auto-install." >&2
     fi
     exit 1
   fi
@@ -309,6 +378,7 @@ if [[ ! -d .git ]]; then
   exit 1
 fi
 
+refresh_common_paths
 require_cmd git "Install Git."
 require_cmd go "Install Go and reopen the shell so PATH is refreshed."
 
