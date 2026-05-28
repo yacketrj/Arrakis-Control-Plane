@@ -68,6 +68,10 @@ func handleLogPods(w http.ResponseWriter, r *http.Request) {
 func handleLogStream(w http.ResponseWriter, r *http.Request) {
 	ns := r.URL.Query().Get("ns")
 	pod := r.URL.Query().Get("pod")
+	if r.URL.Query().Get("ws_token") != "" {
+		http.Error(w, "legacy ws_token is not accepted; request a one-time stream ticket", http.StatusUnauthorized)
+		return
+	}
 	if ns == "" || pod == "" {
 		http.Error(w, "ns and pod required", 400)
 		return
