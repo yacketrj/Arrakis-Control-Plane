@@ -2,10 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+This project follows a corporate change-management style informed by ITIL release/change practices and NIST SSDF secure-development expectations. Entries should distinguish security, operational, feature, documentation, validation, and known-risk changes.
+
 ## [Unreleased]
 
 ### Added
 
+- Added NIST SP 800-218 SSDF as the primary secure-development baseline for DA Manager.
+- Added `docs/NIST_SSDF_ALIGNMENT.md` with SSDF practice-group mapping, release gates, and control priorities.
+- Added `docs/COMPLIANCE_READINESS.md` with SOC 2 and ISO/IEC 27001 readiness assessment.
+- Added `docs/ADMIN_GUIDE.md` with deployment, SSH, token, network exposure, diagnostics, validation, backup, recovery, incident response, and change-management guidance.
+- Added `docs/RELEASE_CHECKLIST.md` with ITIL-style release metadata, risk/impact assessment, validation gates, rollback plan, secret-rotation checklist, known-issue tracking, and approval record.
+- Added `docs/CONTROL_MATRIX.md` to map DA Manager controls to NIST SSDF practice groups and evidence sources.
+- Added `docs/RISK_REGISTER.md` to track active security, operational, release, and compliance risks.
+- Added `SECURITY_REMEDIATION_TODO.md` to convert external security audit findings into a prioritized remediation backlog.
+- Added one-time WebSocket log stream tickets through `ws_ticket.go` and `POST /api/v1/logs/stream-ticket`.
+- Added fail-closed backend exposure validation for non-loopback `LISTEN_ADDR` values.
 - Added extracted confirmed player admin-actions modal at `web/src/tabs/PlayerAdminActionsModal.tsx`.
 - Added dedicated confirmed player move modal at `web/src/tabs/PlayerTeleportModal.tsx`.
 - Added confirmed player resource, XP, specialization, and journey node actions modal at `web/src/tabs/PlayerActionsModalConfirmed.tsx`.
@@ -65,6 +77,12 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Updated project governance posture to treat DA Manager as a corporate development effort with NIST SSDF control alignment and ITIL-style release/change records.
+- Updated `.env.example` for hardened defaults: Ed25519 SSH key, SSH known_hosts path, strict admin token guidance, loopback backend binding, and explicit remote exposure override documentation.
+- Updated frontend admin-token handling to reject malformed Browser Access Keys and migrate valid legacy `localStorage` tokens into `sessionStorage`.
+- Updated log streaming to request a one-time WebSocket ticket before opening the stream.
+- Updated backend startup to refuse non-loopback binding unless `DUNE_ADMIN_REMOTE_EXPOSURE=reverse-proxy-tls` is explicitly configured.
+- Updated SSH key auto-detection to prefer DA Manager Ed25519 key names and remove RSA auto-detection from the app path.
 - Updated the active Players-table wrapper so Give Item, Inventory, Actions, Move, Admin, and Player 360 workflows route through extracted modal surfaces rather than expanding `PlayersTab.tsx`.
 - Updated Give Item, Inventory repair/delete, player resource/spec actions, journey node actions, player move, and player admin actions to use shared mutation confirmation and required admin reason capture.
 - Updated `docs/mutation-safety-framework.md` with the shared frontend confirmation hook, integration pattern, limitations, and follow-up migration tasks.
@@ -107,6 +125,9 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Fixed static admin-token exposure through WebSocket URLs by replacing `ws_token` with one-time stream tickets.
+- Fixed unsafe backend exposure behavior by failing closed on non-loopback `LISTEN_ADDR` unless explicitly acknowledged for reverse-proxy/TLS deployment.
+- Fixed frontend legacy token persistence by removing valid legacy tokens from `localStorage` after migration to `sessionStorage` and deleting invalid legacy values.
 - Fixed Player 360 specialization lookup so it uses the controller ID when the player identity is available.
 - Fixed stale roadmap text that still pointed to the completed audit log as the next implementation slice.
 - Fixed the Player 360 roadmap typo from Currency wording and corrected the malformed Battlegroup Status v2 roadmap row.
@@ -130,6 +151,13 @@ All notable changes to this project will be documented in this file.
 
 ### Security
 
+- Adopted NIST SSDF as the active secure-development control baseline.
+- Added governance and evidence documentation needed to support future SOC 2 / ISO-style mappings.
+- Replaced static WebSocket admin-token query usage with short-lived one-time scoped stream tickets.
+- Added fail-closed backend binding behavior for unsafe non-loopback exposure.
+- Tightened frontend Browser Access Key validation and moved current interim storage to session scope.
+- Documented the future target to replace browser-stored tokens with memory-only or HttpOnly secure session-cookie authentication.
+- Documented SSH hardening expectations: Ed25519 client keys, Ed25519 host keys, and mandatory known_hosts validation.
 - Routed the active Players-table mutation workflows through shared confirmation and required admin reason capture: Give Item, Inventory repair/delete, resource/spec actions, journey node actions, player move, and player admin actions.
 - Kept Player 360 read-only while the high-risk player mutation surface was migrated into extracted confirmed modals.
 - Added shared frontend confirmation support so future high-risk UI actions can display mutation safety metadata and capture an admin reason before sending the mutation request.
@@ -153,3 +181,52 @@ All notable changes to this project will be documented in this file.
 - Increased CI coverage for both Go and frontend quality gates before changes are treated as production-ready.
 - Reduced mutation risk by isolating augment validation and serialization into a focused backend model file.
 - Reduced operator error by adding preset-driven augment defaults and payload preview before submission.
+
+### Validation required
+
+- Run `go test -v ./...`.
+- Run `go build` or `./update.ps1` / `./update.sh`.
+- Run frontend typecheck, lint, and build.
+- Validate WebSocket ticket behavior manually.
+- Validate fail-closed non-loopback startup behavior.
+- Validate Ed25519-only SSH client key behavior.
+- Validate SSH known-host mismatch rejection.
+- Validate strict backend admin-token behavior.
+- Validate Gitleaks, govulncheck, gosec, Trivy, npm audit, and SBOM generation before release.
+
+### Known issues
+
+- Browser token storage remains JavaScript-readable during the active session. Future target is memory-only token handling or HttpOnly secure session-cookie authentication.
+- Mutation reason enforcement is not yet defaulted to enabled for all high/destructive actions.
+- CI workflow hardening, SBOM generation, and artifact attestations remain open.
+- Committed binary provenance requires cleanup or formal signed/attested release process.
+
+## Change entry template
+
+```markdown
+## [Version] - YYYY-MM-DD
+
+### Security
+- 
+
+### Added
+- 
+
+### Changed
+- 
+
+### Fixed
+- 
+
+### Operations
+- 
+
+### Documentation
+- 
+
+### Validation
+- 
+
+### Known issues
+- 
+```
