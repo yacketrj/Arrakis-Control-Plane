@@ -6,11 +6,14 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/knownhosts"
 )
 
 var (
@@ -21,6 +24,73 @@ var (
 	globalPod   string
 )
 
+const requiredSSHKeyAlgorithm = ssh.KeyAlgoED25519
+
+func defaultKnownHostsPath() string {
+	home, err := os.UserHomeDir()
+	if err != nil || strings.TrimSpace(home) == "" {
+		return ""
+	}
+	return filepath.Join(home, ".ssh", "known_hosts")
+}
+
+func resolveKnownHostsPath() (string, error) {
+	configured := strings.TrimSpace(sshKnownHostsPath)
+	if configured != "" {
+		return validateReadableFilePath("SSH_KNOWN_HOSTS", configured)
+	}
+	path := defaultKnownHostsPath()
+	if strings.TrimSpace(path) == "" {
+		return "", fmt.Errorf("SSH_KNOWN_HOSTS is required because the user home directory could not be resolved")
+	}
+	return validateReadableFilePath("SSH_KNOWN_HOSTS", path)
+}
+
+func sshKeyscanHint() string {
+	host, port, err := net.SplitHostPort(sshHost)
+	if err != nil || strings.TrimSpace(host) == "" {
+		return "ssh-keyscan -t ed25519 -H <host> >> ~/.ssh/known_hosts"
+	}
+	if port == "22" {
+		return fmt.Sprintf("ssh-keyscan -t ed25519 -H %s >> ~/.ssh/known_hosts", host)
+	}
+	return fmt.Sprintf("ssh-keyscan -t ed25519 -H -p %s %s >> ~/.ssh/known_hosts", port, host)
+}
+
+func validateEd25519Signer(signer ssh.Signer) error {
+	if signer == nil || signer.PublicKey() == nil {
+		return fmt.Errorf("SSH_KEY signer is empty")
+	}
+	if signer.PublicKey().Type() != requiredSSHKeyAlgorithm {
+		return fmt.Errorf("SSH_KEY uses unsupported algorithm %s; only %s keys are allowed", signer.PublicKey().Type(), requiredSSHKeyAlgorithm)
+	}
+	return nil
+}
+
+func ed25519OnlyHostKeyCallback(callback ssh.HostKeyCallback) ssh.HostKeyCallback {
+	return func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+		if key == nil {
+			return fmt.Errorf("SSH host key is empty")
+		}
+		if key.Type() != requiredSSHKeyAlgorithm {
+			return fmt.Errorf("SSH host %s offered unsupported host key algorithm %s; only %s host keys are allowed", hostname, key.Type(), requiredSSHKeyAlgorithm)
+		}
+		return callback(hostname, remote, key)
+	}
+}
+
+func newHostKeyCallback() (ssh.HostKeyCallback, string, error) {
+	knownHostsPath, err := resolveKnownHostsPath()
+	if err != nil {
+		return nil, "", fmt.Errorf("%w. Add the remote Ed25519 host key first, for example: %s", err, sshKeyscanHint())
+	}
+	callback, err := knownhosts.New(knownHostsPath)
+	if err != nil {
+		return nil, "", fmt.Errorf("load SSH known_hosts %s: %w", knownHostsPath, err)
+	}
+	return ed25519OnlyHostKeyCallback(callback), knownHostsPath, nil
+}
+
 func dialSSH(keyPath string) (*ssh.Client, error) {
 	keyData, err := os.ReadFile(keyPath)
 	if err != nil {
@@ -30,13 +100,22 @@ func dialSSH(keyPath string) (*ssh.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parse key: %w", err)
 	}
+	if err := validateEd25519Signer(signer); err != nil {
+		return nil, err
+	}
+	hostKeyCallback, knownHostsPath, err := newHostKeyCallback()
+	if err != nil {
+		return nil, err
+	}
 	client, err := ssh.Dial("tcp", sshHost, &ssh.ClientConfig{
-		User:            sshUser,
-		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		User:              sshUser,
+		Auth:              []ssh.AuthMethod{ssh.PublicKeys(signer)},
+		HostKeyCallback:   hostKeyCallback,
+		HostKeyAlgorithms: []string{requiredSSHKeyAlgorithm},
+		Timeout:           15 * time.Second,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("SSH dial: %w", err)
+		return nil, fmt.Errorf("SSH dial using Ed25519 known_hosts %s: %w", knownHostsPath, err)
 	}
 	return client, nil
 }
