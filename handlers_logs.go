@@ -22,7 +22,7 @@ func handleLogPods(w http.ResponseWriter, r *http.Request) {
 	cmd := runtimeLogPodsCommand()
 	out, err := sshExec(cmd)
 	if err != nil {
-		jsonErr(w, fmt.Errorf("runtime %s log target discovery failed: %w — output: %s", normalizeRuntime(serverRuntime), err, out), 500)
+		jsonErr(w, fmt.Errorf("runtime %s log target discovery failed: %w — output: %s", normalizeRuntime(serverRuntime), err, RedactSensitiveText(out)), 500)
 		return
 	}
 
@@ -90,13 +90,13 @@ func handleLogStream(w http.ResponseWriter, r *http.Request) {
 	cmd := runtimeLogStreamCommand(ns, pod)
 	ch, cancel, err := sshStream(cmd)
 	if err != nil {
-		conn.WriteMessage(websocket.TextMessage, []byte("error: "+err.Error()))
+		conn.WriteMessage(websocket.TextMessage, []byte("error: "+RedactSensitiveText(err.Error())))
 		return
 	}
 	defer cancel()
 
 	for line := range ch {
-		if err := conn.WriteMessage(websocket.TextMessage, []byte(line)); err != nil {
+		if err := conn.WriteMessage(websocket.TextMessage, []byte(RedactSensitiveText(line))); err != nil {
 			return
 		}
 	}
@@ -113,7 +113,7 @@ func handleGetCheatLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if msg.err != nil {
-		jsonErr(w, msg.err, 500)
+		jsonErr(w, fmt.Errorf("%s", RedactSensitiveText(msg.err.Error())), 500)
 		return
 	}
 	rows := msg.rows
