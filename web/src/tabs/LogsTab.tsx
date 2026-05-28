@@ -5,6 +5,7 @@ import type { LogPod, CheatEntry } from '../api/client'
 
 type ActiveView = 'pod' | 'cheats'
 type LogTarget = LogPod & { display?: string }
+type StreamTicketResponse = { ticket: string; expires_at: string }
 
 function logTargetLabel(target?: LogTarget | null): string {
   return target?.display || target?.name || ''
@@ -12,6 +13,27 @@ function logTargetLabel(target?: LogTarget | null): string {
 
 function safeFilename(value: string): string {
   return value.replace(/[^a-zA-Z0-9_.-]+/g, '_').replace(/^_+|_+$/g, '') || 'logs'
+}
+
+async function issueStreamTicket(target: LogTarget): Promise<string> {
+  const token = getAdminToken()
+  if (!token) throw new Error('Browser access key is not configured')
+  const apiBase = getWsBase().replace(/^ws/, 'http')
+  const res = await fetch(`${apiBase}/logs/stream-ticket`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Admin-Token': token,
+    },
+    body: JSON.stringify({ namespace: target.namespace, pod: target.name }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }))
+    throw new Error(err.error ?? res.statusText)
+  }
+  const payload = await res.json() as StreamTicketResponse
+  if (!/^[A-Za-z0-9_-]{43}$/.test(payload.ticket)) throw new Error('Backend returned an invalid stream ticket')
+  return payload.ticket
 }
 
 export default function LogsTab() {
@@ -71,7 +93,7 @@ export default function LogsTab() {
     }
   }, [displayLines, autoScroll])
 
-  const connectPod = useCallback((pod: LogTarget) => {
+  const connectPod = useCallback(async (pod: LogTarget) => {
     if (wsRef.current) {
       wsRef.current.close()
       wsRef.current = null
@@ -83,9 +105,15 @@ export default function LogsTab() {
     setSelectedPod(pod)
     setActiveView('pod')
 
-    const token = getAdminToken()
-    const params = new URLSearchParams({ ns: pod.namespace, pod: pod.name })
-    if (token) params.set('ws_token', token)
+    let ticket: string
+    try {
+      ticket = await issueStreamTicket(pod)
+    } catch (e: unknown) {
+      toast.danger(e instanceof Error ? e.message : String(e))
+      return
+    }
+
+    const params = new URLSearchParams({ ns: pod.namespace, pod: pod.name, ticket })
     const url = `${getWsBase()}/logs/stream?${params.toString()}`
     const ws = new WebSocket(url)
     wsRef.current = ws
@@ -188,7 +216,7 @@ export default function LogsTab() {
           return (
             <button
               key={`${pod.namespace}/${pod.name}`}
-              onClick={() => connectPod(pod)}
+              onClick={() => { void connectPod(pod) }}
               className="text-left px-2 py-1.5 rounded text-xs transition-colors"
               style={{
                 background: selected ? 'var(--color-primary)' : 'transparent',
@@ -248,7 +276,7 @@ export default function LogsTab() {
               <div className="flex-1" />
               <label className="flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: 'var(--color-text-dim)' }}><input type="checkbox" checked={autoScroll} onChange={e => setAutoScroll(e.target.checked)} className="w-3 h-3" />Auto-scroll</label>
               {selectedPod && connected && <Button size="sm" variant="danger-soft" onPress={disconnect}>Stop</Button>}
-              {selectedPod && !connected && <Button size="sm" variant="outline" onPress={() => connectPod(selectedPod)}>Reconnect</Button>}
+              {selectedPod && !connected && <Button size="sm" variant="outline" onPress={() => { void connectPod(selectedPod) }}>Reconnect</Button>}
               {displayLines.length > 0 && <Button size="sm" variant="ghost" onPress={exportLogs}>Export</Button>}
               {displayLines.length > 0 && <Button size="sm" variant="ghost" onPress={() => { setDisplayLines([]); linesRef.current = [] }}>Clear</Button>}
               <span className="text-xs" style={{ color: 'var(--color-text-dim)' }}>{displayLines.length} lines</span>
