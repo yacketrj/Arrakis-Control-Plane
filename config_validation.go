@@ -89,16 +89,22 @@ func requiredConfigErrors() []string {
 	if _, err := resolveValidatedKeyPath(); err != nil {
 		errs = append(errs, err.Error())
 	}
+	if _, err := resolveKnownHostsPath(); err != nil {
+		errs = append(errs, err.Error())
+	}
 	checkPattern("DB_USER", dbUser, pgUserNamePattern)
 	checkPattern("DB_NAME", dbName, pgDatabaseNamePattern)
 	checkPattern("DB_SCHEMA", dbSchema, pgIdentifierPattern)
 	if err := validateSecretValue("DB_PASS", dbPass); err != nil {
 		errs = append(errs, err.Error())
 	}
-	if err := validateSecretValue("ADMIN_TOKEN", effectiveAdminToken()); err != nil {
+	if err := validateStrictAdminToken(effectiveAdminToken()); err != nil {
 		errs = append(errs, err.Error())
 	}
 	checkRequired("LISTEN_ADDR", listenAddr)
+	if err := validateListenExposure(listenAddr); err != nil {
+		errs = append(errs, err.Error())
+	}
 
 	if !validTunnelModeValue(sshTunnelMode) {
 		errs = append(errs, "SSH_TUNNEL_MODE must be one of: auto, existing, off")
