@@ -86,8 +86,8 @@ func init() {
 	flag.StringVar(&serverRuntime, "runtime", envOr("SERVER_RUNTIME", "auto"), "Server runtime mode: auto, kubernetes, or docker")
 	flag.StringVar(&sshHost, "host", envOr("SSH_HOST", "192.168.0.72:22"), "SSH host:port")
 	flag.StringVar(&sshUser, "user", envOr("SSH_USER", "dune"), "SSH user")
-	flag.StringVar(&sshKeyPath, "key", envOr("SSH_KEY", ""), "SSH private key path (auto-detected if empty)")
-	flag.StringVar(&sshKnownHostsPath, "knownhosts", envOr("SSH_KNOWN_HOSTS", ""), "SSH known_hosts file path (defaults to ~/.ssh/known_hosts)")
+	flag.StringVar(&sshKeyPath, "key", envOr("SSH_KEY", ""), "SSH Ed25519 private key path (auto-detected if empty)")
+	flag.StringVar(&sshKnownHostsPath, "knownhosts", envOr("SSH_KNOWN_HOSTS", ""), "SSH known_hosts file path containing the remote Ed25519 host key (defaults to ~/.ssh/known_hosts)")
 	flag.StringVar(&sshTunnelMode, "sshtunnel", envOr("SSH_TUNNEL_MODE", "auto"), "SSH tunnel mode for game-management traffic: auto, existing, or off")
 	flag.StringVar(&sshTunnelHost, "tunnelhost", envOr("SSH_TUNNEL_LOCAL_HOST", "127.0.0.1"), "Local bind host for SSH tunnels")
 	flag.IntVar(&dbTunnelLocalPort, "dbtunnelport", envIntOr("DB_TUNNEL_LOCAL_PORT", 0), "Local DB tunnel port; 0 chooses an available port in auto mode")
@@ -110,14 +110,10 @@ func resolveKeyPath() string {
 	}
 	home, _ := os.UserHomeDir()
 	candidates := []string{
+		filepath.Join(home, ".ssh", "dune_admin_ed25519"),
 		filepath.Join(home, ".ssh", "id_ed25519"),
-		filepath.Join(home, ".ssh", "id_rsa"),
-		filepath.Join(home, ".ssh", "dune"),
+		filepath.Join(os.Getenv("USERPROFILE"), ".ssh", "dune_admin_ed25519"),
 		filepath.Join(os.Getenv("USERPROFILE"), ".ssh", "id_ed25519"),
-		filepath.Join(os.Getenv("USERPROFILE"), ".ssh", "id_rsa"),
-		filepath.Join(os.Getenv("USERPROFILE"), ".ssh", "dune"),
-		"../sshKey",
-		"./sshKey",
 	}
 	for _, p := range candidates {
 		p = expandLocalPath(p)
