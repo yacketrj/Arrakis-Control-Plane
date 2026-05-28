@@ -6,6 +6,8 @@ import (
 	"testing"
 )
 
+const testStrictAdminToken = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNO_"
+
 func TestBearerToken(t *testing.T) {
 	if got := bearerToken("Bearer secret"); got != "secret" {
 		t.Fatalf("expected bearer token, got %q", got)
@@ -20,7 +22,7 @@ func TestBearerToken(t *testing.T) {
 
 func TestAuthMiddleware(t *testing.T) {
 	old := adminToken
-	adminToken = "test-token"
+	adminToken = testStrictAdminToken
 	t.Cleanup(func() { adminToken = old })
 
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -44,10 +46,56 @@ func TestAuthMiddleware(t *testing.T) {
 
 	good := httptest.NewRecorder()
 	goodReq := httptest.NewRequest(http.MethodGet, "/api/v1/status", nil)
-	goodReq.Header.Set("Authorization", "Bearer test-token")
+	goodReq.Header.Set("Authorization", "Bearer "+testStrictAdminToken)
 	h.ServeHTTP(good, goodReq)
 	if good.Code != http.StatusNoContent {
 		t.Fatalf("good token: got %d", good.Code)
+	}
+}
+
+func TestAuthMiddlewareRejectsInvalidBackendToken(t *testing.T) {
+	old := adminToken
+	adminToken = "test-token"
+	t.Cleanup(func() { adminToken = old })
+
+	h := authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	resp := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/status", nil)
+	req.Header.Set("Authorization", "Bearer test-token")
+	h.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusServiceUnavailable {
+		t.Fatalf("invalid backend token: got %d", resp.Code)
+	}
+}
+
+func TestValidateStrictAdminToken(t *testing.T) {
+	valid := []string{
+		testStrictAdminToken,
+		generateAdminToken(),
+	}
+	for _, token := range valid {
+		if err := validateStrictAdminToken(token); err != nil {
+			t.Fatalf("expected valid strict token %q: %v", token, err)
+		}
+	}
+
+	invalid := []string{
+		"",
+		"test-token",
+		"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP",
+		"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNO+",
+		"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNO/",
+		" abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNO_",
+		"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNO_\n",
+	}
+	for _, token := range invalid {
+		if err := validateStrictAdminToken(token); err == nil {
+			t.Fatalf("expected invalid strict token %q", token)
+		}
 	}
 }
 
