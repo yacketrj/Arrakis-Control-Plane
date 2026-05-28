@@ -2,17 +2,63 @@ declare global {
   interface Window { Clerk?: { session?: { getToken(): Promise<string | null> } } }
 }
 
+const ADMIN_TOKEN_SESSION_KEY = 'dune_admin_token_session'
+const LEGACY_ADMIN_TOKEN_LOCAL_KEY = 'dune_admin_token'
+const ADMIN_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/
+
 function getApiBase(): string {
   const stored = localStorage.getItem('dune_admin_backend')
   return (stored ? stored.replace(/\/$/, '') : 'http://localhost:8080') + '/api/v1'
 }
 
-export function getAdminToken(): string { return localStorage.getItem('dune_admin_token') || '' }
+export function adminTokenValidationError(value: string): string | null {
+  const token = value.trim()
+  if (!token) return 'Browser Access Key is required.'
+  if (token !== value || /[\x00\r\n\t ]/.test(value)) return 'Browser Access Key must not contain whitespace or control characters.'
+  if (!ADMIN_TOKEN_PATTERN.test(value)) return 'Browser Access Key must be exactly 43 base64url characters: A-Z, a-z, 0-9, underscore, or dash.'
+  const lower = value.toLowerCase()
+  if (['changeme', 'change-me', 'password', 'admin', 'admin-token', 'replace-me', 'replace_with_token', '<your_admin_token>'].includes(lower)) {
+    return 'Browser Access Key cannot use a placeholder or default value.'
+  }
+  return null
+}
+
+export function isAdminTokenValid(value: string): boolean {
+  return adminTokenValidationError(value) === null
+}
+
+export function getAdminToken(): string {
+  const sessionToken = sessionStorage.getItem(ADMIN_TOKEN_SESSION_KEY) || ''
+  if (isAdminTokenValid(sessionToken)) return sessionToken
+  if (sessionToken) sessionStorage.removeItem(ADMIN_TOKEN_SESSION_KEY)
+
+  const legacyToken = localStorage.getItem(LEGACY_ADMIN_TOKEN_LOCAL_KEY) || ''
+  if (isAdminTokenValid(legacyToken)) {
+    sessionStorage.setItem(ADMIN_TOKEN_SESSION_KEY, legacyToken)
+    localStorage.removeItem(LEGACY_ADMIN_TOKEN_LOCAL_KEY)
+    return legacyToken
+  }
+  if (legacyToken) localStorage.removeItem(LEGACY_ADMIN_TOKEN_LOCAL_KEY)
+  return ''
+}
+
 export function setAdminToken(value: string): void {
   const token = value.trim()
-  if (token) localStorage.setItem('dune_admin_token', token)
-  else localStorage.removeItem('dune_admin_token')
+  localStorage.removeItem(LEGACY_ADMIN_TOKEN_LOCAL_KEY)
+  if (!token) {
+    sessionStorage.removeItem(ADMIN_TOKEN_SESSION_KEY)
+    return
+  }
+  const err = adminTokenValidationError(token)
+  if (err) throw new Error(err)
+  sessionStorage.setItem(ADMIN_TOKEN_SESSION_KEY, token)
 }
+
+export function clearAdminToken(): void {
+  sessionStorage.removeItem(ADMIN_TOKEN_SESSION_KEY)
+  localStorage.removeItem(LEGACY_ADMIN_TOKEN_LOCAL_KEY)
+}
+
 export function getWsBase(): string { return getApiBase().replace(/^http/, 'ws') }
 
 const BASE = getApiBase()
