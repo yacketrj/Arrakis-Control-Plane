@@ -23,6 +23,7 @@ var (
 	sshHost           string
 	sshUser           string
 	sshKeyPath        string
+	sshKnownHostsPath string
 	sshTunnelMode     string
 	sshTunnelHost     string
 	dbTunnelLocalPort int
@@ -86,6 +87,7 @@ func init() {
 	flag.StringVar(&sshHost, "host", envOr("SSH_HOST", "192.168.0.72:22"), "SSH host:port")
 	flag.StringVar(&sshUser, "user", envOr("SSH_USER", "dune"), "SSH user")
 	flag.StringVar(&sshKeyPath, "key", envOr("SSH_KEY", ""), "SSH private key path (auto-detected if empty)")
+	flag.StringVar(&sshKnownHostsPath, "knownhosts", envOr("SSH_KNOWN_HOSTS", ""), "SSH known_hosts file path (defaults to ~/.ssh/known_hosts)")
 	flag.StringVar(&sshTunnelMode, "sshtunnel", envOr("SSH_TUNNEL_MODE", "auto"), "SSH tunnel mode for game-management traffic: auto, existing, or off")
 	flag.StringVar(&sshTunnelHost, "tunnelhost", envOr("SSH_TUNNEL_LOCAL_HOST", "127.0.0.1"), "Local bind host for SSH tunnels")
 	flag.IntVar(&dbTunnelLocalPort, "dbtunnelport", envIntOr("DB_TUNNEL_LOCAL_PORT", 0), "Local DB tunnel port; 0 chooses an available port in auto mode")
