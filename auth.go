@@ -14,10 +14,13 @@ import (
 )
 
 const maxJSONBodyBytes int64 = 1 << 20 // 1 MiB
+const adminTokenRawBytes = 32
+const adminTokenEncodedLength = 43
 
 var k8sNamePattern = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
 var listenPortPattern = regexp.MustCompile(`^[0-9]{1,5}$`)
 var sqlDangerPattern = regexp.MustCompile(`(?i)\b(insert|update|delete|drop|alter|truncate|create|grant|revoke|copy|call|do|execute|merge|vacuum|analyze)\b`)
+var adminTokenPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{43}$`)
 var adminToken string
 var allowedOrigins = "http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:4173,http://localhost:4173"
 
@@ -31,11 +34,42 @@ func init() {
 }
 
 func generateAdminToken() string {
-	b := make([]byte, 32)
+	b := make([]byte, adminTokenRawBytes)
 	if _, err := rand.Read(b); err != nil {
 		panic(fmt.Errorf("generate admin token: %w", err))
 	}
 	return base64.RawURLEncoding.EncodeToString(b)
+}
+
+func validateStrictAdminToken(value string) error {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return fmt.Errorf("ADMIN_TOKEN is required")
+	}
+	if trimmed != value || containsUnsafeControl(value) {
+		return fmt.Errorf("ADMIN_TOKEN contains unsupported whitespace or control characters")
+	}
+	if !adminTokenPattern.MatchString(value) {
+		return fmt.Errorf("ADMIN_TOKEN must be exactly %d base64url characters generated from %d random bytes", adminTokenEncodedLength, adminTokenRawBytes)
+	}
+	rejected := map[string]bool{
+		"changeme":          true,
+		"change-me":        true,
+		"password":          true,
+		"admin":             true,
+		"admin-token":       true,
+		"replace-me":        true,
+		"replace_with_token": true,
+		"<your_admin_token>": true,
+	}
+	if rejected[strings.ToLower(value)] {
+		return fmt.Errorf("ADMIN_TOKEN uses a forbidden placeholder value")
+	}
+	return nil
+}
+
+func isWebSocketLogStreamRequest(r *http.Request) bool {
+	return r != nil && strings.EqualFold(r.Header.Get("Upgrade"), "websocket") && r.URL != nil && r.URL.Path == "/api/v1/logs/stream"
 }
 
 func authMiddleware(next http.Handler) http.Handler {
@@ -44,22 +78,27 @@ func authMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
+		if isWebSocketLogStreamRequest(r) {
+			if !validateAndConsumeLogStreamTicket(r) {
+				jsonErr(w, fmt.Errorf("unauthorized"), http.StatusUnauthorized)
+				return
+			}
+			next.ServeHTTP(w, r)
+			return
+		}
 		if adminToken == "" {
 			adminToken = os.Getenv("ADMIN_TOKEN")
 		}
-		if adminToken == "" {
-			log.Printf("security: rejecting request because ADMIN_TOKEN is not configured")
-			jsonErr(w, fmt.Errorf("backend admin token is not configured"), http.StatusServiceUnavailable)
+		if err := validateStrictAdminToken(adminToken); err != nil {
+			log.Printf("security: rejecting request because backend admin token is invalid: %v", err)
+			jsonErr(w, fmt.Errorf("backend admin token is not securely configured"), http.StatusServiceUnavailable)
 			return
 		}
 		provided := bearerToken(r.Header.Get("Authorization"))
 		if provided == "" {
 			provided = r.Header.Get("X-Admin-Token")
 		}
-		if provided == "" && strings.EqualFold(r.Header.Get("Upgrade"), "websocket") && r.URL.Path == "/api/v1/logs/stream" {
-			provided = r.URL.Query().Get("ws_token")
-		}
-		if subtle.ConstantTimeCompare([]byte(provided), []byte(adminToken)) != 1 {
+		if validateStrictAdminToken(provided) != nil || subtle.ConstantTimeCompare([]byte(provided), []byte(adminToken)) != 1 {
 			jsonErr(w, fmt.Errorf("unauthorized"), http.StatusUnauthorized)
 			return
 		}
