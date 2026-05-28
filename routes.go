@@ -61,6 +61,7 @@ func registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/database/sql", handleDBSQL)
 
 	mux.HandleFunc("GET /api/v1/logs/pods", handleLogPods)
+	mux.HandleFunc("POST /api/v1/logs/stream-ticket", handleIssueLogStreamTicket)
 	mux.HandleFunc("GET /api/v1/logs/stream", handleLogStream)
 	mux.HandleFunc("GET /api/v1/logs/cheats", handleGetCheatLog)
 
