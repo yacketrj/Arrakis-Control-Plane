@@ -51,7 +51,9 @@ func logStartupSummary(addr string) {
 
 func startServer(addr string) {
 	addr = normalizeListenAddr(addr)
-	warnIfExternallyBound(addr)
+	if err := validateListenExposure(addr); err != nil {
+		log.Fatal(err)
+	}
 
 	mux := http.NewServeMux()
 	registerRoutes(mux)
