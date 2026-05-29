@@ -49,10 +49,10 @@ func mutationSafetyMiddleware(next http.Handler) http.Handler {
 
 func adminReasonEnforcementEnabled() bool {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv("ADMIN_REQUIRE_REASON"))) {
-	case "1", "true", "yes", "on", "required", "enforce":
-		return true
-	default:
+	case "0", "false", "no", "off", "disabled", "disable":
 		return false
+	default:
+		return true
 	}
 }
 
