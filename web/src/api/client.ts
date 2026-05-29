@@ -82,13 +82,31 @@ function isMutatingMethod(method: string): boolean {
 
 function localMutationSafety(method: string, path: string): MutationSafetyClass {
   const lower = path.toLowerCase()
-  const destructive = method.toUpperCase() === 'DELETE' || lower.includes('/wipe') || lower.includes('/delete') || lower.includes('/reset') || lower.includes('/kick') || lower.includes('/blueprints/import')
-  const high = destructive || lower.includes('/give') || lower.includes('/award') || lower.includes('/grant') || lower.includes('/teleport') || lower.includes('/journey/') || lower.includes('/set-faction') || lower.includes('/repair') || lower.includes('/storage/') || lower.includes('/database/sql') || lower.includes('/battlegroup/exec')
+  const destructive = method.toUpperCase() === 'DELETE' || lower.includes('/wipe') || lower.includes('/delete') || lower.includes('/reset') || lower.includes('/blueprints/import')
+  const highMarkers = [
+    '/battlegroup/exec',
+    '/give-item',
+    '/give-currency',
+    '/give-faction-rep',
+    '/give-scrip',
+    '/grant-live',
+    '/award-xp',
+    '/award-char-xp',
+    '/award-intel',
+    '/kick',
+    '/repair-item',
+    '/teleport',
+    '/journey/complete',
+    '/set-faction',
+    '/set-spec-xp',
+    '/storage/',
+  ]
+  const high = destructive || highMarkers.some(marker => lower.includes(marker))
   return {
     action: `${method.toLowerCase()}:${path.replace(/^\/api\/v1\//, '').replace(/^\//, '').replaceAll('/', '.') || 'root'}`,
     risk: destructive ? 'destructive' : high ? 'high' : 'medium',
     requires_reason: high,
-    reason_enforcement_enabled: false,
+    reason_enforcement_enabled: true,
     requires_preview: high,
     destructive,
     operator_warnings: high ? ['This action changes player or server state and will be written to the audit log.'] : [],
@@ -185,5 +203,5 @@ export const api = {
   database: { tables: () => req<{name: string; row_count: number}[]>('GET', '/database/tables'), describe: (table: string) => req<{table: string; columns: {name: string; data_type: string; nullable: string}[]}>('GET', `/database/describe?table=${encodeURIComponent(table)}`), sample: (table: string, limit = 20) => req<{table: string; headers: string[]; rows: string[][]}>('GET', `/database/sample?table=${encodeURIComponent(table)}&limit=${limit}`), search: (term: string) => req<{headers: string[]; rows: string[][]}>('GET', `/database/search?term=${encodeURIComponent(term)}`), sql: (sql: string, reason?: string) => req<{result: string}>('POST', '/database/sql', { sql }, reason) },
   logs: { pods: () => req<LogPod[]>('GET', '/logs/pods'), cheats: () => req<CheatEntry[]>('GET', '/logs/cheats') },
   storage: { list: () => req<{id: number; class: string; map: string; item_count: number}[]>('GET', '/storage'), items: (id: number) => req<InventoryItem[]>('GET', `/storage/${id}/items`), giveItem: (id: number, template: string, qty: number, quality: number, reason?: string) => req<MutateResult>('POST', `/storage/${id}/give-item`, { template, qty, quality }, reason) },
-  blueprints: { list: () => req<BlueprintRow[]>('GET', '/blueprints'), exportUrl: (id: number) => `${BASE}/blueprints/${id}/export`, import: async (file: File, player_id: number, reason?: string) => { const fd = new FormData(); fd.append('file', file); fd.append('player_id', String(player_id)); return fetch(`${BASE}/blueprints/import`, { method: 'POST', headers: await headers(undefined, reason), body: fd }).then(r => r.json()) } },
+  blueprints: { list: () => req<BlueprintRow[]>('GET', '/blueprints'), exportUrl: (id: number) => `${BASE}/blueprints/${id}/export`, import: async (file: File, player_id: number, reason?: string) => { const finalReason = await ensureAdminReasonForMutation('POST', '/blueprints/import', reason); const fd = new FormData(); fd.append('file', file); fd.append('player_id', String(player_id)); return fetch(`${BASE}/blueprints/import`, { method: 'POST', headers: await headers(undefined, finalReason), body: fd }).then(r => r.json()) } },
 }
