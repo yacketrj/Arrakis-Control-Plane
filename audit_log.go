@@ -3,9 +3,12 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"sort"
@@ -19,6 +22,9 @@ const maxAuditInspectableBodyBytes int64 = 1 << 20
 
 type adminAuditEvent struct {
 	Timestamp        string            `json:"timestamp"`
+	RequestID        string            `json:"request_id,omitempty"`
+	RemoteAddr       string            `json:"remote_addr,omitempty"`
+	AdminTokenHash   string            `json:"admin_token_hash,omitempty"`
 	Method           string            `json:"method"`
 	Path             string            `json:"path"`
 	Action           string            `json:"action"`
@@ -79,6 +85,9 @@ func auditMiddleware(next http.Handler) http.Handler {
 		}
 		_ = appendAdminAuditEvent(adminAuditEvent{
 			Timestamp:        started.UTC().Format(time.RFC3339Nano),
+			RequestID:        sanitizedAuditString(r.Header.Get("X-Request-ID"), 128),
+			RemoteAddr:       auditRemoteAddr(r),
+			AdminTokenHash:   auditAdminTokenHash(r),
 			Method:           r.Method,
 			Path:             r.URL.Path,
 			Action:           safety.Action,
@@ -121,11 +130,32 @@ func auditActionName(method, path string) string {
 }
 
 func mutationRiskForRequest(method, path string) string {
-	if method == http.MethodDelete || strings.Contains(path, "/wipe") || strings.Contains(path, "/delete") || strings.Contains(path, "/blueprints/import") {
+	lower := strings.ToLower(path)
+	if method == http.MethodDelete || strings.Contains(lower, "/wipe") || strings.Contains(lower, "/delete") || strings.Contains(lower, "/reset") || strings.Contains(lower, "/blueprints/import") {
 		return "destructive"
 	}
-	if strings.Contains(path, "/give-item") || strings.Contains(path, "/grant-live") || strings.Contains(path, "/teleport") || strings.Contains(path, "/journey/") || strings.Contains(path, "/set-faction") {
-		return "high"
+	highRiskMarkers := []string{
+		"/battlegroup/exec",
+		"/give-item",
+		"/give-currency",
+		"/give-faction-rep",
+		"/give-scrip",
+		"/grant-live",
+		"/award-xp",
+		"/award-char-xp",
+		"/award-intel",
+		"/kick",
+		"/repair-item",
+		"/teleport",
+		"/journey/complete",
+		"/set-faction",
+		"/set-spec-xp",
+		"/storage/",
+	}
+	for _, marker := range highRiskMarkers {
+		if strings.Contains(lower, marker) {
+			return "high"
+		}
 	}
 	if method == http.MethodPost || method == http.MethodPut || method == http.MethodPatch {
 		return "medium"
@@ -225,7 +255,7 @@ func extractMutationAuditMetadata(r *http.Request) mutationAuditMetadata {
 	if metadata.Reason == "" {
 		metadata.Reason = sanitizedAuditString(payloadString(payload, "reason"), 256)
 	}
-	for _, key := range []string{"player_id", "account_id", "actor_id", "controller_id", "item_id", "faction_id", "storage_id"} {
+	for _, key := range []string{"player_id", "account_id", "actor_id", "controller_id", "item_id", "faction_id", "storage_id", "container_id", "pod", "service", "cmd"} {
 		if value, ok := auditScalar(payload[key]); ok {
 			metadata.Target[key] = value
 		}
@@ -250,7 +280,7 @@ func auditScalar(value any) (string, bool) {
 	case nil:
 		return "", false
 	case string:
-		trimmed := sanitizedAuditString(v, 128)
+		trimmed := sanitizedAuditString(RedactSensitiveText(v), 128)
 		if trimmed == "" {
 			return "", false
 		}
@@ -265,7 +295,7 @@ func auditScalar(value any) (string, bool) {
 }
 
 func sanitizedAuditString(value string, maxLen int) string {
-	value = strings.TrimSpace(value)
+	value = RedactSensitiveText(strings.TrimSpace(value))
 	if value == "" {
 		return ""
 	}
@@ -276,6 +306,36 @@ func sanitizedAuditString(value string, maxLen int) string {
 		return value[:maxLen]
 	}
 	return value
+}
+
+func auditRemoteAddr(r *http.Request) string {
+	if r == nil {
+		return ""
+	}
+	remote := strings.TrimSpace(r.RemoteAddr)
+	if remote == "" {
+		return ""
+	}
+	host, _, err := net.SplitHostPort(remote)
+	if err == nil {
+		return sanitizedAuditString(host, 128)
+	}
+	return sanitizedAuditString(remote, 128)
+}
+
+func auditAdminTokenHash(r *http.Request) string {
+	if r == nil {
+		return ""
+	}
+	token := bearerToken(r.Header.Get("Authorization"))
+	if token == "" {
+		token = r.Header.Get("X-Admin-Token")
+	}
+	if token == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])[:16]
 }
 
 func handleAdminAuditEvents(w http.ResponseWriter, r *http.Request) {
