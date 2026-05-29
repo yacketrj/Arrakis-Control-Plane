@@ -78,7 +78,7 @@ func jsonOK(w http.ResponseWriter, v any) {
 func jsonErr(w http.ResponseWriter, err error, code int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+	json.NewEncoder(w).Encode(map[string]string{"error": RedactSensitiveText(err.Error())})
 }
 
 func decode(r *http.Request, v any) error {
