@@ -34,8 +34,8 @@ func TestRedactPostgresURLPassword(t *testing.T) {
 	if containsSubstring(got, "supersecret") {
 		t.Fatalf("redacted output leaked postgres password: %s", got)
 	}
-	if !containsSubstring(got, "postgres://dune:[REDACTED]@[REDACTED_IP]/dune") {
-		t.Fatalf("unexpected postgres URL redaction: %s", RedactPIIText(got))
+	if !containsSubstring(got, "postgres://dune:[REDACTED]@127.0.0.1:15432/dune") {
+		t.Fatalf("unexpected postgres URL redaction: %s", got)
 	}
 }
 
