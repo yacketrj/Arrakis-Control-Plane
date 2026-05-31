@@ -5,6 +5,7 @@ import { api, getAdminToken, setAdminToken, type Status } from './api/client'
 const AuditTab = lazy(() => import('./tabs/AuditTab'))
 const BattlegroupTab = lazy(() => import('./tabs/BattlegroupTab'))
 const PlayersTab = lazy(() => import('./tabs/PlayersTabWith360Launcher'))
+const PlayerCardsTab = lazy(() => import('./tabs/PlayerCardsTab'))
 const Player360Tab = lazy(() => import('./tabs/Player360Tab'))
 const InventoryStudioTab = lazy(() => import('./tabs/InventoryStudioTab'))
 const DatabaseTab = lazy(() => import('./tabs/DatabaseTab'))
@@ -13,12 +14,13 @@ const LogsTab = lazy(() => import('./tabs/LogsTab'))
 const BlueprintsTab = lazy(() => import('./tabs/BlueprintsTab'))
 const StorageTab = lazy(() => import('./tabs/StorageTab'))
 
-type TabId = 'battlegroup' | 'players' | 'player-360' | 'inventory-studio' | 'database' | 'db-routines' | 'audit' | 'logs' | 'blueprints' | 'storage'
+type TabId = 'battlegroup' | 'players' | 'player-cards' | 'player-360' | 'inventory-studio' | 'database' | 'db-routines' | 'audit' | 'logs' | 'blueprints' | 'storage'
 
 const tabs: Array<{ id: TabId; label: string }> = [
   { id: 'audit', label: 'Audit' },
   { id: 'battlegroup', label: 'Battlegroup' },
   { id: 'players', label: 'Players' },
+  { id: 'player-cards', label: 'Player Cards' },
   { id: 'player-360', label: 'Player 360' },
   { id: 'inventory-studio', label: 'Inventory Studio' },
   { id: 'database', label: 'Database' },
@@ -28,7 +30,7 @@ const tabs: Array<{ id: TabId; label: string }> = [
   { id: 'storage', label: 'Storage' },
 ]
 
-const dbBackedTabs = new Set<TabId>(['players', 'player-360', 'inventory-studio', 'database', 'db-routines', 'blueprints', 'storage'])
+const dbBackedTabs = new Set<TabId>(['players', 'player-cards', 'player-360', 'inventory-studio', 'database', 'db-routines', 'blueprints', 'storage'])
 
 export default function App() {
   const status = useStatus()
@@ -218,6 +220,7 @@ function renderTab(tab: TabId) {
   switch (tab) {
     case 'battlegroup': return <BattlegroupTab />
     case 'players': return <PlayersTab />
+    case 'player-cards': return <PlayerCardsTab />
     case 'player-360': return <Player360Tab />
     case 'inventory-studio': return <InventoryStudioTab />
     case 'database': return <DatabaseTab />
@@ -240,6 +243,7 @@ function panelClass(tab: TabId) {
     case 'inventory-studio':
       return 'flex-1 overflow-hidden flex flex-col p-4'
     case 'players':
+    case 'player-cards':
     case 'player-360':
     case 'database':
       return 'flex-1 overflow-auto p-4'
@@ -264,77 +268,51 @@ function TabFallback() {
 
 function ConnectionBadge({ label, connected }: { label: string; connected: boolean }) {
   return (
-    <div className="flex items-center gap-1.5">
-      <div className="w-2 h-2 rounded-full" style={{ background: connected ? 'var(--color-success)' : '#555' }} />
-      <span style={{ color: connected ? 'var(--color-text)' : 'var(--color-text-dim)' }}>{label}</span>
-    </div>
+    <span style={{ color: connected ? 'var(--color-primary)' : 'var(--color-text-dim)' }}>
+      {label}: {connected ? 'connected' : 'offline'}
+    </span>
   )
 }
 
 function AccessBanner({ onConfigure }: { onConfigure: () => void }) {
   return (
-    <div className="px-6 py-2 text-xs flex items-center justify-between" style={{ background: '#2a1a0a', borderBottom: '1px solid #5a3a10', color: '#f0a830' }}>
-      <span><strong>Browser access is not configured.</strong> Protected tools are blocked until backend settings are saved.</span>
-      <button onClick={onConfigure} style={{ background: 'transparent', border: '1px solid #5a3a10', borderRadius: 4, color: '#f0a830', cursor: 'pointer', fontSize: 12, padding: '3px 8px' }}>Open Settings</button>
+    <div className="px-4 py-2 text-xs" style={{ background: '#2a1a0a', color: '#f0a830', borderBottom: '1px solid #5a3a10' }}>
+      Browser access is not configured. Protected sections are locked until a backend URL and access key are configured.{' '}
+      <button onClick={onConfigure} style={{ color: '#ffd28a', textDecoration: 'underline', background: 'transparent', border: 0, cursor: 'pointer' }}>
+        Configure access
+      </button>
     </div>
   )
 }
 
 function AccessSetupPanel({ onConfigure }: { onConfigure: () => void }) {
   return (
-    <div className="rounded-lg p-6 text-sm" style={{ background: '#0d0b07', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
-      <h2 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>Backend settings required</h2>
-      <p>This browser does not have the local access key saved, so protected API calls are blocked before they reach the backend.</p>
-      <p className="mt-2">Open settings, confirm the backend URL, paste the configured access value from the backend environment, then save and reload.</p>
-      <button onClick={onConfigure} style={{ marginTop: 16, background: 'var(--color-primary)', border: 'none', borderRadius: 4, color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, padding: '6px 12px' }}>Open Settings</button>
+    <div className="rounded-lg p-6 text-sm" style={{ background: 'var(--color-surface)', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
+      <h2 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>Access required</h2>
+      <p>Set the backend URL and Browser Access Key before using protected admin sections.</p>
+      <button onClick={onConfigure} className="mt-4 rounded px-3 py-2 text-sm" style={{ background: 'var(--color-primary)', color: '#fff' }}>
+        Configure backend access
+      </button>
     </div>
   )
 }
 
 function DbUnavailableBanner({ status }: { status: Status }) {
   return (
-    <div className="px-6 py-2 text-xs" style={{ background: '#2a1a0a', borderBottom: '1px solid #5a3a10', color: '#f0a830' }}>
-      <strong>DB unavailable.</strong> DB-backed tabs are gated until SSH/tunnel/database connectivity is restored.
-      {status.startup_connect_error ? <span className="ml-2 font-mono">{status.startup_connect_error}</span> : null}
+    <div className="px-4 py-2 text-xs" style={{ background: '#2a1a0a', color: '#f0a830', borderBottom: '1px solid #5a3a10' }}>
+      Database-backed features are unavailable. SSH: {status.ssh_connected ? 'connected' : 'offline'} · DB: {status.db_connected ? 'connected' : 'offline'}
+      {status.startup_connect_error ? ` · ${status.startup_connect_error}` : ''}
     </div>
   )
 }
 
 function DbBlockedPanel({ status }: { status: Status }) {
-  const [busy, setBusy] = useState(false)
-  const [message, setMessage] = useState('')
-  const reconnect = async () => {
-    setBusy(true)
-    setMessage('')
-    try {
-      const next = await api.reconnect()
-      setMessage(next.db_connected ? 'Reconnect succeeded. Reloading...' : 'Reconnect returned but DB is still unavailable.')
-      if (next.db_connected) window.location.reload()
-    } catch (e: unknown) {
-      setMessage(e instanceof Error ? e.message : String(e))
-    } finally {
-      setBusy(false)
-    }
-  }
-
   return (
-    <div className="rounded-lg p-6 text-sm" style={{ background: '#0d0b07', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
-      <h2 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>Database connection required</h2>
-      <p>This section depends on live database access. The backend is running, but SSH/tunnel/database connectivity is not healthy.</p>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-4 text-xs">
-        <StatusTile label="SSH" value={status.ssh_connected ? 'connected' : 'not connected'} />
-        <StatusTile label="DB" value={status.db_connected ? 'connected' : 'not connected'} />
-        <StatusTile label="Tunnel Mode" value={status.tunnel_mode || 'unknown'} />
-      </div>
-      {status.startup_connect_error && <pre className="mt-4 rounded p-3 overflow-auto" style={{ background: '#080604', border: '1px solid #2a2418', color: '#f0a830' }}>{status.startup_connect_error}</pre>}
-      <div className="mt-4 flex gap-2 items-center">
-        <button onClick={reconnect} disabled={busy} style={{ background: 'var(--color-primary)', border: 'none', borderRadius: 4, color: '#fff', cursor: busy ? 'wait' : 'pointer', fontSize: 12, fontWeight: 600, padding: '6px 12px' }}>{busy ? 'Reconnecting...' : 'Retry reconnect'}</button>
-        {message && <span style={{ color: 'var(--color-text-dim)' }}>{message}</span>}
-      </div>
+    <div className="rounded-lg p-6 text-sm" style={{ background: 'var(--color-surface)', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
+      <h2 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>Database unavailable</h2>
+      <p>This section requires a working database connection.</p>
+      <p className="mt-2">SSH: {status.ssh_connected ? 'connected' : 'offline'} · DB: {status.db_connected ? 'connected' : 'offline'}</p>
+      {status.startup_connect_error && <p className="mt-2 font-mono text-xs">{status.startup_connect_error}</p>}
     </div>
   )
-}
-
-function StatusTile({ label, value }: { label: string; value: string }) {
-  return <div className="rounded p-2" style={{ background: '#080604', border: '1px solid #2a2418' }}><div className="uppercase tracking-wide text-[10px]" style={{ color: 'var(--color-text-dim)' }}>{label}</div><div className="font-mono mt-1" style={{ color: 'var(--color-text)' }}>{value}</div></div>
 }
