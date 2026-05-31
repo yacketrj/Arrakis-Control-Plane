@@ -98,16 +98,25 @@ func authMiddleware(next http.Handler) http.Handler {
 		if provided == "" {
 			provided = r.Header.Get("X-Admin-Token")
 		}
-		if validateStrictAdminToken(provided) != nil || subtle.ConstantTimeCompare([]byte(provided), []byte(adminToken)) != 1 {
-			jsonErr(w, fmt.Errorf("unauthorized"), http.StatusUnauthorized)
+		if validateStrictAdminToken(provided) == nil && subtle.ConstantTimeCompare([]byte(provided), []byte(adminToken)) == 1 {
+			next.ServeHTTP(w, r)
 			return
 		}
-		next.ServeHTTP(w, r)
+		if discordAuthEnabled() && discordSessionIsAdmin(r) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		jsonErr(w, fmt.Errorf("unauthorized"), http.StatusUnauthorized)
 	})
 }
 
 func isPublicPath(path string) bool {
-	return path == "/api/v1/public/status"
+	switch path {
+	case "/api/v1/public/status", "/api/v1/auth/discord/login", "/api/v1/auth/discord/callback":
+		return true
+	default:
+		return false
+	}
 }
 
 func bearerToken(header string) string {
