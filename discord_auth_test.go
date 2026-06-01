@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -24,6 +25,7 @@ func resetDiscordSessionsForTest(t *testing.T) {
 func TestRegisterRoutesIncludesDiscordAuthEndpoints(t *testing.T) {
 	resetDiscordSessionsForTest(t)
 	t.Setenv("DISCORD_AUTH_ENABLED", "0")
+	t.Setenv("DISCORD_USER_STORE", filepath.Join(t.TempDir(), "discord-users.json"))
 
 	mux := http.NewServeMux()
 	registerRoutes(mux)
