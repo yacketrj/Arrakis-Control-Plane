@@ -8,6 +8,9 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Added
 
+- Added inventory request/order backend coordination model in `inventory_requests.go` for personal and guild requests plus farming orders.
+- Added `inventory_requests_test.go` coverage for request validation, handler lifecycle, order linking, fill propagation, and missing-request rejection.
+- Added `docs/inventory-requests-orders.md` with storage, endpoint, model, validation, status propagation, and safety-boundary notes.
 - Added Discord auth route/session coverage in `discord_auth_test.go` for route registration, role mapping, session lookup, expiry eviction, session hash generation, and logout invalidation.
 - Added `docs/discord-auth.md` with runtime configuration, endpoint, role mapping, session behavior, validation, and current limitation notes.
 - Added NIST SP 800-218 SSDF as the primary secure-development baseline for DA Manager.
@@ -79,6 +82,9 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Registered protected inventory request/order endpoints in `routes.go`.
+- Updated CORS middleware to allow `PATCH` for request/order update endpoints.
+- Updated `PATCH_NOTES.md` with the inventory request/order backend status.
 - Registered Discord auth endpoints in `routes.go` for login, callback, current auth context, logout, and registered-user review.
 - Updated `PATCH_NOTES.md` with the Discord auth route/session validation status.
 - Updated project governance posture to treat DA Manager as a corporate development effort with NIST SSDF control alignment and ITIL-style release/change records.
@@ -155,6 +161,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Security
 
+- Kept inventory request/order backend coordination-only; it does not mutate player inventory, guild storage, claim rewards, Player 360, or game-state tables.
+- Serialized in-process access to the local inventory request/order JSON store and retained `0600` file permissions.
 - Kept Discord login/callback as the only public Discord auth routes while session identity, logout, and registered-user review remain behind the normal backend auth path.
 - Adopted NIST SSDF as the active secure-development control baseline.
 - Added governance and evidence documentation needed to support future SOC 2 / ISO-style mappings.
@@ -192,6 +200,7 @@ This project follows a corporate change-management style informed by ITIL releas
 - Run `go test -v ./...`.
 - Run `go build` or `./update.ps1` / `./update.sh`.
 - Run frontend typecheck, lint, and build.
+- Validate inventory request/order backend through `go test ./...` and manually exercise personal/guild requests, order creation, fill/cancel propagation, and `PATCH` browser preflight.
 - Validate Discord auth route/session tests through `go test ./...` and manually validate OAuth login/callback, session context, logout, and registered-user review with configured Discord OAuth.
 - Validate WebSocket ticket behavior manually.
 - Validate fail-closed non-loopback startup behavior.
@@ -202,6 +211,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Known issues
 
+- Inventory request/order storage is local JSON and not yet a durable multi-instance database-backed ledger.
 - Browser token storage remains JavaScript-readable during the active session. Future target is memory-only token handling or HttpOnly secure session-cookie authentication.
 - Mutation reason enforcement is not yet defaulted to enabled for all high/destructive actions.
 - CI workflow hardening, SBOM generation, and artifact attestations remain open.
