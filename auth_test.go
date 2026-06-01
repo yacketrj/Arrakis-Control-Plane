@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-const testStrictAdminToken = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNO_"
+const testStrictAdminToken = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP_"
 
 func TestBearerToken(t *testing.T) {
 	if got := bearerToken("Bearer secret"); got != "secret" {
