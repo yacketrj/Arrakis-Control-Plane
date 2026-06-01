@@ -4,6 +4,11 @@ import "net/http"
 
 func registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/public/status", handlePublicStatus)
+	mux.HandleFunc("GET /api/v1/auth/discord/login", handleDiscordLogin)
+	mux.HandleFunc("GET /api/v1/auth/discord/callback", handleDiscordCallback)
+	mux.HandleFunc("GET /api/v1/auth/discord/me", handleDiscordMe)
+	mux.HandleFunc("POST /api/v1/auth/discord/logout", handleDiscordLogout)
+	mux.HandleFunc("GET /api/v1/auth/discord/users", handleDiscordUsers)
 	mux.HandleFunc("GET /api/v1/status", handleStatus)
 	mux.HandleFunc("POST /api/v1/reconnect", handleReconnect)
 	mux.HandleFunc("GET /api/v1/connectivity/diagnostics", handleConnectivityDiagnostics)
