@@ -58,6 +58,13 @@ func registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/players/{id}/events", handleGetPlayerEvents)
 	mux.HandleFunc("GET /api/v1/players/{id}/dungeons", handleGetPlayerDungeons)
 
+	mux.HandleFunc("GET /api/v1/inventory/requests", handleListInventoryRequests)
+	mux.HandleFunc("POST /api/v1/inventory/requests", handleCreateInventoryRequest)
+	mux.HandleFunc("PATCH /api/v1/inventory/requests/{id}", handleUpdateInventoryRequest)
+	mux.HandleFunc("GET /api/v1/inventory/orders", handleListInventoryOrders)
+	mux.HandleFunc("POST /api/v1/inventory/orders", handleCreateInventoryOrder)
+	mux.HandleFunc("PATCH /api/v1/inventory/orders/{id}", handleUpdateInventoryOrder)
+
 	mux.HandleFunc("GET /api/v1/database/tables", handleDBTables)
 	mux.HandleFunc("GET /api/v1/database/describe", handleDBDescribe)
 	mux.HandleFunc("GET /api/v1/database/sample", handleDBSample)
