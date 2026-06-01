@@ -8,6 +8,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Added
 
+- Added Discord auth route/session coverage in `discord_auth_test.go` for route registration, role mapping, session lookup, expiry eviction, session hash generation, and logout invalidation.
+- Added `docs/discord-auth.md` with runtime configuration, endpoint, role mapping, session behavior, validation, and current limitation notes.
 - Added NIST SP 800-218 SSDF as the primary secure-development baseline for DA Manager.
 - Added `docs/NIST_SSDF_ALIGNMENT.md` with SSDF practice-group mapping, release gates, and control priorities.
 - Added `docs/COMPLIANCE_READINESS.md` with SOC 2 and ISO/IEC 27001 readiness assessment.
@@ -77,6 +79,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Registered Discord auth endpoints in `routes.go` for login, callback, current auth context, logout, and registered-user review.
+- Updated `PATCH_NOTES.md` with the Discord auth route/session validation status.
 - Updated project governance posture to treat DA Manager as a corporate development effort with NIST SSDF control alignment and ITIL-style release/change records.
 - Updated `.env.example` for hardened defaults: Ed25519 SSH key, SSH known_hosts path, strict admin token guidance, loopback backend binding, and explicit remote exposure override documentation.
 - Updated frontend admin-token handling to reject malformed Browser Access Keys and migrate valid legacy `localStorage` tokens into `sessionStorage`.
@@ -151,6 +155,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Security
 
+- Kept Discord login/callback as the only public Discord auth routes while session identity, logout, and registered-user review remain behind the normal backend auth path.
 - Adopted NIST SSDF as the active secure-development control baseline.
 - Added governance and evidence documentation needed to support future SOC 2 / ISO-style mappings.
 - Replaced static WebSocket admin-token query usage with short-lived one-time scoped stream tickets.
@@ -187,6 +192,7 @@ This project follows a corporate change-management style informed by ITIL releas
 - Run `go test -v ./...`.
 - Run `go build` or `./update.ps1` / `./update.sh`.
 - Run frontend typecheck, lint, and build.
+- Validate Discord auth route/session tests through `go test ./...` and manually validate OAuth login/callback, session context, logout, and registered-user review with configured Discord OAuth.
 - Validate WebSocket ticket behavior manually.
 - Validate fail-closed non-loopback startup behavior.
 - Validate Ed25519-only SSH client key behavior.
