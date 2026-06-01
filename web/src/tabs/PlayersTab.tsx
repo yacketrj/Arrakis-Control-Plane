@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Button, Spinner, toast } from '@heroui/react'
 import { api } from '../api/client'
 import GiveItemModalAugmented from './GiveItemModalAugmented'
+import InventoryModal from './InventoryModal'
 import type {
   Player,
   CurrencyRow,
@@ -45,6 +46,7 @@ export default function PlayersTab() {
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null)
+  const [showInventory, setShowInventory] = useState(false)
   const [showGiveItem, setShowGiveItem] = useState(false)
   const [sideLoading, setSideLoading] = useState(false)
 
@@ -138,6 +140,18 @@ export default function PlayersTab() {
     )
   }, [onlineData, sideSearch])
 
+  const openInventory = (player: Player) => {
+    setSelectedPlayer(player)
+    setShowGiveItem(false)
+    setShowInventory(true)
+  }
+
+  const openGiveItem = (player: Player) => {
+    setSelectedPlayer(player)
+    setShowInventory(false)
+    setShowGiveItem(true)
+  }
+
   const sidebarItems: { key: Sidebar; label: string }[] = [
     { key: 'players', label: 'Players' },
     { key: 'online', label: 'Online State' },
@@ -215,8 +229,8 @@ export default function PlayersTab() {
                         <td className="px-3 py-2" style={{ color: 'var(--color-text-dim)' }}>{player.faction_id || '—'}</td>
                         <td className="px-3 py-2">
                           <div className="flex gap-1 flex-wrap">
-                            <Button size="sm" variant="ghost">Inventory</Button>
-                            <Button size="sm" variant="ghost" onPress={() => { setSelectedPlayer(player); setShowGiveItem(true) }}>Give Item</Button>
+                            <Button size="sm" variant="ghost" onPress={() => openInventory(player)}>Inventory</Button>
+                            <Button size="sm" variant="ghost" onPress={() => openGiveItem(player)}>Give Item</Button>
                             <Button size="sm" variant="ghost">Actions</Button>
                           </div>
                         </td>
@@ -389,6 +403,9 @@ export default function PlayersTab() {
         )}
       </div>
 
+      {selectedPlayer && (
+        <InventoryModal player={selectedPlayer} open={showInventory} onClose={() => setShowInventory(false)} />
+      )}
       {selectedPlayer && (
         <GiveItemModalAugmented player={selectedPlayer} open={showGiveItem} onClose={() => setShowGiveItem(false)} />
       )}
