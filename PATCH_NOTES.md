@@ -33,19 +33,14 @@ The next safe community-support slice needs a way to collect personal and guild 
 
 ### Validation
 
-Validation required from the local checkout or CI:
-
-```powershell
-.\update.ps1
-```
-
-or:
+Validated clean from the local checkout after the strict admin-token fixture repair:
 
 ```bash
 go test ./...
+go build ./...
 ```
 
-Also manually validate personal request creation, guild request creation, request filtering, order creation, order fill/cancel status propagation, and browser preflight behavior for `PATCH` update endpoints.
+Operator/browser validation still recommended before release: personal request creation, guild request creation, request filtering, order creation, order fill/cancel status propagation, and browser preflight behavior for `PATCH` update endpoints.
 
 ---
 
