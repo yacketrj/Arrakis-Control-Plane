@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useState, type ReactNode } from 'react'
 import { useStatus } from './hooks/useStatus'
-import { api, getAdminToken, setAdminToken, type Status } from './api/client'
+import { getAdminToken, setAdminToken, type Status } from './api/client'
 
 const AuditTab = lazy(() => import('./tabs/AuditTab'))
 const BattlegroupTab = lazy(() => import('./tabs/BattlegroupTab'))
