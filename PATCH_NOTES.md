@@ -1,6 +1,55 @@
 # Dune Admin Release Notes
 
-## Current update: Discord auth route registration and session tests
+## Current update: Inventory request/order backend coordination model
+
+### Why this update was made
+
+The next safe community-support slice needs a way to collect personal and guild farming requests without writing to player inventory or guild storage. This creates a backend coordination ledger for requests and farming orders while preserving the current rule that Player 360 remains read-only and self-service inventory changes are not enabled.
+
+### What changed
+
+- Added `inventory_requests.go` with a local JSON-backed request/order store.
+- Added personal and guild inventory request modeling with validation for scope, requester, guild, item name, quantity, notes, and status.
+- Added farming order modeling that groups one or more requests and tracks assignee, status, completion timestamp, and notes.
+- Added status propagation so order creation marks linked requests `ordered`, filled orders mark linked requests `fulfilled`, and cancelled orders return linked requests to `open`.
+- Registered protected backend endpoints:
+  - `GET /api/v1/inventory/requests`
+  - `POST /api/v1/inventory/requests`
+  - `PATCH /api/v1/inventory/requests/{id}`
+  - `GET /api/v1/inventory/orders`
+  - `POST /api/v1/inventory/orders`
+  - `PATCH /api/v1/inventory/orders/{id}`
+- Added `inventory_requests_test.go` coverage for request normalization, invalid request payload rejection, create/list/order/fill lifecycle, and missing-request order rejection.
+- Added in-process mutex serialization around the local JSON store to reduce concurrent write clobber risk.
+- Updated CORS to allow `PATCH` for browser-based update endpoints.
+- Added `docs/inventory-requests-orders.md` with endpoint, model, validation, storage, and safety-boundary notes.
+
+### Security and operator impact
+
+- This feature is coordination-only. It does not mutate player inventory, guild storage, claim rewards, currency, XP, Player 360, or any game-state table.
+- Inventory request/order endpoints are protected by the normal backend auth middleware and are not public Discord OAuth paths.
+- The default `inventory-requests.json` store is local file storage written with `0600` permissions.
+- The JSON store is appropriate for the current backend slice, but multi-instance or production use should move this ledger to a durable database table.
+
+### Validation
+
+Validation required from the local checkout or CI:
+
+```powershell
+.\update.ps1
+```
+
+or:
+
+```bash
+go test ./...
+```
+
+Also manually validate personal request creation, guild request creation, request filtering, order creation, order fill/cancel status propagation, and browser preflight behavior for `PATCH` update endpoints.
+
+---
+
+## Previous update: Discord auth route registration and session tests
 
 ### Why this update was made
 
