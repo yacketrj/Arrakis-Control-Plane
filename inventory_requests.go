@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -23,6 +24,8 @@ const (
 	inventoryOrderStatusFilled    = "filled"
 	inventoryOrderStatusCancelled = "cancelled"
 )
+
+var inventoryRequestStoreMu sync.Mutex
 
 type inventoryRequest struct {
 	ID                 string `json:"id"`
@@ -327,6 +330,9 @@ func validateOrderRequestIDs(store inventoryRequestStore, requestIDs []string, s
 }
 
 func handleListInventoryRequests(w http.ResponseWriter, r *http.Request) {
+	inventoryRequestStoreMu.Lock()
+	defer inventoryRequestStoreMu.Unlock()
+
 	store, err := loadInventoryRequestStore()
 	if err != nil {
 		jsonErr(w, err, http.StatusInternalServerError)
@@ -369,6 +375,10 @@ func handleCreateInventoryRequest(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, err, http.StatusBadRequest)
 		return
 	}
+
+	inventoryRequestStoreMu.Lock()
+	defer inventoryRequestStoreMu.Unlock()
+
 	store, err := loadInventoryRequestStore()
 	if err != nil {
 		jsonErr(w, err, http.StatusInternalServerError)
@@ -395,6 +405,10 @@ func handleUpdateInventoryRequest(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, err, http.StatusBadRequest)
 		return
 	}
+
+	inventoryRequestStoreMu.Lock()
+	defer inventoryRequestStoreMu.Unlock()
+
 	store, err := loadInventoryRequestStore()
 	if err != nil {
 		jsonErr(w, err, http.StatusInternalServerError)
@@ -439,6 +453,9 @@ func handleUpdateInventoryRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleListInventoryOrders(w http.ResponseWriter, r *http.Request) {
+	inventoryRequestStoreMu.Lock()
+	defer inventoryRequestStoreMu.Unlock()
+
 	store, err := loadInventoryRequestStore()
 	if err != nil {
 		jsonErr(w, err, http.StatusInternalServerError)
@@ -472,6 +489,10 @@ func handleCreateInventoryOrder(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, err, http.StatusBadRequest)
 		return
 	}
+
+	inventoryRequestStoreMu.Lock()
+	defer inventoryRequestStoreMu.Unlock()
+
 	store, err := loadInventoryRequestStore()
 	if err != nil {
 		jsonErr(w, err, http.StatusInternalServerError)
@@ -504,6 +525,10 @@ func handleUpdateInventoryOrder(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, err, http.StatusBadRequest)
 		return
 	}
+
+	inventoryRequestStoreMu.Lock()
+	defer inventoryRequestStoreMu.Unlock()
+
 	store, err := loadInventoryRequestStore()
 	if err != nil {
 		jsonErr(w, err, http.StatusInternalServerError)
@@ -524,6 +549,8 @@ func handleUpdateInventoryOrder(w http.ResponseWriter, r *http.Request) {
 				stamp := time.Now().UTC().Format(time.RFC3339Nano)
 				store.Orders[i].CompletedAt = stamp
 				markRequestsForOrder(store.Requests, store.Orders[i].ID, store.Orders[i].RequestIDs, inventoryRequestStatusFulfilled)
+			} else {
+				store.Orders[i].CompletedAt = ""
 			}
 			if status == inventoryOrderStatusCancelled {
 				markRequestsForOrder(store.Requests, store.Orders[i].ID, store.Orders[i].RequestIDs, inventoryRequestStatusOpen)
