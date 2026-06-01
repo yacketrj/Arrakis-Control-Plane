@@ -195,13 +195,17 @@ This project follows a corporate change-management style informed by ITIL releas
 - Reduced mutation risk by isolating augment validation and serialization into a focused backend model file.
 - Reduced operator error by adding preset-driven augment defaults and payload preview before submission.
 
-### Validation required
+### Validation
 
-- Run `go test -v ./...`.
-- Run `go build` or `./update.ps1` / `./update.sh`.
+- Validated clean local backend test and build after strict admin-token fixture repair:
+  - `go test ./...`
+  - `go build ./...`
+
+### Validation still required before release
+
 - Run frontend typecheck, lint, and build.
-- Validate inventory request/order backend through `go test ./...` and manually exercise personal/guild requests, order creation, fill/cancel propagation, and `PATCH` browser preflight.
-- Validate Discord auth route/session tests through `go test ./...` and manually validate OAuth login/callback, session context, logout, and registered-user review with configured Discord OAuth.
+- Manually exercise inventory request/order personal/guild requests, order creation, fill/cancel propagation, and `PATCH` browser preflight.
+- Manually validate Discord OAuth login/callback, session context, logout, and registered-user review with configured Discord OAuth.
 - Validate WebSocket ticket behavior manually.
 - Validate fail-closed non-loopback startup behavior.
 - Validate Ed25519-only SSH client key behavior.
