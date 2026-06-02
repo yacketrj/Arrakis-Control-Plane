@@ -38,7 +38,7 @@ go test ./...
 go build ./...
 ```
 
-Manual validation before release should confirm admin link CRUD, normal Discord self-service access, normal Discord denial from admin paths, unlinked Discord safe failures, and read-only self player-card behavior.
+Manual release validation has also been verified for admin link CRUD, normal Discord self-service access, normal Discord denial from admin paths, unlinked Discord safe failures, and read-only self player-card behavior.
 
 ---
 
