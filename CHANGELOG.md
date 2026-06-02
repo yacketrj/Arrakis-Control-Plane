@@ -28,7 +28,7 @@ This project follows a corporate change-management style informed by ITIL releas
 - Added `inventory_requests_test.go` coverage for request validation, handler lifecycle, order linking, fill propagation, and missing-request rejection.
 - Added `docs/inventory-requests-orders.md` with storage, endpoint, model, frontend UI, validation, status propagation, and safety-boundary notes.
 - Added Discord auth route/session coverage in `discord_auth_test.go` for route registration, role mapping, session lookup, expiry eviction, session hash generation, and logout invalidation.
-- Added `docs/discord-auth.md` with runtime configuration, endpoint, role mapping, session behavior, validation, and current limitation notes.
+- Added `docs/discord-auth.md` with runtime configuration, endpoint, role mapping, session behavior, and current limitation notes.
 - Added NIST SP 800-218 SSDF as the primary secure-development baseline for DA Manager.
 - Added `docs/NIST_SSDF_ALIGNMENT.md` with SSDF practice-group mapping, release gates, and control priorities.
 - Added `docs/COMPLIANCE_READINESS.md` with SOC 2 and ISO/IEC 27001 readiness assessment.
@@ -98,6 +98,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Updated `docs/admin-implementation-tasks.md` so Inventory Studio browser-session action history is marked validated and done.
+- Updated `PATCH_NOTES.md` with verified Inventory Studio action history validation.
 - Updated `docs/inventory-studio.md` with action history behavior, export, clear, reset, and safety notes.
 - Updated `docs/admin-implementation-tasks.md` so Inventory Studio post-action diff is marked done and stack-size edit is the next planned workflow after action-history validation.
 - Updated `PATCH_NOTES.md` with Inventory Studio action history status.
@@ -245,6 +247,13 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Validation
 
+- Validated Inventory Studio action-history changes from the canonical local update path:
+  - `./update.sh`
+- Validated Inventory Studio action-history manual release checks:
+  - add, repair, and removal history append behavior
+  - reset on player change
+  - JSON export
+  - clear-history behavior
 - Validated clean local full update sequence after the scoped frontend lint fix:
   - `go test -v ./...`
   - backend Windows build
@@ -274,8 +283,6 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Validation still required before release
 
-- Run `./update.sh` after Inventory Studio action-history changes.
-- Manually validate Inventory Studio action history append, clear, export, and reset-on-player-change behavior.
 - Manually exercise Farming Requests UI list, create, group, fill, and cancel workflows.
 - Manually exercise inventory request/order personal/guild requests, order creation, fill/cancel propagation, and `PATCH` browser preflight.
 - Manually validate Discord OAuth login/callback, session context, logout, and registered-user review with configured Discord OAuth.
