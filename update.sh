@@ -217,7 +217,7 @@ invoke_git_pull_if_safe() {
     write_git_status_preview
   fi
 
-  step "Git pull --ff-only" run git pull --ff-only
+  step "Git pull --ff-only" run git pull --ff-only origin main
 }
 
 invoke_auto_commit_if_needed() {
