@@ -1,6 +1,48 @@
 # Dune Admin Release Notes
 
-## Current update: Discord bot command adapter skeleton
+## Current update: Farming Requests UI
+
+### Why this update was made
+
+The inventory request/order backend needs a protected operator UI so request and farming-order coordination can be managed without using raw API calls. This UI is intentionally coordination-only and does not deliver items or mutate game-state tables.
+
+### What changed
+
+- Added `web/src/api/inventoryRequests.ts` with typed frontend helpers for inventory request/order endpoints.
+- Added `web/src/tabs/FarmingRequestsTab.tsx` with a protected Farming Requests operator tab.
+- Wired the Farming Requests tab into `web/src/App.tsx` navigation.
+- Updated `docs/inventory-requests-orders.md` with frontend UI behavior and validation notes.
+- The tab supports request/order filtering, personal/guild request creation, open-request selection, farming-order creation, and order fill/cancel status updates.
+
+### Security and operator impact
+
+- The Farming Requests tab uses the coordination-only request/order backend and does not write player inventory, guild storage, claim rewards, currency, XP, Player 360, or game-state tables.
+- The tab uses a separate frontend API module instead of extending the high-risk player/admin API surface.
+- Player 360 remains read-only. Self-service player-card actions remain blocked until Discord identity-to-player mapping exists and is explicitly enforced.
+- Frontend validation is still required locally because these files were added through repository commits and have not yet passed the local TypeScript/lint/build gates.
+
+### Validation
+
+Required from the local checkout:
+
+```bash
+./update.sh
+```
+
+or:
+
+```bash
+cd web
+npm run typecheck
+npm run lint
+npm run build
+```
+
+Manual browser validation should confirm that the Farming Requests tab can list, create, group, fill, and cancel request/order records without touching player inventory or Player 360 data.
+
+---
+
+## Previous update: Discord bot command adapter skeleton
 
 ### Why this update was made
 
@@ -121,74 +163,3 @@ go test ./...
 ```
 
 Also manually validate that Discord OAuth login redirects when configured, callback rejects missing/invalid state, logout clears the session cookie, and `/api/v1/auth/discord/me` reports the expected auth context for an authenticated Discord session or admin token.
-
----
-
-## Previous update: Startup hardening and DB-down UI gating
-
-### Why this update was made
-
-Startup and database connectivity are release-critical. If SSH, tunnel, discovery, or DB connection fails, the application must not look operational while DB-backed tools are unusable.
-
-### What changed
-
-- Added `config_paths.go` with config-safe local path expansion and validation.
-- Added support for documented Windows percent-variable home-directory SSH key paths.
-- Rejected unsupported PowerShell-style path expressions during validation.
-- Tightened runtime validation for SSH, DB, admin token, tunnel mode, and port configuration.
-- Changed startup so invalid configuration exits and tells the operator to rerun setup.
-- Changed connection failure messaging from ambiguous startup behavior to explicit degraded mode.
-- Added frontend DB-down gating for DB-backed tabs.
-- Added a DB-unavailable banner when backend status reports `db_connected=false`.
-- Added a DB-required panel with SSH/DB/tunnel state and reconnect retry.
-- Added frontend startup diagnostic typing.
-- Expanded the production security release gate for startup reliability, config validation, injection resistance, logging redaction, encryption in transit, and secret-at-rest requirements.
-- Added Battlegroup config-management and observability design notes from operator review intake.
-
-### Security and operator impact
-
-- Invalid configuration should fail earlier and more clearly.
-- DB-backed tabs no longer present as usable when DB connectivity is down.
-- Secret values are validated as opaque values for presence/control characters.
-- Full encrypted secret storage remains a P0 release-gate item.
-- The direct DB connection-construction patch was blocked by the connector safety filter and should be validated from the local checkout if `update.ps1` reports compile or startup issues.
-
-### Validation
-
-Validation required in the Windows development environment:
-
-```powershell
-.\update.ps1
-```
-
-Also manually validate startup repair, unsupported path rejection, supported path expansion, and DB-down frontend gating.
-
----
-
-## Previous update: Inventory Studio v2 post-action diff panel
-
-Inventory Studio v2 added a post-action diff panel for confirmed add, repair, and removal workflows.
-
----
-
-## Previous update: Inventory Studio v2 confirmed catalog item add
-
-Inventory Studio v2 added confirmed catalog-item add with quantity and quality inputs.
-
----
-
-## Previous update: Inventory Studio v2 confirmed item removal
-
-Inventory Studio v2 added confirmed selected-item removal with a before-action inventory snapshot.
-
----
-
-## Previous update: Inventory Studio v2 confirmed item repair
-
-Inventory Studio v2 added confirmed selected-item repair with a before-action inventory snapshot.
-
----
-
-## Previous update: Inventory Studio v2 item catalog browser
-
-Inventory Studio v2 added a read-only item catalog browser.
