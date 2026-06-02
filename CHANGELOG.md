@@ -92,6 +92,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Updated `PATCH_NOTES.md` with manual Discord player link validation status.
 - Updated `PATCH_NOTES.md` with verified Discord player link validation status.
 - Updated auth middleware so normal registered Discord sessions can reach `/api/v1/self/*` only while admin-token and Discord-admin access remain required elsewhere.
 - Registered Discord player link admin endpoints and read-only self-service endpoints in `routes.go`.
@@ -241,10 +242,15 @@ This project follows a corporate change-management style informed by ITIL releas
 - Validated Discord player link backend gates from the local checkout after the raw control-character validation fix:
   - `go test ./...`
   - `go build ./...`
+- Validated Discord player link manual release checks:
+  - admin link CRUD
+  - normal Discord `/api/v1/self/*` access
+  - normal Discord denial from admin paths
+  - unlinked Discord safe failures
+  - read-only self player-card behavior
 
 ### Validation still required before release
 
-- Manually validate Discord player link CRUD and normal-Discord `/self/*` access boundaries.
 - Manually exercise Farming Requests UI list, create, group, fill, and cancel workflows.
 - Manually exercise inventory request/order personal/guild requests, order creation, fill/cancel propagation, and `PATCH` browser preflight.
 - Manually validate Discord OAuth login/callback, session context, logout, and registered-user review with configured Discord OAuth.
