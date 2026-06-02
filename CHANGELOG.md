@@ -8,6 +8,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Added
 
+- Added Discord bot command adapter skeleton in `discord_bot_adapter.go` for Discord-style personal requests, guild requests, farm orders, fill updates, and cancel updates.
+- Added `discord_bot_adapter_test.go` coverage for personal request, guild request, farm-order, fill/cancel update, and unsupported-command adapter paths.
 - Added inventory request/order backend coordination model in `inventory_requests.go` for personal and guild requests plus farming orders.
 - Added `inventory_requests_test.go` coverage for request validation, handler lifecycle, order linking, fill propagation, and missing-request rejection.
 - Added `docs/inventory-requests-orders.md` with storage, endpoint, model, validation, status propagation, and safety-boundary notes.
@@ -82,6 +84,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Updated `PATCH_NOTES.md` with the Discord bot command adapter status and the clean full local validation result.
 - Registered protected inventory request/order endpoints in `routes.go`.
 - Updated CORS middleware to allow `PATCH` for request/order update endpoints.
 - Updated `PATCH_NOTES.md` with the inventory request/order backend status.
@@ -135,6 +138,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Fixed
 
+- Fixed frontend lint failure from `no-control-regex` by scoping the rule exception to `web/src/api/client.ts`, where browser access-key validation intentionally rejects whitespace and control characters.
 - Fixed static admin-token exposure through WebSocket URLs by replacing `ws_token` with one-time stream tickets.
 - Fixed unsafe backend exposure behavior by failing closed on non-loopback `LISTEN_ADDR` unless explicitly acknowledged for reverse-proxy/TLS deployment.
 - Fixed frontend legacy token persistence by removing valid legacy tokens from `localStorage` after migration to `sessionStorage` and deleting invalid legacy values.
@@ -161,6 +165,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Security
 
+- Kept Discord bot command adapter non-networked and dependency-free for this slice; it does not register slash commands, connect to Discord, or execute runtime actions on its own.
+- Kept Discord bot command adapter mapped to the coordination-only inventory request/order model instead of any direct game-state mutation path.
 - Kept inventory request/order backend coordination-only; it does not mutate player inventory, guild storage, claim rewards, Player 360, or game-state tables.
 - Serialized in-process access to the local inventory request/order JSON store and retained `0600` file permissions.
 - Kept Discord login/callback as the only public Discord auth routes while session identity, logout, and registered-user review remain behind the normal backend auth path.
@@ -197,13 +203,17 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Validation
 
-- Validated clean local backend test and build after strict admin-token fixture repair:
-  - `go test ./...`
-  - `go build ./...`
+- Validated clean local full update sequence after the scoped frontend lint fix:
+  - `go test -v ./...`
+  - backend Windows build
+  - `npm install`
+  - `npm audit --audit-level=high`
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm run build`
 
 ### Validation still required before release
 
-- Run frontend typecheck, lint, and build.
 - Manually exercise inventory request/order personal/guild requests, order creation, fill/cancel propagation, and `PATCH` browser preflight.
 - Manually validate Discord OAuth login/callback, session context, logout, and registered-user review with configured Discord OAuth.
 - Validate WebSocket ticket behavior manually.
@@ -211,10 +221,11 @@ This project follows a corporate change-management style informed by ITIL releas
 - Validate Ed25519-only SSH client key behavior.
 - Validate SSH known-host mismatch rejection.
 - Validate strict backend admin-token behavior.
-- Validate Gitleaks, govulncheck, gosec, Trivy, npm audit, and SBOM generation before release.
+- Validate Gitleaks, govulncheck, gosec, Trivy, SBOM generation, and artifact attestations before release.
 
 ### Known issues
 
+- Local `update.sh` auto-commit can fail when Git `user.name` and `user.email` are not configured in the checkout or globally.
 - Inventory request/order storage is local JSON and not yet a durable multi-instance database-backed ledger.
 - Browser token storage remains JavaScript-readable during the active session. Future target is memory-only token handling or HttpOnly secure session-cookie authentication.
 - Mutation reason enforcement is not yet defaulted to enabled for all high/destructive actions.
