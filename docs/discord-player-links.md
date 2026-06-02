@@ -53,6 +53,17 @@ These endpoints require normal DA Manager administrative authentication: admin t
 
 Normal Discord sessions are allowed only under `/api/v1/self/*`. They are not allowed to access admin endpoints unless they also have the configured Discord admin role.
 
+## Frontend UI
+
+The frontend now includes two Discord-link-related tabs:
+
+- **Discord Links**: admin-only link management for listing, creating, editing, and deleting Discord-to-player mappings.
+- **My Player Card**: read-only self-service view for the current Discord session's linked player.
+
+The frontend API helper lives in `web/src/api/discordSelfService.ts` and uses `credentials: 'include'` so browser Discord session cookies are sent to `/api/v1/self/*` endpoints. Admin link-management calls still support the configured Browser Access Key through the normal `X-Admin-Token` header.
+
+`My Player Card` is intentionally allowed through the main tab shell even when no Browser Access Key is configured, because its auth boundary is the Discord session cookie and the backend `/api/v1/self/*` restriction. Administrative tabs remain locked when browser admin access is not configured.
+
 ## Self-service player card contents
 
 The self-service player card is derived from the existing read-only Player 360 profile builder and returns a reduced summary:
@@ -94,6 +105,21 @@ go test ./...
 go build ./...
 ```
 
+Run frontend validation from the local checkout:
+
+```bash
+cd web
+npm run typecheck
+npm run lint
+npm run build
+```
+
+The canonical full validation path is:
+
+```bash
+./update.sh
+```
+
 Manual validation should confirm:
 
 1. Admin token or Discord admin can create/list/delete player links.
@@ -102,6 +128,8 @@ Manual validation should confirm:
 4. Normal Discord sessions can access `/api/v1/self/player-card` only when linked.
 5. Unlinked Discord sessions receive a safe not-found error for self player link/card endpoints.
 6. Self player card returns only read-only support data and exposes no player mutation action.
+7. The Discord Links tab can list, create, edit, and delete mappings with admin access.
+8. The My Player Card tab loads through Discord session cookies and does not require a Browser Access Key.
 
 ## Safety boundary
 
