@@ -27,13 +27,13 @@ Inventory Studio already had the post-action diff panel implemented and document
 
 ### Validation
 
-Required from the canonical local update path:
+Verified from the canonical local update path after the Inventory Studio action-history changes:
 
 ```bash
 ./update.sh
 ```
 
-Manual browser validation should confirm add, repair, and removal actions append history entries, history resets when a new player is selected, export downloads JSON, and clear removes local history.
+Manual browser validation has also been verified for add/repair/removal history append behavior, reset on player change, JSON export, and clear-history behavior.
 
 ---
 
