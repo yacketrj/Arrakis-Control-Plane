@@ -24,13 +24,13 @@ The validated Discord-to-player mapping foundation now needs frontend surfaces s
 
 ### Validation
 
-Required from the canonical local update path:
+Verified from the canonical local update path after the Discord self-service frontend tab changes:
 
 ```bash
 ./update.sh
 ```
 
-This must cover backend tests/build plus frontend install/audit/typecheck/lint/build. Manual browser validation should confirm admin link management and read-only self player-card behavior through Discord session cookies.
+This covered backend tests/build plus frontend install/audit/typecheck/lint/build. Manual browser validation remains recommended before release: confirm admin link management and read-only self player-card behavior through Discord session cookies.
 
 ---
 
