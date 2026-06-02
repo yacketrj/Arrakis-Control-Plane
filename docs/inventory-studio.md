@@ -14,7 +14,8 @@ Every write path must preserve the same safety pattern:
 6. The mutation request includes the captured reason.
 7. Inventory is reloaded after success.
 8. A post-action diff is displayed in the UI.
-9. Audit visibility remains available through the admin audit log.
+9. The browser-session action history records the completed action diff.
+10. Audit visibility remains available through the admin audit log.
 
 ## Current UI location
 
@@ -88,6 +89,7 @@ Safety behavior:
 - reason passed into `api.players.giveItem`
 - inventory reload after success
 - post-action diff display
+- action history capture
 
 ### Confirmed item repair
 
@@ -101,6 +103,7 @@ Safety behavior:
 - reason passed into `api.players.repairItem`
 - inventory reload after success
 - post-action diff display
+- action history capture
 
 ### Confirmed item removal
 
@@ -114,6 +117,7 @@ Safety behavior:
 - reason passed into `api.players.deleteItem`
 - inventory reload after success
 - post-action diff display
+- action history capture
 
 ### Post-action diff panel
 
@@ -130,6 +134,25 @@ The panel displays:
 - added, removed, and changed item rows
 
 This is browser-local review state. It is not persisted server-side.
+
+### Action history panel
+
+Inventory Studio keeps the most recent completed action diffs in browser memory for the selected player session.
+
+The panel displays:
+
+- latest action first
+- action name and target
+- checked timestamp
+- before and after row counts
+- diff count
+- short preview of changed item rows
+
+Operators can clear the browser-session action history or export it as a local JSON file. The exported history contains the selected player metadata and the recorded action diff entries.
+
+Selecting a different player resets the local action history so the panel does not mix records across players.
+
+This is browser-local review state. It does not replace the server-side audit log.
 
 ## Current non-goals
 
@@ -150,25 +173,25 @@ The current implementation does not yet include:
 - Do not send inventory writes without an admin reason.
 - Do not bypass the before-action snapshot behavior for item add, repair, removal, or future edit workflows.
 - Do not bypass post-action diff review for confirmed Inventory Studio workflows.
+- Do not bypass action history capture for confirmed Inventory Studio workflows.
 - Do not add Player 360 quick actions that mutate inventory until they reuse this same safety pattern.
 - Prefer one narrow confirmed workflow at a time over broad inventory editing surfaces.
 - Keep catalog browsing and snapshot comparison usable without requiring mutation confirmation.
 
 ## Recommended next work
 
-1. Add a dedicated Inventory Studio action history panel for the current browser session.
-2. Add stack-size edit only after before/after preview is displayed.
-3. Add quality edit only after before/after preview is displayed.
-4. Add server-side before-change snapshot persistence for inventory mutations.
-5. Add typed backend mutation wrappers for inventory operations.
-6. Add audit export and filtering improvements.
+1. Add stack-size edit only after before/after preview is displayed.
+2. Add quality edit only after before/after preview is displayed.
+3. Add server-side before-change snapshot persistence for inventory mutations.
+4. Add typed backend mutation wrappers for inventory operations.
+5. Add audit export and filtering improvements.
 
 ## Validation
 
-Use the local Windows validation path:
+Use the canonical local validation path:
 
-```powershell
-.\update.ps1
+```bash
+./update.sh
 ```
 
 GitHub Actions also runs Linux and Windows validation on push and pull request.
