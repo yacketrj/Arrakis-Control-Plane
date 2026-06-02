@@ -1,6 +1,47 @@
 # Dune Admin Release Notes
 
-## Current update: Farming Requests UI
+## Current update: Discord player link foundation
+
+### Why this update was made
+
+Player Cards and future player-safe self-service need a durable identity-to-player mapping before any self-service behavior can be considered safe. This slice adds the mapping foundation and read-only self-service endpoints while preserving the rule that Player 360 and player mutations remain locked down.
+
+### What changed
+
+- Added `discord_player_links.go` with a local JSON-backed Discord-to-player link store.
+- Added admin-managed link endpoints:
+  - `GET /api/v1/auth/discord/player-links`
+  - `POST /api/v1/auth/discord/player-links`
+  - `DELETE /api/v1/auth/discord/player-links/{discord_id}`
+- Added read-only self-service endpoints for linked Discord sessions:
+  - `GET /api/v1/self/player-link`
+  - `GET /api/v1/self/player-card`
+- Updated auth middleware so normal Discord sessions can access only `/api/v1/self/*`; admin-token and Discord-admin access remain required elsewhere.
+- Added `discord_player_links_test.go` coverage for link payload validation, store helper behavior, route handlers, current session link lookup, and self-service auth gating.
+- Added `docs/discord-player-links.md` with model, storage, endpoint, auth-boundary, validation, and safety notes.
+
+### Security and operator impact
+
+- Normal Discord sessions are scoped to `/api/v1/self/*` only.
+- Admin link management requires admin token or Discord admin session.
+- Self-service player card output is read-only and derived from the existing Player 360 profile builder.
+- This feature does not write player inventory, guild storage, claim rewards, currency, XP, Player 360, or any game-state table.
+- Player 360 remains read-only. Any future self-service mutation must enforce the mapped player ID, mutation classification, auditability, and explicit safety workflows.
+
+### Validation
+
+Required from the local checkout:
+
+```bash
+go test ./...
+go build ./...
+```
+
+Manual validation before release should confirm admin link CRUD, normal Discord self-service access, normal Discord denial from admin paths, unlinked Discord safe failures, and read-only self player-card behavior.
+
+---
+
+## Previous update: Farming Requests UI
 
 ### Why this update was made
 
