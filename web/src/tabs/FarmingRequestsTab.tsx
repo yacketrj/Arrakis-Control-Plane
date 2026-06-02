@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { Button, Spinner, toast } from '@heroui/react'
 import {
   inventoryRequestsApi,
@@ -43,7 +43,7 @@ function fmtDate(value: string): string {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
 }
 
-function statusStyle(status: string): React.CSSProperties {
+function statusStyle(status: string): CSSProperties {
   const active = status === 'open' || status === 'ordered'
   return {
     border: '1px solid #2a2418',
@@ -96,8 +96,6 @@ export default function FarmingRequestsTab() {
   }
 
   useEffect(() => { void load() }, [scopeFilter, requestStatus, orderStatus])
-
-  const openRequests = useMemo(() => requests.filter(request => request.status === 'open'), [requests])
 
   const createRequest = async () => {
     try {
@@ -287,7 +285,7 @@ export default function FarmingRequestsTab() {
   )
 }
 
-function inputStyle(): React.CSSProperties {
+function inputStyle(): CSSProperties {
   return {
     background: '#0d0b07',
     color: 'var(--color-text)',
