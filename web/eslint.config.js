@@ -26,4 +26,12 @@ export default defineConfig([
       'react-hooks/immutability': 'off',
     },
   },
+  {
+    files: ['src/api/client.ts'],
+    rules: {
+      // client.ts intentionally rejects NUL, tab, newline, carriage return,
+      // and spaces from browser access keys before storing them in sessionStorage.
+      'no-control-regex': 'off',
+    },
+  },
 ])
