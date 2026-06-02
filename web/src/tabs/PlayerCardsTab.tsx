@@ -129,7 +129,7 @@ function PlayerCard({ player }: { player: Player }) {
           {loading ? <Spinner size="sm" color="current" /> : null}
           {profile ? 'Refresh Progress' : 'Load Progress'}
         </Button>
-        <Button size="sm" variant="flat" onPress={() => openPlayer360(player.id)}>
+        <Button size="sm" variant="secondary" onPress={() => openPlayer360(player.id)}>
           Open 360
         </Button>
       </div>
