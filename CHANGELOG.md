@@ -87,6 +87,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Updated `PATCH_NOTES.md` with verified Farming Requests UI validation status.
 - Updated `docs/inventory-requests-orders.md` with Farming Requests frontend behavior and validation expectations.
 - Updated `PATCH_NOTES.md` with the Farming Requests UI status.
 - Updated `PATCH_NOTES.md` with the Discord bot command adapter status and the clean full local validation result.
@@ -219,10 +220,13 @@ This project follows a corporate change-management style informed by ITIL releas
   - `npm run typecheck`
   - `npm run lint`
   - `npm run build`
+- Validated Farming Requests UI frontend gates from the local checkout after the new tab/API/navigation changes:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm run build`
 
 ### Validation still required before release
 
-- Run frontend typecheck, lint, and build after the Farming Requests UI changes.
 - Manually exercise Farming Requests UI list, create, group, fill, and cancel workflows.
 - Manually exercise inventory request/order personal/guild requests, order creation, fill/cancel propagation, and `PATCH` browser preflight.
 - Manually validate Discord OAuth login/callback, session context, logout, and registered-user review with configured Discord OAuth.
