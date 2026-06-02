@@ -96,6 +96,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Updated `PATCH_NOTES.md` with manual Discord self-service frontend tab validation.
 - Updated `PATCH_NOTES.md` with verified Discord self-service frontend tab validation.
 - Updated `docs/discord-player-links.md` with Discord Links and My Player Card frontend behavior.
 - Updated `web/src/App.tsx` tab gating so My Player Card can load with Discord session cookies while administrative tabs still require configured browser admin access.
@@ -260,11 +261,12 @@ This project follows a corporate change-management style informed by ITIL releas
   - read-only self player-card behavior
 - Validated Discord self-service frontend tabs from the canonical local update path:
   - `./update.sh`
+- Validated Discord self-service frontend manual release checks:
+  - Discord Links tab list/create/edit/delete behavior
+  - My Player Card through Discord session cookies without a Browser Access Key
 
 ### Validation still required before release
 
-- Manually validate Discord Links tab list/create/edit/delete behavior.
-- Manually validate My Player Card through Discord session cookies without a Browser Access Key.
 - Manually exercise Farming Requests UI list, create, group, fill, and cancel workflows.
 - Manually exercise inventory request/order personal/guild requests, order creation, fill/cancel propagation, and `PATCH` browser preflight.
 - Manually validate Discord OAuth login/callback, session context, logout, and registered-user review with configured Discord OAuth.
