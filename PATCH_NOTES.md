@@ -30,7 +30,9 @@ Verified from the canonical local update path after the Discord self-service fro
 ./update.sh
 ```
 
-This covered backend tests/build plus frontend install/audit/typecheck/lint/build. Manual browser validation remains recommended before release: confirm admin link management and read-only self player-card behavior through Discord session cookies.
+This covered backend tests/build plus frontend install/audit/typecheck/lint/build.
+
+Manual browser validation has also been verified for **Discord Links** list/create/edit/delete behavior and **My Player Card** loading through Discord session cookies without a Browser Access Key.
 
 ---
 
@@ -73,45 +75,3 @@ go build ./...
 ```
 
 Manual release validation has also been verified for admin link CRUD, normal Discord self-service access, normal Discord denial from admin paths, unlinked Discord safe failures, and read-only self player-card behavior.
-
----
-
-## Previous update: Farming Requests UI
-
-### Why this update was made
-
-The inventory request/order backend needs a protected operator UI so request and farming-order coordination can be managed without using raw API calls. This UI is intentionally coordination-only and does not deliver items or mutate game-state tables.
-
-### What changed
-
-- Added `web/src/api/inventoryRequests.ts` with typed frontend helpers for inventory request/order endpoints.
-- Added `web/src/tabs/FarmingRequestsTab.tsx` with a protected Farming Requests operator tab.
-- Wired the Farming Requests tab into `web/src/App.tsx` navigation.
-- Updated `docs/inventory-requests-orders.md` with frontend UI behavior and validation notes.
-- The tab supports request/order filtering, personal/guild request creation, open-request selection, farming-order creation, and order fill/cancel status updates.
-
-### Security and operator impact
-
-- The Farming Requests tab uses the coordination-only request/order backend and does not write player inventory, guild storage, claim rewards, currency, XP, Player 360, or game-state tables.
-- The tab uses a separate frontend API module instead of extending the high-risk player/admin API surface.
-- Player 360 remains read-only. Self-service player-card actions remain blocked until Discord identity-to-player mapping exists and is explicitly enforced.
-- The Farming Requests UI validation has been verified from the local checkout.
-
-### Validation
-
-Verified from the local checkout after the Farming Requests UI changes:
-
-```bash
-./update.sh
-```
-
-Equivalent frontend validation gates covered by this verification:
-
-```bash
-cd web
-npm run typecheck
-npm run lint
-npm run build
-```
-
-Manual browser validation remains recommended before release: confirm the Farming Requests tab can list, create, group, fill, and cancel request/order records without touching player inventory or Player 360 data.
