@@ -1,6 +1,40 @@
 # Dune Admin Release Notes
 
-## Current update: Discord player link foundation
+## Current update: Discord self-service frontend tabs
+
+### Why this update was made
+
+The validated Discord-to-player mapping foundation now needs frontend surfaces so admins can manage links and linked Discord users can view their own read-only player card. This slice exposes that functionality without adding any player mutation or Player 360 write path.
+
+### What changed
+
+- Added `web/src/api/discordSelfService.ts` with typed helpers for Discord player links and `/api/v1/self/*` endpoints.
+- Added `web/src/tabs/DiscordPlayerLinksTab.tsx` for admin link management.
+- Added `web/src/tabs/SelfPlayerCardTab.tsx` for read-only linked-player self-service.
+- Wired **Discord Links** and **My Player Card** into `web/src/App.tsx` navigation.
+- Updated `docs/discord-player-links.md` with frontend tab behavior, cookie-aware self-service calls, and validation notes.
+- Adjusted tab gating so **My Player Card** can load through Discord session cookies even when no Browser Access Key is configured.
+
+### Security and operator impact
+
+- **Discord Links** remains an admin surface and still requires Browser Access Key or Discord admin authorization through the backend.
+- **My Player Card** calls only `/api/v1/self/player-link` and `/api/v1/self/player-card` with browser session cookies.
+- No player inventory, guild storage, claim rewards, currency, XP, Player 360, or game-state mutation path was added.
+- Player 360 remains read-only. Future self-service mutation remains blocked until explicit mapped-player enforcement, auditability, and mutation-safety workflows are implemented.
+
+### Validation
+
+Required from the canonical local update path:
+
+```bash
+./update.sh
+```
+
+This must cover backend tests/build plus frontend install/audit/typecheck/lint/build. Manual browser validation should confirm admin link management and read-only self player-card behavior through Discord session cookies.
+
+---
+
+## Previous update: Discord player link foundation
 
 ### Why this update was made
 
@@ -81,41 +115,3 @@ npm run build
 ```
 
 Manual browser validation remains recommended before release: confirm the Farming Requests tab can list, create, group, fill, and cancel request/order records without touching player inventory or Player 360 data.
-
----
-
-## Previous update: Discord bot command adapter skeleton
-
-### Why this update was made
-
-The farming request/order backend needs a Discord-facing adapter layer before an actual bot runtime is introduced. This slice adds command-shape normalization and payload conversion without adding a networked bot process, Discord gateway client, or new runtime dependency.
-
-### What changed
-
-- Added `discord_bot_adapter.go` with a non-network command adapter for Discord-style farming request/order commands.
-- Added adapter support for personal item requests, guild item requests, farm-order creation, filled-order updates, and cancelled-order updates.
-- Reused existing inventory request/order validation and normalization instead of creating a second validation path.
-- Added `discord_bot_adapter_test.go` coverage for personal requests, guild requests, farm orders, fill updates, cancel updates, and unsupported command rejection.
-
-### Security and operator impact
-
-- This is an adapter skeleton only. It does not connect to Discord, register slash commands, open a gateway connection, or execute bot actions on its own.
-- The adapter does not mutate player inventory, guild storage, claim rewards, currency, XP, Player 360, or any game-state table.
-- Player 360 remains read-only. Self-service player-card actions remain blocked until Discord identity-to-player mapping exists and is explicitly enforced.
-- The adapter deliberately maps bot-style inputs into the existing request/order coordination model so future bot runtime work can stay thin and testable.
-
-### Validation
-
-User-provided local validation completed cleanly after the scoped frontend lint fix:
-
-```bash
-go test -v ./...
-go build ./...
-npm install
-npm audit --audit-level=high
-npm run typecheck
-npm run lint
-npm run build
-```
-
-The local `update.sh` run failed only at the Git auto-commit step because Git author identity was not configured in the local checkout.
