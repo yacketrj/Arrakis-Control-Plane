@@ -9,13 +9,15 @@ const PlayerCardsTab = lazy(() => import('./tabs/PlayerCardsTab'))
 const Player360Tab = lazy(() => import('./tabs/Player360Tab'))
 const InventoryStudioTab = lazy(() => import('./tabs/InventoryStudioTab'))
 const FarmingRequestsTab = lazy(() => import('./tabs/FarmingRequestsTab'))
+const DiscordPlayerLinksTab = lazy(() => import('./tabs/DiscordPlayerLinksTab'))
+const SelfPlayerCardTab = lazy(() => import('./tabs/SelfPlayerCardTab'))
 const DatabaseTab = lazy(() => import('./tabs/DatabaseTab'))
 const DbRoutinesTab = lazy(() => import('./tabs/DbRoutinesTab'))
 const LogsTab = lazy(() => import('./tabs/LogsTab'))
 const BlueprintsTab = lazy(() => import('./tabs/BlueprintsTab'))
 const StorageTab = lazy(() => import('./tabs/StorageTab'))
 
-type TabId = 'battlegroup' | 'players' | 'player-cards' | 'player-360' | 'inventory-studio' | 'farming-requests' | 'database' | 'db-routines' | 'audit' | 'logs' | 'blueprints' | 'storage'
+type TabId = 'battlegroup' | 'players' | 'player-cards' | 'player-360' | 'inventory-studio' | 'farming-requests' | 'discord-player-links' | 'self-player-card' | 'database' | 'db-routines' | 'audit' | 'logs' | 'blueprints' | 'storage'
 
 const tabs: Array<{ id: TabId; label: string }> = [
   { id: 'audit', label: 'Audit' },
@@ -25,6 +27,8 @@ const tabs: Array<{ id: TabId; label: string }> = [
   { id: 'player-360', label: 'Player 360' },
   { id: 'inventory-studio', label: 'Inventory Studio' },
   { id: 'farming-requests', label: 'Farming Requests' },
+  { id: 'discord-player-links', label: 'Discord Links' },
+  { id: 'self-player-card', label: 'My Player Card' },
   { id: 'database', label: 'Database' },
   { id: 'db-routines', label: 'DB Routines' },
   { id: 'logs', label: 'Logs' },
@@ -64,7 +68,7 @@ export default function App() {
   const browserAccessConfigured = Boolean(getAdminToken())
   const dbUnavailableStatus = browserAccessConfigured && status && !status.db_connected ? status : null
   const dbUnavailable = dbUnavailableStatus !== null
-  const activeTabBlockedByAccess = !browserAccessConfigured
+  const activeTabBlockedByAccess = !browserAccessConfigured && activeTab !== 'self-player-card'
   const activeTabBlockedByDb = dbUnavailable && dbBackedTabs.has(activeTab)
 
   return (
@@ -183,7 +187,8 @@ export default function App() {
           <div role="tablist" aria-label="Admin sections" className="flex gap-1 overflow-x-auto">
             {tabs.map(tab => {
               const selected = activeTab === tab.id
-              const blocked = activeTabBlockedByAccess || (dbUnavailable && dbBackedTabs.has(tab.id))
+              const selfServiceTab = tab.id === 'self-player-card'
+              const blocked = (!browserAccessConfigured && !selfServiceTab) || (dbUnavailable && dbBackedTabs.has(tab.id))
               return (
                 <button
                   key={tab.id}
@@ -226,6 +231,8 @@ function renderTab(tab: TabId) {
     case 'player-360': return <Player360Tab />
     case 'inventory-studio': return <InventoryStudioTab />
     case 'farming-requests': return <FarmingRequestsTab />
+    case 'discord-player-links': return <DiscordPlayerLinksTab />
+    case 'self-player-card': return <SelfPlayerCardTab />
     case 'database': return <DatabaseTab />
     case 'db-routines': return <DbRoutinesTab />
     case 'audit': return <AuditTab />
@@ -249,6 +256,8 @@ function panelClass(tab: TabId) {
     case 'player-cards':
     case 'player-360':
     case 'farming-requests':
+    case 'discord-player-links':
+    case 'self-player-card':
     case 'database':
       return 'flex-1 overflow-auto p-4'
   }
