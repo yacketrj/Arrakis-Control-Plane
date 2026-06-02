@@ -56,6 +56,7 @@ Every feature task must update:
 | P3 | Settings Diff / Config Manager | Planned | `docs/settings-diff-config-manager.md` required | Research + tests |
 | P3 | Chat Moderation / Intercept Viewer | Planned | `docs/chat-moderation-intercept-viewer.md` required | Research + tests |
 | P3 | Safe Stored Procedure Runner | Planned | `docs/safe-stored-procedure-runner.md` required | Requires typed wrappers and snapshots |
+| P5 | Discord bot setup and usage guide | Planned | `docs/discord-bot-setup-and-usage.md` required | Documentation review |
 
 ## Current implementation focus
 
@@ -102,6 +103,25 @@ Next framework hardening tasks:
 - Keep the standalone `Player 360` tab available.
 - Keep the Players-table `360` launcher read-only.
 - Do not add Player 360 quick actions until they are implemented as confirmed workflows with reason capture, target metadata, and audit visibility.
+
+### 4. Documentation backlog
+
+P5 documentation work now includes a detailed Discord bot setup and usage guide.
+
+That guide should cover:
+
+- Discord application and bot creation.
+- Required OAuth2 scopes and bot permissions.
+- Bot invite workflow.
+- Required environment variables and secret-handling expectations.
+- Local development setup.
+- Production deployment expectations.
+- Slash-command registration or command adapter behavior.
+- Role and permission model.
+- Player-link/self-service prerequisites.
+- Farming request/order command examples.
+- Troubleshooting and validation steps.
+- Security boundaries and explicit non-goals.
 
 ## Validation command set
 
