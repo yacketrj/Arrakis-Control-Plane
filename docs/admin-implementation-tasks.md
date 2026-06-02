@@ -51,6 +51,7 @@ Every feature task must update:
 | P2 | RMQ Operations Dashboard | Planned | `docs/rmq-operations-dashboard.md` required | Go + frontend tests |
 | P2 | Journey / Progression Manager | Planned | `docs/journey-progression-manager.md` required | Go + frontend tests |
 | P2 | Guild / Faction Admin | Planned | `docs/guild-faction-admin.md` required | Go + frontend tests |
+| P2 | Guild Management: create/delete guild, membership, ranks | Planned | `docs/guild-management.md` required | Go + frontend tests |
 | P2 | Augment Preset Manager | Planned | `docs/augment-preset-manager.md` required | Go + frontend tests |
 | P2 | Maintenance Mode Assistant | Planned | `docs/maintenance-mode-assistant.md` required | Go + frontend tests |
 | P3 | Settings Diff / Config Manager | Planned | `docs/settings-diff-config-manager.md` required | Research + tests |
@@ -104,7 +105,22 @@ Next framework hardening tasks:
 - Keep the Players-table `360` launcher read-only.
 - Do not add Player 360 quick actions until they are implemented as confirmed workflows with reason capture, target metadata, and audit visibility.
 
-### 4. Documentation backlog
+### 4. Guild management backlog
+
+P2 guild-management work now includes a dedicated guild-management feature.
+
+That feature should cover:
+
+- Create guild.
+- Delete guild.
+- Add player to a guild.
+- Remove player from a guild.
+- Change a player's guild rank.
+- Schema discovery for guild, member, and rank tables/functions before writes are implemented.
+- Confirmation, admin reason capture, before-change snapshot, post-action diff/reload, and audit visibility for every guild mutation.
+- Clear distinction between guild management and faction reputation management.
+
+### 5. Documentation backlog
 
 P5 documentation work now includes a detailed Discord bot setup and usage guide.
 
