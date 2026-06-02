@@ -39,21 +39,21 @@ type discordPlayerLinkPayload struct {
 }
 
 type selfPlayerCardSummary struct {
-	DiscordID        string                         `json:"discord_id"`
-	PlayerID         int64                          `json:"player_id"`
-	PlayerName       string                         `json:"player_name,omitempty"`
-	Class            string                         `json:"class,omitempty"`
-	Map              string                         `json:"map,omitempty"`
-	OnlineStatus     string                         `json:"online_status,omitempty"`
-	Location         *playerProfileLocation         `json:"location,omitempty"`
-	InventorySummary playerProfileInventorySummary  `json:"inventory_summary"`
-	VehicleCount     int                            `json:"vehicle_count"`
-	Currencies       []currencyRow                  `json:"currencies"`
-	Factions         []factionRep                   `json:"factions"`
-	Specializations  []specTrack                    `json:"specializations"`
-	CharacterXP      *playerProfileCharXP           `json:"character_xp,omitempty"`
-	JourneySummary   playerProfileJourneySummary    `json:"journey_summary"`
-	SectionErrors    []playerProfileSectionError    `json:"section_errors"`
+	DiscordID        string                        `json:"discord_id"`
+	PlayerID         int64                         `json:"player_id"`
+	PlayerName       string                        `json:"player_name,omitempty"`
+	Class            string                        `json:"class,omitempty"`
+	Map              string                        `json:"map,omitempty"`
+	OnlineStatus     string                        `json:"online_status,omitempty"`
+	Location         *playerProfileLocation        `json:"location,omitempty"`
+	InventorySummary playerProfileInventorySummary `json:"inventory_summary"`
+	VehicleCount     int                           `json:"vehicle_count"`
+	Currencies       []currencyRow                 `json:"currencies"`
+	Factions         []factionRep                  `json:"factions"`
+	Specializations  []specTrack                   `json:"specializations"`
+	CharacterXP      *playerProfileCharXP          `json:"character_xp,omitempty"`
+	JourneySummary   playerProfileJourneySummary   `json:"journey_summary"`
+	SectionErrors    []playerProfileSectionError   `json:"section_errors"`
 }
 
 func discordPlayerLinkStorePath() string {
@@ -90,12 +90,12 @@ func saveDiscordPlayerLinkStore(store discordPlayerLinkStore) error {
 }
 
 func cleanDiscordPlayerLinkText(value string, maxLen int, field string, required bool) (string, error) {
+	if value != "" && containsUnsafeControl(value) {
+		return "", fmt.Errorf("%s contains unsupported control characters", field)
+	}
 	trimmed := strings.TrimSpace(value)
 	if required && trimmed == "" {
 		return "", fmt.Errorf("%s is required", field)
-	}
-	if trimmed != "" && containsUnsafeControl(trimmed) {
-		return "", fmt.Errorf("%s contains unsupported control characters", field)
 	}
 	if len(trimmed) > maxLen {
 		return "", fmt.Errorf("%s exceeds %d characters", field, maxLen)
