@@ -92,6 +92,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Updated `PATCH_NOTES.md` with verified Discord player link validation status.
 - Updated auth middleware so normal registered Discord sessions can reach `/api/v1/self/*` only while admin-token and Discord-admin access remain required elsewhere.
 - Registered Discord player link admin endpoints and read-only self-service endpoints in `routes.go`.
 - Updated `PATCH_NOTES.md` with Discord player link foundation status.
@@ -152,6 +153,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Fixed
 
+- Fixed Discord-player link text validation so raw control characters are rejected before trimming.
 - Fixed Farming Requests tab type usage by importing `CSSProperties` directly from React and removing an unused memoized open-request list.
 - Fixed frontend lint failure from `no-control-regex` by scoping the rule exception to `web/src/api/client.ts`, where browser access-key validation intentionally rejects whitespace and control characters.
 - Fixed static admin-token exposure through WebSocket URLs by replacing `ws_token` with one-time stream tickets.
@@ -236,10 +238,12 @@ This project follows a corporate change-management style informed by ITIL releas
   - `npm run typecheck`
   - `npm run lint`
   - `npm run build`
+- Validated Discord player link backend gates from the local checkout after the raw control-character validation fix:
+  - `go test ./...`
+  - `go build ./...`
 
 ### Validation still required before release
 
-- Run backend tests and build after Discord player link foundation changes.
 - Manually validate Discord player link CRUD and normal-Discord `/self/*` access boundaries.
 - Manually exercise Farming Requests UI list, create, group, fill, and cancel workflows.
 - Manually exercise inventory request/order personal/guild requests, order creation, fill/cancel propagation, and `PATCH` browser preflight.
