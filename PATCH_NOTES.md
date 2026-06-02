@@ -1,6 +1,32 @@
 # Dune Admin Release Notes
 
-## Current update: Inventory Studio action history
+## Current update: Backlog planning additions
+
+### Why this update was made
+
+The implementation tracker needed durable entries for newly requested roadmap work so future coding passes do not lose the intended scope.
+
+### What changed
+
+- Added a P5 documentation task for a detailed Discord bot setup and usage guide.
+- Added a P2 Guild Management feature covering create/delete guild, add/remove player membership, and player guild-rank changes.
+- Added a P2 Player tab guild workflow feature covering add/remove selected player from a guild and promote/change guild rank from the Player tab.
+- Updated `docs/admin-implementation-tasks.md` with guild-management backlog scope, Player tab guild workflow scope, and Discord bot documentation guide scope.
+
+### Security and operator impact
+
+- Planning-only change. No code, route, schema write, bot runtime, or UI mutation path was added.
+- Future guild-management work must perform schema discovery before writes are implemented.
+- Future guild mutations must use shared mutation confirmation, admin reason capture, before-change snapshot/review, post-action refresh/diff where practical, and audit visibility.
+- Future Discord bot documentation must include setup, permissions, secret handling, command behavior, troubleshooting, and security boundaries.
+
+### Validation
+
+Documentation/planning review only. No build validation is required for this planning-only update.
+
+---
+
+## Previous update: Inventory Studio action history
 
 ### Why this update was made
 
@@ -70,45 +96,3 @@ Verified from the canonical local update path after the Discord self-service fro
 This covered backend tests/build plus frontend install/audit/typecheck/lint/build.
 
 Manual browser validation has also been verified for **Discord Links** list/create/edit/delete behavior and **My Player Card** loading through Discord session cookies without a Browser Access Key.
-
----
-
-## Previous update: Discord player link foundation
-
-### Why this update was made
-
-Player Cards and future player-safe self-service need a durable identity-to-player mapping before any self-service behavior can be considered safe. This slice adds the mapping foundation and read-only self-service endpoints while preserving the rule that Player 360 and player mutations remain locked down.
-
-### What changed
-
-- Added `discord_player_links.go` with a local JSON-backed Discord-to-player link store.
-- Added admin-managed link endpoints:
-  - `GET /api/v1/auth/discord/player-links`
-  - `POST /api/v1/auth/discord/player-links`
-  - `DELETE /api/v1/auth/discord/player-links/{discord_id}`
-- Added read-only self-service endpoints for linked Discord sessions:
-  - `GET /api/v1/self/player-link`
-  - `GET /api/v1/self/player-card`
-- Updated auth middleware so normal Discord sessions can access only `/api/v1/self/*`; admin-token and Discord-admin access remain required elsewhere.
-- Added `discord_player_links_test.go` coverage for link payload validation, store helper behavior, route handlers, current session link lookup, and self-service auth gating.
-- Added `docs/discord-player-links.md` with model, storage, endpoint, auth-boundary, validation, and safety notes.
-- Fixed Discord-player link text validation so raw control characters are rejected before trimming.
-
-### Security and operator impact
-
-- Normal Discord sessions are scoped to `/api/v1/self/*` only.
-- Admin link management requires admin token or Discord admin session.
-- Self-service player card output is read-only and derived from the existing Player 360 profile builder.
-- This feature does not write player inventory, guild storage, claim rewards, currency, XP, Player 360, or any game-state table.
-- Player 360 remains read-only. Any future self-service mutation must enforce the mapped player ID, mutation classification, auditability, and explicit safety workflows.
-
-### Validation
-
-Verified from the local checkout after the Discord-player link validation fix:
-
-```bash
-go test ./...
-go build ./...
-```
-
-Manual release validation has also been verified for admin link CRUD, normal Discord self-service access, normal Discord denial from admin paths, unlinked Discord safe failures, and read-only self player-card behavior.
