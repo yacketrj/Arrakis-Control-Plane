@@ -8,6 +8,10 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Added
 
+- Added Discord/self-service frontend API helper at `web/src/api/discordSelfService.ts` with cookie-aware calls to `/api/v1/self/*` and admin-token support for link management.
+- Added Discord Player Links admin tab at `web/src/tabs/DiscordPlayerLinksTab.tsx` for listing, creating, editing, and deleting Discord-to-player mappings.
+- Added read-only My Player Card tab at `web/src/tabs/SelfPlayerCardTab.tsx` for linked Discord sessions.
+- Added Discord Links and My Player Card navigation entries in `web/src/App.tsx`.
 - Added Discord player link foundation in `discord_player_links.go` for admin-managed Discord ID to player actor ID mapping.
 - Added protected Discord player link admin endpoints for list, upsert, and delete workflows.
 - Added read-only self-service endpoints at `/api/v1/self/player-link` and `/api/v1/self/player-card` for linked Discord sessions.
@@ -92,6 +96,9 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Updated `PATCH_NOTES.md` with Discord self-service frontend tab status and validation requirements.
+- Updated `docs/discord-player-links.md` with Discord Links and My Player Card frontend behavior.
+- Updated `web/src/App.tsx` tab gating so My Player Card can load with Discord session cookies while administrative tabs still require configured browser admin access.
 - Updated `PATCH_NOTES.md` with manual Discord player link validation status.
 - Updated `PATCH_NOTES.md` with verified Discord player link validation status.
 - Updated auth middleware so normal registered Discord sessions can reach `/api/v1/self/*` only while admin-token and Discord-admin access remain required elsewhere.
@@ -154,6 +161,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Fixed
 
+- Fixed Discord Links tab type usage by importing `CSSProperties` directly from React.
 - Fixed Discord-player link text validation so raw control characters are rejected before trimming.
 - Fixed Farming Requests tab type usage by importing `CSSProperties` directly from React and removing an unused memoized open-request list.
 - Fixed frontend lint failure from `no-control-regex` by scoping the rule exception to `web/src/api/client.ts`, where browser access-key validation intentionally rejects whitespace and control characters.
@@ -183,6 +191,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Security
 
+- Kept Discord self-service frontend read-only; My Player Card calls only `/api/v1/self/player-link` and `/api/v1/self/player-card`.
+- Kept Discord Links as an admin-management surface for existing backend-protected link APIs.
 - Added Discord player link foundation as a prerequisite for future self-service and kept it read-only for normal Discord sessions.
 - Scoped normal registered Discord sessions to `/api/v1/self/*` only.
 - Kept Discord player link management behind admin token or Discord admin session.
@@ -251,6 +261,9 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Validation still required before release
 
+- Run `./update.sh` after Discord self-service frontend tab changes.
+- Manually validate Discord Links tab list/create/edit/delete behavior.
+- Manually validate My Player Card through Discord session cookies without a Browser Access Key.
 - Manually exercise Farming Requests UI list, create, group, fill, and cancel workflows.
 - Manually exercise inventory request/order personal/guild requests, order creation, fill/cancel propagation, and `PATCH` browser preflight.
 - Manually validate Discord OAuth login/callback, session context, logout, and registered-user review with configured Discord OAuth.
