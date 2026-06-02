@@ -19,6 +19,7 @@ Player Cards and future player-safe self-service need a durable identity-to-play
 - Updated auth middleware so normal Discord sessions can access only `/api/v1/self/*`; admin-token and Discord-admin access remain required elsewhere.
 - Added `discord_player_links_test.go` coverage for link payload validation, store helper behavior, route handlers, current session link lookup, and self-service auth gating.
 - Added `docs/discord-player-links.md` with model, storage, endpoint, auth-boundary, validation, and safety notes.
+- Fixed Discord-player link text validation so raw control characters are rejected before trimming.
 
 ### Security and operator impact
 
@@ -30,7 +31,7 @@ Player Cards and future player-safe self-service need a durable identity-to-play
 
 ### Validation
 
-Required from the local checkout:
+Verified from the local checkout after the Discord-player link validation fix:
 
 ```bash
 go test ./...
