@@ -42,7 +42,7 @@ Every feature task must update:
 | P1 | Inventory Studio v2 item catalog browser | Done | `docs/inventory-studio.md` | Windows `update.ps1` validation |
 | P1 | Inventory Studio v2 confirmed add/repair/remove workflows | Done | `docs/inventory-studio.md` | Windows `update.ps1` validation |
 | P1 | Inventory Studio v2 post-action diff panel | Done | `docs/inventory-studio.md` | Windows `update.ps1` validation |
-| P1 | Inventory Studio v2 browser-session action history | In Progress | `docs/inventory-studio.md` | `./update.sh` required |
+| P1 | Inventory Studio v2 browser-session action history | Done | `docs/inventory-studio.md` | `./update.sh` validation |
 | P1 | Inventory Studio v2 stack-size edit workflow | Next | `docs/inventory-studio.md` | Go + frontend tests |
 | P1 | Battlegroup Status v2 | Planned | `docs/battlegroup-status-v2.md` required | Go + frontend tests |
 | P1 | Broadcast Center | Planned | `docs/broadcast-center.md` required | Go + frontend tests |
@@ -78,7 +78,7 @@ Inventory Studio v2 now includes:
 - Automatic post-action diff panel after confirmed add, repair, or removal.
 - Browser-session action history for recent confirmed action diffs.
 
-Next Inventory Studio work should validate the action history panel, then add a stack-size edit workflow only after before/after preview and confirmed mutation behavior are preserved.
+Next Inventory Studio work should add a stack-size edit workflow only after before/after preview and confirmed mutation behavior are preserved.
 
 ### 2. Harden Mutation Safety Framework v1
 
