@@ -41,7 +41,9 @@ Every feature task must update:
 | P1 | Inventory Studio v2 snapshot compare | Done | `docs/inventory-studio.md` | Windows `update.ps1` validation |
 | P1 | Inventory Studio v2 item catalog browser | Done | `docs/inventory-studio.md` | Windows `update.ps1` validation |
 | P1 | Inventory Studio v2 confirmed add/repair/remove workflows | Done | `docs/inventory-studio.md` | Windows `update.ps1` validation |
-| P1 | Inventory Studio v2 post-action diff panel | Next | `docs/inventory-studio.md` | Go + frontend tests |
+| P1 | Inventory Studio v2 post-action diff panel | Done | `docs/inventory-studio.md` | Windows `update.ps1` validation |
+| P1 | Inventory Studio v2 browser-session action history | In Progress | `docs/inventory-studio.md` | `./update.sh` required |
+| P1 | Inventory Studio v2 stack-size edit workflow | Next | `docs/inventory-studio.md` | Go + frontend tests |
 | P1 | Battlegroup Status v2 | Planned | `docs/battlegroup-status-v2.md` required | Go + frontend tests |
 | P1 | Broadcast Center | Planned | `docs/broadcast-center.md` required | Go + frontend tests |
 | P1 | Safe Offline Teleport / Rescue | Planned | `docs/safe-teleport-rescue.md` required | Go + frontend tests |
@@ -73,8 +75,10 @@ Inventory Studio v2 now includes:
 - Confirmed selected-item removal.
 - Before-action snapshot export for confirmed workflows.
 - Shared mutation confirmation and required admin reason capture for confirmed workflows.
+- Automatic post-action diff panel after confirmed add, repair, or removal.
+- Browser-session action history for recent confirmed action diffs.
 
-Next Inventory Studio work should add an automatic post-action diff panel that compares the before-action snapshot against the reloaded inventory after add, repair, or removal.
+Next Inventory Studio work should validate the action history panel, then add a stack-size edit workflow only after before/after preview and confirmed mutation behavior are preserved.
 
 ### 2. Harden Mutation Safety Framework v1
 
@@ -113,7 +117,13 @@ npm run lint
 npm run build
 ```
 
-On Windows, use:
+Canonical local validation path:
+
+```bash
+./update.sh
+```
+
+On Windows PowerShell, use:
 
 ```powershell
 .\update.ps1
