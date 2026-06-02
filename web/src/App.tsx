@@ -8,13 +8,14 @@ const PlayersTab = lazy(() => import('./tabs/PlayersTabWith360Launcher'))
 const PlayerCardsTab = lazy(() => import('./tabs/PlayerCardsTab'))
 const Player360Tab = lazy(() => import('./tabs/Player360Tab'))
 const InventoryStudioTab = lazy(() => import('./tabs/InventoryStudioTab'))
+const FarmingRequestsTab = lazy(() => import('./tabs/FarmingRequestsTab'))
 const DatabaseTab = lazy(() => import('./tabs/DatabaseTab'))
 const DbRoutinesTab = lazy(() => import('./tabs/DbRoutinesTab'))
 const LogsTab = lazy(() => import('./tabs/LogsTab'))
 const BlueprintsTab = lazy(() => import('./tabs/BlueprintsTab'))
 const StorageTab = lazy(() => import('./tabs/StorageTab'))
 
-type TabId = 'battlegroup' | 'players' | 'player-cards' | 'player-360' | 'inventory-studio' | 'database' | 'db-routines' | 'audit' | 'logs' | 'blueprints' | 'storage'
+type TabId = 'battlegroup' | 'players' | 'player-cards' | 'player-360' | 'inventory-studio' | 'farming-requests' | 'database' | 'db-routines' | 'audit' | 'logs' | 'blueprints' | 'storage'
 
 const tabs: Array<{ id: TabId; label: string }> = [
   { id: 'audit', label: 'Audit' },
@@ -23,6 +24,7 @@ const tabs: Array<{ id: TabId; label: string }> = [
   { id: 'player-cards', label: 'Player Cards' },
   { id: 'player-360', label: 'Player 360' },
   { id: 'inventory-studio', label: 'Inventory Studio' },
+  { id: 'farming-requests', label: 'Farming Requests' },
   { id: 'database', label: 'Database' },
   { id: 'db-routines', label: 'DB Routines' },
   { id: 'logs', label: 'Logs' },
@@ -223,6 +225,7 @@ function renderTab(tab: TabId) {
     case 'player-cards': return <PlayerCardsTab />
     case 'player-360': return <Player360Tab />
     case 'inventory-studio': return <InventoryStudioTab />
+    case 'farming-requests': return <FarmingRequestsTab />
     case 'database': return <DatabaseTab />
     case 'db-routines': return <DbRoutinesTab />
     case 'audit': return <AuditTab />
@@ -245,6 +248,7 @@ function panelClass(tab: TabId) {
     case 'players':
     case 'player-cards':
     case 'player-360':
+    case 'farming-requests':
     case 'database':
       return 'flex-1 overflow-auto p-4'
   }
