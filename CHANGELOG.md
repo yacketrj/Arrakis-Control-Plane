@@ -8,6 +8,11 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Added
 
+- Added Discord player link foundation in `discord_player_links.go` for admin-managed Discord ID to player actor ID mapping.
+- Added protected Discord player link admin endpoints for list, upsert, and delete workflows.
+- Added read-only self-service endpoints at `/api/v1/self/player-link` and `/api/v1/self/player-card` for linked Discord sessions.
+- Added `discord_player_links_test.go` coverage for link validation, store helper behavior, handlers, current session link lookup, and self-service auth gating.
+- Added `docs/discord-player-links.md` with storage, endpoint, auth-boundary, validation, and safety notes.
 - Added Farming Requests frontend tab at `web/src/tabs/FarmingRequestsTab.tsx` for coordination-only request/order management.
 - Added `web/src/api/inventoryRequests.ts` as a separate frontend API module for inventory request/order endpoints.
 - Added Farming Requests navigation wiring in `web/src/App.tsx`.
@@ -87,6 +92,9 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Updated auth middleware so normal registered Discord sessions can reach `/api/v1/self/*` only while admin-token and Discord-admin access remain required elsewhere.
+- Registered Discord player link admin endpoints and read-only self-service endpoints in `routes.go`.
+- Updated `PATCH_NOTES.md` with Discord player link foundation status.
 - Updated `PATCH_NOTES.md` with verified Farming Requests UI validation status.
 - Updated `docs/inventory-requests-orders.md` with Farming Requests frontend behavior and validation expectations.
 - Updated `PATCH_NOTES.md` with the Farming Requests UI status.
@@ -172,6 +180,10 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Security
 
+- Added Discord player link foundation as a prerequisite for future self-service and kept it read-only for normal Discord sessions.
+- Scoped normal registered Discord sessions to `/api/v1/self/*` only.
+- Kept Discord player link management behind admin token or Discord admin session.
+- Kept self-service player card output read-only and derived from the existing Player 360 profile builder.
 - Kept Farming Requests UI coordination-only; it does not write player inventory, guild storage, claim rewards, Player 360, or game-state tables.
 - Kept Farming Requests frontend API separate from the high-risk player/admin API surface.
 - Kept Discord bot command adapter non-networked and dependency-free for this slice; it does not register slash commands, connect to Discord, or execute runtime actions on its own.
@@ -227,6 +239,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Validation still required before release
 
+- Run backend tests and build after Discord player link foundation changes.
+- Manually validate Discord player link CRUD and normal-Discord `/self/*` access boundaries.
 - Manually exercise Farming Requests UI list, create, group, fill, and cancel workflows.
 - Manually exercise inventory request/order personal/guild requests, order creation, fill/cancel propagation, and `PATCH` browser preflight.
 - Manually validate Discord OAuth login/callback, session context, logout, and registered-user review with configured Discord OAuth.
@@ -239,6 +253,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Known issues
 
+- Discord player link storage is local JSON and not yet a durable multi-instance database-backed identity mapping.
 - Local `update.sh` auto-commit can fail when Git `user.name` and `user.email` are not configured in the checkout or globally.
 - Inventory request/order storage is local JSON and not yet a durable multi-instance database-backed ledger.
 - Browser token storage remains JavaScript-readable during the active session. Future target is memory-only token handling or HttpOnly secure session-cookie authentication.
