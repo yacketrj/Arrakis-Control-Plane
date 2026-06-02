@@ -1,6 +1,44 @@
 # Dune Admin Release Notes
 
-## Current update: Inventory request/order backend coordination model
+## Current update: Discord bot command adapter skeleton
+
+### Why this update was made
+
+The farming request/order backend needs a Discord-facing adapter layer before an actual bot runtime is introduced. This slice adds command-shape normalization and payload conversion without adding a networked bot process, Discord gateway client, or new runtime dependency.
+
+### What changed
+
+- Added `discord_bot_adapter.go` with a non-network command adapter for Discord-style farming request/order commands.
+- Added adapter support for personal item requests, guild item requests, farm-order creation, filled-order updates, and cancelled-order updates.
+- Reused existing inventory request/order validation and normalization instead of creating a second validation path.
+- Added `discord_bot_adapter_test.go` coverage for personal requests, guild requests, farm orders, fill updates, cancel updates, and unsupported command rejection.
+
+### Security and operator impact
+
+- This is an adapter skeleton only. It does not connect to Discord, register slash commands, open a gateway connection, or execute bot actions on its own.
+- The adapter does not mutate player inventory, guild storage, claim rewards, currency, XP, Player 360, or any game-state table.
+- Player 360 remains read-only. Self-service player-card actions remain blocked until Discord identity-to-player mapping exists and is explicitly enforced.
+- The adapter deliberately maps bot-style inputs into the existing request/order coordination model so future bot runtime work can stay thin and testable.
+
+### Validation
+
+User-provided local validation completed cleanly after the scoped frontend lint fix:
+
+```bash
+go test -v ./...
+go build ./...
+npm install
+npm audit --audit-level=high
+npm run typecheck
+npm run lint
+npm run build
+```
+
+The local `update.sh` run failed only at the Git auto-commit step because Git author identity was not configured in the local checkout.
+
+---
+
+## Previous update: Inventory request/order backend coordination model
 
 ### Why this update was made
 
