@@ -8,6 +8,9 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Added
 
+- Added P5 Discord bot setup and usage guide task to the implementation tracker.
+- Added P2 Guild Management backlog task covering create/delete guild, add/remove player membership, and guild-rank changes.
+- Added P2 Player tab guild workflow task covering add/remove selected player from a guild and promote/change selected player rank from the Player tab.
 - Added Inventory Studio browser-session action history for recent completed add, repair, and removal action diffs.
 - Added Inventory Studio action-history export to local JSON.
 - Added Discord/self-service frontend API helper at `web/src/api/discordSelfService.ts` with cookie-aware calls to `/api/v1/self/*` and admin-token support for link management.
@@ -98,6 +101,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Updated `docs/admin-implementation-tasks.md` with Discord bot setup guide, guild management, and Player tab guild workflow backlog entries.
+- Updated `PATCH_NOTES.md` with backlog planning additions for Discord bot documentation and guild-management workflows.
 - Updated `docs/admin-implementation-tasks.md` so Inventory Studio browser-session action history is marked validated and done.
 - Updated `PATCH_NOTES.md` with verified Inventory Studio action history validation.
 - Updated `docs/inventory-studio.md` with action history behavior, export, clear, reset, and safety notes.
@@ -199,6 +204,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Security
 
+- Added guild-management planning requirements that future guild mutations must use schema discovery, confirmation, admin reason capture, before-change review, refresh/diff where practical, and audit visibility.
 - Kept Inventory Studio action history browser-local; it does not add backend persistence, rollback automation, or new mutation routes.
 - Kept existing Inventory Studio confirmed add, repair, and removal workflows behind shared mutation confirmation, before-action snapshot export, and admin reason capture.
 - Kept Discord self-service frontend read-only; My Player Card calls only `/api/v1/self/player-link` and `/api/v1/self/player-card`.
@@ -247,6 +253,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Validation
 
+- Recorded backlog planning additions for Discord bot documentation and guild-management workflows as documentation/planning review only.
 - Validated Inventory Studio action-history changes from the canonical local update path:
   - `./update.sh`
 - Validated Inventory Studio action-history manual release checks:
