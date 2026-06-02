@@ -72,6 +72,10 @@ func isWebSocketLogStreamRequest(r *http.Request) bool {
 	return r != nil && strings.EqualFold(r.Header.Get("Upgrade"), "websocket") && r.URL != nil && r.URL.Path == "/api/v1/logs/stream"
 }
 
+func isSelfServicePath(path string) bool {
+	return strings.HasPrefix(path, "/api/v1/self/")
+}
+
 func authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodOptions || isPublicPath(r.URL.Path) {
@@ -102,9 +106,15 @@ func authMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		if discordAuthEnabled() && discordSessionIsAdmin(r) {
-			next.ServeHTTP(w, r)
-			return
+		if discordAuthEnabled() {
+			if discordSessionIsAdmin(r) {
+				next.ServeHTTP(w, r)
+				return
+			}
+			if isSelfServicePath(r.URL.Path) && discordSessionIsRegistered(r) {
+				next.ServeHTTP(w, r)
+				return
+			}
 		}
 		jsonErr(w, fmt.Errorf("unauthorized"), http.StatusUnauthorized)
 	})
@@ -159,58 +169,47 @@ func normalizeListenAddr(addr string) string {
 	if strings.HasPrefix(addr, ":") {
 		return "127.0.0.1" + addr
 	}
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil || port == "" {
+		return addr
+	}
+	if host == "" {
+		return "127.0.0.1:" + port
+	}
 	return addr
 }
 
-func isLoopbackAddr(addr string) bool {
+func validateListenExposure(addr string) error {
 	host, _, err := net.SplitHostPort(addr)
 	if err != nil {
-		return false
+		return fmt.Errorf("LISTEN_ADDR must be host:port: %w", err)
 	}
-	if host == "localhost" {
-		return true
+	if host == "" {
+		host = "127.0.0.1"
 	}
-	ip := net.ParseIP(host)
-	return ip != nil && ip.IsLoopback()
+	if host == "localhost" || host == "127.0.0.1" || host == "::1" {
+		return nil
+	}
+	parsed := net.ParseIP(host)
+	if parsed != nil && parsed.IsLoopback() {
+		return nil
+	}
+	if os.Getenv("DUNE_ADMIN_REMOTE_EXPOSURE") == "reverse-proxy-tls" {
+		return nil
+	}
+	return fmt.Errorf("refusing to bind backend to non-loopback LISTEN_ADDR %q without DUNE_ADMIN_REMOTE_EXPOSURE=reverse-proxy-tls", addr)
 }
 
-func warnIfExternallyBound(addr string) {
-	if addr == "" || strings.HasPrefix(addr, ":") || strings.HasPrefix(addr, "0.0.0.0:") || strings.HasPrefix(addr, "[::]:") {
-		log.Printf("security: LISTEN_ADDR %q binds beyond loopback; expose only behind trusted auth/TLS", addr)
-		return
-	}
-	if !isLoopbackAddr(addr) {
-		log.Printf("security: LISTEN_ADDR %q is not loopback; expose only behind trusted auth/TLS", addr)
-	}
-}
-
-func isValidK8sName(s string) bool {
-	return k8sNamePattern.MatchString(s)
-}
-
-func isAllowedLogTarget(ns, pod string) bool {
-	if !isValidK8sName(ns) || !isValidK8sName(pod) {
-		return false
-	}
-	return ns == globalPodNS || ns == "funcom-operators"
-}
+func isValidK8sName(v string) bool { return k8sNamePattern.MatchString(v) }
 
 func isReadOnlySQL(sql string) bool {
-	trimmed := strings.TrimSpace(sql)
-	trimmed = strings.TrimLeft(trimmed, "(\n\r\t ")
-	lower := strings.ToLower(trimmed)
-	if strings.Contains(lower, ";") || sqlDangerPattern.MatchString(lower) {
+	q := strings.TrimSpace(sql)
+	if q == "" || strings.Contains(q, ";") {
 		return false
 	}
-	allowedPrefixes := []string{"select ", "with ", "show ", "explain "}
-	for _, prefix := range allowedPrefixes {
-		if strings.HasPrefix(lower, prefix) {
-			return true
-		}
+	if sqlDangerPattern.MatchString(q) {
+		return false
 	}
-	return false
-}
-
-func limitBody(w http.ResponseWriter, r *http.Request, n int64) {
-	r.Body = http.MaxBytesReader(w, r.Body, n)
+	l := strings.ToLower(q)
+	return strings.HasPrefix(l, "select") || strings.HasPrefix(l, "with") || strings.HasPrefix(l, "show") || strings.HasPrefix(l, "explain")
 }
