@@ -8,6 +8,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Added
 
+- Added Inventory Studio browser-session action history for recent completed add, repair, and removal action diffs.
+- Added Inventory Studio action-history export to local JSON.
 - Added Discord/self-service frontend API helper at `web/src/api/discordSelfService.ts` with cookie-aware calls to `/api/v1/self/*` and admin-token support for link management.
 - Added Discord Player Links admin tab at `web/src/tabs/DiscordPlayerLinksTab.tsx` for listing, creating, editing, and deleting Discord-to-player mappings.
 - Added read-only My Player Card tab at `web/src/tabs/SelfPlayerCardTab.tsx` for linked Discord sessions.
@@ -96,6 +98,9 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Updated `docs/inventory-studio.md` with action history behavior, export, clear, reset, and safety notes.
+- Updated `docs/admin-implementation-tasks.md` so Inventory Studio post-action diff is marked done and stack-size edit is the next planned workflow after action-history validation.
+- Updated `PATCH_NOTES.md` with Inventory Studio action history status.
 - Updated `PATCH_NOTES.md` with manual Discord self-service frontend tab validation.
 - Updated `PATCH_NOTES.md` with verified Discord self-service frontend tab validation.
 - Updated `docs/discord-player-links.md` with Discord Links and My Player Card frontend behavior.
@@ -192,6 +197,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Security
 
+- Kept Inventory Studio action history browser-local; it does not add backend persistence, rollback automation, or new mutation routes.
+- Kept existing Inventory Studio confirmed add, repair, and removal workflows behind shared mutation confirmation, before-action snapshot export, and admin reason capture.
 - Kept Discord self-service frontend read-only; My Player Card calls only `/api/v1/self/player-link` and `/api/v1/self/player-card`.
 - Kept Discord Links as an admin-management surface for existing backend-protected link APIs.
 - Added Discord player link foundation as a prerequisite for future self-service and kept it read-only for normal Discord sessions.
@@ -267,6 +274,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Validation still required before release
 
+- Run `./update.sh` after Inventory Studio action-history changes.
+- Manually validate Inventory Studio action history append, clear, export, and reset-on-player-change behavior.
 - Manually exercise Farming Requests UI list, create, group, fill, and cancel workflows.
 - Manually exercise inventory request/order personal/guild requests, order creation, fill/cancel propagation, and `PATCH` browser preflight.
 - Manually validate Discord OAuth login/callback, session context, logout, and registered-user review with configured Discord OAuth.
