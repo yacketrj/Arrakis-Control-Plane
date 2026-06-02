@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { Button, Spinner, toast } from '@heroui/react'
 import { discordSelfServiceApi, type DiscordPlayerLink } from '../api/discordSelfService'
 
@@ -20,7 +20,7 @@ function fmtDate(value: string): string {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
 }
 
-function inputStyle(): React.CSSProperties {
+function inputStyle(): CSSProperties {
   return {
     background: '#0d0b07',
     color: 'var(--color-text)',
