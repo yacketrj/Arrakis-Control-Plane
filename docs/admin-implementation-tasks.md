@@ -52,6 +52,7 @@ Every feature task must update:
 | P2 | Journey / Progression Manager | Planned | `docs/journey-progression-manager.md` required | Go + frontend tests |
 | P2 | Guild / Faction Admin | Planned | `docs/guild-faction-admin.md` required | Go + frontend tests |
 | P2 | Guild Management: create/delete guild, membership, ranks | Planned | `docs/guild-management.md` required | Go + frontend tests |
+| P2 | Player tab guild workflows: add/remove/promote | Planned | `docs/guild-management.md` required | Go + frontend tests |
 | P2 | Augment Preset Manager | Planned | `docs/augment-preset-manager.md` required | Go + frontend tests |
 | P2 | Maintenance Mode Assistant | Planned | `docs/maintenance-mode-assistant.md` required | Go + frontend tests |
 | P3 | Settings Diff / Config Manager | Planned | `docs/settings-diff-config-manager.md` required | Research + tests |
@@ -107,9 +108,9 @@ Next framework hardening tasks:
 
 ### 4. Guild management backlog
 
-P2 guild-management work now includes a dedicated guild-management feature.
+P2 guild-management work now includes dedicated guild-management features.
 
-That feature should cover:
+Guild administration should cover:
 
 - Create guild.
 - Delete guild.
@@ -119,6 +120,14 @@ That feature should cover:
 - Schema discovery for guild, member, and rank tables/functions before writes are implemented.
 - Confirmation, admin reason capture, before-change snapshot, post-action diff/reload, and audit visibility for every guild mutation.
 - Clear distinction between guild management and faction reputation management.
+
+Player tab guild workflows should cover:
+
+- Add the selected player to a guild from the Player tab.
+- Remove the selected player from their guild from the Player tab.
+- Promote or otherwise change the selected player's rank within their guild from the Player tab.
+- Show current guild membership and rank context before any mutation.
+- Reuse the same confirmed mutation, admin reason, audit, and post-action refresh pattern as other player-management workflows.
 
 ### 5. Documentation backlog
 
