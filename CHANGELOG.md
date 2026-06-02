@@ -8,11 +8,14 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Added
 
+- Added Farming Requests frontend tab at `web/src/tabs/FarmingRequestsTab.tsx` for coordination-only request/order management.
+- Added `web/src/api/inventoryRequests.ts` as a separate frontend API module for inventory request/order endpoints.
+- Added Farming Requests navigation wiring in `web/src/App.tsx`.
 - Added Discord bot command adapter skeleton in `discord_bot_adapter.go` for Discord-style personal requests, guild requests, farm orders, fill updates, and cancel updates.
 - Added `discord_bot_adapter_test.go` coverage for personal request, guild request, farm-order, fill/cancel update, and unsupported-command adapter paths.
 - Added inventory request/order backend coordination model in `inventory_requests.go` for personal and guild requests plus farming orders.
 - Added `inventory_requests_test.go` coverage for request validation, handler lifecycle, order linking, fill propagation, and missing-request rejection.
-- Added `docs/inventory-requests-orders.md` with storage, endpoint, model, validation, status propagation, and safety-boundary notes.
+- Added `docs/inventory-requests-orders.md` with storage, endpoint, model, frontend UI, validation, status propagation, and safety-boundary notes.
 - Added Discord auth route/session coverage in `discord_auth_test.go` for route registration, role mapping, session lookup, expiry eviction, session hash generation, and logout invalidation.
 - Added `docs/discord-auth.md` with runtime configuration, endpoint, role mapping, session behavior, validation, and current limitation notes.
 - Added NIST SP 800-218 SSDF as the primary secure-development baseline for DA Manager.
@@ -84,6 +87,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Updated `docs/inventory-requests-orders.md` with Farming Requests frontend behavior and validation expectations.
+- Updated `PATCH_NOTES.md` with the Farming Requests UI status.
 - Updated `PATCH_NOTES.md` with the Discord bot command adapter status and the clean full local validation result.
 - Registered protected inventory request/order endpoints in `routes.go`.
 - Updated CORS middleware to allow `PATCH` for request/order update endpoints.
@@ -138,6 +143,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Fixed
 
+- Fixed Farming Requests tab type usage by importing `CSSProperties` directly from React and removing an unused memoized open-request list.
 - Fixed frontend lint failure from `no-control-regex` by scoping the rule exception to `web/src/api/client.ts`, where browser access-key validation intentionally rejects whitespace and control characters.
 - Fixed static admin-token exposure through WebSocket URLs by replacing `ws_token` with one-time stream tickets.
 - Fixed unsafe backend exposure behavior by failing closed on non-loopback `LISTEN_ADDR` unless explicitly acknowledged for reverse-proxy/TLS deployment.
@@ -165,6 +171,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Security
 
+- Kept Farming Requests UI coordination-only; it does not write player inventory, guild storage, claim rewards, Player 360, or game-state tables.
+- Kept Farming Requests frontend API separate from the high-risk player/admin API surface.
 - Kept Discord bot command adapter non-networked and dependency-free for this slice; it does not register slash commands, connect to Discord, or execute runtime actions on its own.
 - Kept Discord bot command adapter mapped to the coordination-only inventory request/order model instead of any direct game-state mutation path.
 - Kept inventory request/order backend coordination-only; it does not mutate player inventory, guild storage, claim rewards, Player 360, or game-state tables.
@@ -214,6 +222,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Validation still required before release
 
+- Run frontend typecheck, lint, and build after the Farming Requests UI changes.
+- Manually exercise Farming Requests UI list, create, group, fill, and cancel workflows.
 - Manually exercise inventory request/order personal/guild requests, order creation, fill/cancel propagation, and `PATCH` browser preflight.
 - Manually validate Discord OAuth login/callback, session context, logout, and registered-user review with configured Discord OAuth.
 - Validate WebSocket ticket behavior manually.
