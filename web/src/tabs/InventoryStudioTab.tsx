@@ -6,7 +6,8 @@ import { mutationConfirmationCancelledMessage, useMutationConfirmation } from '.
 
 type InventorySnapshot = { exported_at?: string; mode?: string; player?: Player; item_count?: number; items?: InventoryItem[] }
 type InventoryDiffRow = { key: string; status: 'added' | 'removed' | 'changed'; before?: InventoryItem; after?: InventoryItem; changes: string[] }
-type LastActionDiff = { action: string; target: string; beforeCount: number; afterCount: number; diffs: InventoryDiffRow[]; checkedAt: string } | null
+type ActionDiff = { action: string; target: string; beforeCount: number; afterCount: number; diffs: InventoryDiffRow[]; checkedAt: string }
+type LastActionDiff = ActionDiff | null
 
 function itemLabel(item: InventoryItem): string { return item.name || item.template_id || `item:${item.id}` }
 function safeFilenamePart(value: string): string { return value.trim().replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'unknown' }
@@ -68,6 +69,7 @@ export default function InventoryStudioTab() {
   const [comparisonSnapshot, setComparisonSnapshot] = useState<InventorySnapshot | null>(null)
   const [comparisonName, setComparisonName] = useState('')
   const [lastActionDiff, setLastActionDiff] = useState<LastActionDiff>(null)
+  const [actionDiffHistory, setActionDiffHistory] = useState<ActionDiff[]>([])
   const [mutationBusy, setMutationBusy] = useState(false)
   const { confirmMutation, confirmationDialog } = useMutationConfirmation()
 
@@ -112,6 +114,7 @@ export default function InventoryStudioTab() {
       setComparisonSnapshot(null)
       setComparisonName('')
       setLastActionDiff(null)
+      setActionDiffHistory([])
     }
     setItemsLoading(true)
     try {
@@ -133,13 +136,21 @@ export default function InventoryStudioTab() {
     toast.success('Inventory snapshot exported')
   }
 
+  const exportActionHistory = () => {
+    if (!selectedPlayer || actionDiffHistory.length === 0) return
+    downloadJson(`inventory-action-history-${safeFilenamePart(selectedPlayer.name)}-${selectedPlayer.id}-${safeFilenamePart(new Date().toISOString())}.json`, { exported_at: new Date().toISOString(), mode: 'inventory-studio-action-history', player: selectedPlayer, action_count: actionDiffHistory.length, actions: actionDiffHistory })
+    toast.success('Inventory action history exported')
+  }
+
   const exportBeforeActionSnapshot = (action: string, beforeItems: InventoryItem[], details: Record<string, unknown>) => {
     if (!selectedPlayer) return
     downloadJson(`inventory-before-${action}-${safeFilenamePart(selectedPlayer.name)}-${selectedPlayer.id}-${safeFilenamePart(new Date().toISOString())}.json`, { exported_at: new Date().toISOString(), mode: 'inventory-studio-before-action-snapshot', action, player: selectedPlayer, ...details, item_count: beforeItems.length, items: beforeItems })
   }
 
   const setPostActionDiff = (action: string, target: string, beforeItems: InventoryItem[], afterItems: InventoryItem[]) => {
-    setLastActionDiff({ action, target, beforeCount: beforeItems.length, afterCount: afterItems.length, diffs: compareInventorySnapshots(beforeItems, afterItems), checkedAt: new Date().toISOString() })
+    const next: ActionDiff = { action, target, beforeCount: beforeItems.length, afterCount: afterItems.length, diffs: compareInventorySnapshots(beforeItems, afterItems), checkedAt: new Date().toISOString() }
+    setLastActionDiff(next)
+    setActionDiffHistory(history => [next, ...history].slice(0, 10))
   }
 
   const handleMutationCancel = (e: unknown) => {
@@ -225,7 +236,7 @@ export default function InventoryStudioTab() {
     <>
       <div className="flex flex-col gap-3 h-full min-h-0 overflow-hidden">
         <div className="rounded-lg px-4 py-2 text-xs" style={{ background: '#0f0d09', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
-          <strong style={{ color: 'var(--color-primary)' }}>Inventory Studio v2:</strong> inventory inspection, snapshot export/compare, catalog browsing, confirmed add/repair/removal, and post-action diff review.
+          <strong style={{ color: 'var(--color-primary)' }}>Inventory Studio v2:</strong> inventory inspection, snapshot export/compare, catalog browsing, confirmed add/repair/removal, post-action diff review, and browser-session action history.
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr_420px] gap-3 flex-1 min-h-0 overflow-hidden">
@@ -249,6 +260,7 @@ export default function InventoryStudioTab() {
             <div className="overflow-y-auto flex-1 p-3 text-xs min-h-0">
               <CatalogPanel templatesLoading={templatesLoading} templates={filteredTemplates} selectedTemplate={selectedTemplate} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} addQty={addQty} addQuality={addQuality} mutationBusy={mutationBusy} selectedPlayer={selectedPlayer} onRefresh={loadTemplates} onSearch={setTemplateSearch} onSelectTemplate={setSelectedTemplateId} onQty={value => setAddQty(clampInt(value, 1, 9999))} onQuality={value => setAddQuality(clampInt(value, 0, 5))} onAdd={addSelectedTemplateItem} />
               <DiffPanel title="Post-action Diff" emptyText="No confirmed action has been completed in this session." diff={lastActionDiff} />
+              <ActionHistoryPanel history={actionDiffHistory} onClear={() => { setActionDiffHistory([]); setLastActionDiff(null) }} onExport={exportActionHistory} />
               <SnapshotCompare comparisonName={comparisonName} comparisonSnapshot={comparisonSnapshot} beforeCount={comparisonItems.length} currentCount={items.length} diffs={comparisonDiffs} disabled={!selectedPlayer || items.length === 0} onLoad={loadComparisonSnapshot} />
               <SelectedItemPanel item={selectedItem} mutationBusy={mutationBusy} onRepair={repairSelectedItem} onDelete={deleteSelectedItem} />
             </div>
@@ -289,6 +301,10 @@ function SnapshotCompare({ comparisonName, comparisonSnapshot, beforeCount, curr
 
 function DiffPanel({ title, emptyText, diff }: { title: string; emptyText: string; diff: LastActionDiff }) {
   return <div className="rounded p-3 mt-3" style={{ background: '#0a0806', border: '1px solid #2a2418' }}><div className="font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>{title}</div>{!diff ? <div style={{ color: 'var(--color-text-dim)' }}>{emptyText}</div> : <><div className="grid grid-cols-3 gap-2"><Detail label="Action" value={diff.action} /><Detail label="Before/After" value={`${diff.beforeCount} / ${diff.afterCount}`} /><Detail label="Diffs" value={String(diff.diffs.length)} /></div><div className="font-mono mt-2" style={{ color: 'var(--color-text-dim)' }}>{diff.target} · {diff.checkedAt}</div><DiffList diffs={diff.diffs} emptyText="No row-level differences detected after reload." /></>}</div>
+}
+
+function ActionHistoryPanel({ history, onClear, onExport }: { history: ActionDiff[]; onClear: () => void; onExport: () => void }) {
+  return <div className="rounded p-3 mt-3" style={{ background: '#0a0806', border: '1px solid #2a2418' }}><div className="flex items-center justify-between gap-2 mb-2"><div className="font-semibold" style={{ color: 'var(--color-primary)' }}>Action History</div><div className="flex gap-2"><Button size="sm" variant="outline" onPress={onExport} isDisabled={history.length === 0}>Export</Button><Button size="sm" variant="ghost" onPress={onClear} isDisabled={history.length === 0}>Clear</Button></div></div>{history.length === 0 ? <div style={{ color: 'var(--color-text-dim)' }}>No completed Inventory Studio actions in this browser session.</div> : <div className="flex flex-col gap-2">{history.map((entry, index) => <div key={`${entry.checkedAt}-${entry.action}-${entry.target}`} className="rounded p-2" style={{ background: index === 0 ? '#241e12' : '#0f0d09', border: '1px solid #2a2418' }}><div className="flex items-center justify-between gap-2"><span className="font-semibold" style={{ color: 'var(--color-text)' }}>{entry.action.toUpperCase()} · {entry.target}</span><span className="font-mono" style={{ color: 'var(--color-text-dim)' }}>{entry.diffs.length} diff(s)</span></div><div className="mt-1 font-mono" style={{ color: 'var(--color-text-dim)' }}>{entry.checkedAt} · {entry.beforeCount} → {entry.afterCount} rows</div>{entry.diffs.length > 0 && <div className="mt-1" style={{ color: 'var(--color-text-dim)' }}>{entry.diffs.slice(0, 3).map(diff => `${diff.status}: item:${diff.key}`).join(' · ')}{entry.diffs.length > 3 ? ` · +${entry.diffs.length - 3} more` : ''}</div>}</div>)}</div>}</div>
 }
 
 function DiffList({ diffs, emptyText }: { diffs: InventoryDiffRow[]; emptyText: string }) {
