@@ -179,27 +179,6 @@ func normalizeListenAddr(addr string) string {
 	return addr
 }
 
-func validateListenExposure(addr string) error {
-	host, _, err := net.SplitHostPort(addr)
-	if err != nil {
-		return fmt.Errorf("LISTEN_ADDR must be host:port: %w", err)
-	}
-	if host == "" {
-		host = "127.0.0.1"
-	}
-	if host == "localhost" || host == "127.0.0.1" || host == "::1" {
-		return nil
-	}
-	parsed := net.ParseIP(host)
-	if parsed != nil && parsed.IsLoopback() {
-		return nil
-	}
-	if os.Getenv("DUNE_ADMIN_REMOTE_EXPOSURE") == "reverse-proxy-tls" {
-		return nil
-	}
-	return fmt.Errorf("refusing to bind backend to non-loopback LISTEN_ADDR %q without DUNE_ADMIN_REMOTE_EXPOSURE=reverse-proxy-tls", addr)
-}
-
 func isValidK8sName(v string) bool { return k8sNamePattern.MatchString(v) }
 
 func isReadOnlySQL(sql string) bool {
