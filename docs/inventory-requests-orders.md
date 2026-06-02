@@ -84,6 +84,20 @@ Validation rules:
 
 All endpoints are protected by the existing backend auth middleware when served normally. They are not public Discord OAuth paths.
 
+## Frontend UI
+
+The frontend adds a protected **Farming Requests** tab.
+
+The tab supports:
+
+- Filtering requests and orders by scope/status.
+- Creating personal or guild inventory requests.
+- Selecting open requests and grouping them into a farming order.
+- Marking open orders as `filled` or `cancelled`.
+- Refreshing request/order state from the backend.
+
+The tab uses `web/src/api/inventoryRequests.ts` rather than the high-risk player/admin API client. This keeps the coordination workflow separate from player inventory mutation, Player 360, and direct admin actions.
+
 ## Status propagation
 
 Creating an order marks linked requests as `ordered` and sets their `order_id`.
@@ -94,7 +108,7 @@ Marking an order `cancelled` clears linked request `order_id` values and returns
 
 ## Browser/API behavior
 
-The backend CORS middleware now allows `PATCH` so browser clients can call the update endpoints after a successful preflight.
+The backend CORS middleware allows `PATCH` so browser clients can call the update endpoints after a successful preflight.
 
 ## Validation
 
@@ -102,6 +116,15 @@ Run backend tests from the local checkout or CI:
 
 ```bash
 go test ./...
+```
+
+Run frontend checks from the local checkout:
+
+```bash
+cd web
+npm run typecheck
+npm run lint
+npm run build
 ```
 
 Manual validation should confirm:
@@ -113,6 +136,7 @@ Manual validation should confirm:
 5. Filling an order marks linked requests `fulfilled`.
 6. Cancelling an order returns linked requests to `open`.
 7. Browser preflight allows `PATCH` for the update endpoints.
+8. The Farming Requests tab can list, create, group, fill, and cancel request/order records without touching player inventory.
 
 ## Safety boundary
 
