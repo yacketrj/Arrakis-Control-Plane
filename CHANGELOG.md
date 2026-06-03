@@ -8,6 +8,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Added
 
+- Added P0 comprehensive AppSec endpoint audit backlog task covering public and protected backend routes.
+- Added future documentation requirement for `docs/appsec-endpoint-audit.md`.
 - Added Inventory Studio stack-size update backend in `inventory_stack_size.go`.
 - Added protected `POST /api/v1/players/item/stack-size` endpoint for selected item stack-size edits.
 - Added `web/src/api/inventoryStudioMutations.ts` for Inventory Studio mutation helpers.
@@ -105,6 +107,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Updated `docs/admin-implementation-tasks.md` with the P0 comprehensive AppSec endpoint audit backlog item and required audit scope.
+- Updated `PATCH_NOTES.md` with AppSec endpoint audit backlog planning details.
 - Updated `docs/inventory-studio.md` with stack-size edit endpoint, payload, UI behavior, safety behavior, and validation notes.
 - Updated `docs/admin-implementation-tasks.md` so Inventory Studio stack-size edit is In Progress and quality edit is Next.
 - Updated `PATCH_NOTES.md` with Inventory Studio stack-size edit workflow status.
@@ -211,6 +215,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Security
 
+- Added AppSec endpoint audit planning requirement for all public and protected backend endpoints.
+- Scoped the future endpoint audit to auth boundaries, input validation, request limits, CORS/session behavior, mutation safety, audit reason coverage, SQL injection, command execution, WebSocket/log-stream behavior, data exposure, rate limits, abuse cases, frontend helper behavior, and remediation evidence.
 - Kept Inventory Studio stack-size edit behind shared mutation confirmation, admin reason capture, before-action snapshot export, post-action diff, and action-history capture.
 - Limited the new backend stack-size mutation to `dune.items.stack_size` with item ID and `1..9999` stack-size validation.
 - Added guild-management planning requirements that future guild mutations must use schema discovery, confirmation, admin reason capture, before-change review, refresh/diff where practical, and audit visibility.
@@ -262,6 +268,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Validation
 
+- Recorded AppSec endpoint audit backlog addition as documentation/planning review only.
 - Recorded backlog planning additions for Discord bot documentation and guild-management workflows as documentation/planning review only.
 - Validated Inventory Studio action-history changes from the canonical local update path:
   - `./update.sh`
@@ -301,6 +308,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 - Run `./update.sh` after Inventory Studio stack-size edit changes.
 - Manually validate selected-item stack-size edit, unchanged-value guard, before-action snapshot export, required reason capture, post-action diff, action-history append, and inventory reload behavior.
+- Complete comprehensive AppSec endpoint audit and create `docs/appsec-endpoint-audit.md`.
 - Manually exercise Farming Requests UI list, create, group, fill, and cancel workflows.
 - Manually exercise inventory request/order personal/guild requests, order creation, fill/cancel propagation, and `PATCH` browser preflight.
 - Manually validate Discord OAuth login/callback, session context, logout, and registered-user review with configured Discord OAuth.
