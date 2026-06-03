@@ -20,13 +20,13 @@ Frontend lint reported a `react-hooks/exhaustive-deps` warning in `web/src/tabs/
 
 ### Validation
 
-Required from the canonical local update path:
+Verified from the canonical local update path:
 
 ```bash
 ./update.sh
 ```
 
-This should clear the reported `react-hooks/exhaustive-deps` warning.
+This cleared the reported `react-hooks/exhaustive-deps` warning.
 
 ---
 
