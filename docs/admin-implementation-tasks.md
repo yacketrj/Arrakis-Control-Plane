@@ -43,7 +43,8 @@ Every feature task must update:
 | P1 | Inventory Studio v2 confirmed add/repair/remove workflows | Done | `docs/inventory-studio.md` | Windows `update.ps1` validation |
 | P1 | Inventory Studio v2 post-action diff panel | Done | `docs/inventory-studio.md` | Windows `update.ps1` validation |
 | P1 | Inventory Studio v2 browser-session action history | Done | `docs/inventory-studio.md` | `./update.sh` validation |
-| P1 | Inventory Studio v2 stack-size edit workflow | Next | `docs/inventory-studio.md` | Go + frontend tests |
+| P1 | Inventory Studio v2 stack-size edit workflow | In Progress | `docs/inventory-studio.md` | `./update.sh` required |
+| P1 | Inventory Studio v2 quality edit workflow | Next | `docs/inventory-studio.md` | Go + frontend tests |
 | P1 | Battlegroup Status v2 | Planned | `docs/battlegroup-status-v2.md` required | Go + frontend tests |
 | P1 | Broadcast Center | Planned | `docs/broadcast-center.md` required | Go + frontend tests |
 | P1 | Safe Offline Teleport / Rescue | Planned | `docs/safe-teleport-rescue.md` required | Go + frontend tests |
@@ -76,12 +77,13 @@ Inventory Studio v2 now includes:
 - Confirmed catalog item add.
 - Confirmed selected-item repair.
 - Confirmed selected-item removal.
+- Confirmed selected-item stack-size editing.
 - Before-action snapshot export for confirmed workflows.
 - Shared mutation confirmation and required admin reason capture for confirmed workflows.
-- Automatic post-action diff panel after confirmed add, repair, or removal.
+- Automatic post-action diff panel after confirmed add, stack-size edit, repair, or removal.
 - Browser-session action history for recent confirmed action diffs.
 
-Next Inventory Studio work should add a stack-size edit workflow only after before/after preview and confirmed mutation behavior are preserved.
+Next Inventory Studio work should validate the stack-size edit workflow, then add a quality edit workflow only after before/after preview and confirmed mutation behavior are preserved.
 
 ### 2. Harden Mutation Safety Framework v1
 
