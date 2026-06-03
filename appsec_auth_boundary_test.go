@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 type routeExpectation struct {
@@ -47,26 +48,38 @@ func TestAppSecPublicPathAllowlist(t *testing.T) {
 }
 
 func TestAppSecSelfServicePathClassification(t *testing.T) {
-	allowed := []string{
+	allowedPaths := []string{
 		"/api/v1/self/player-link",
 		"/api/v1/self/player-card",
 	}
-	for _, path := range allowed {
+	for _, path := range allowedPaths {
 		if !isSelfServicePath(path) {
-			t.Fatalf("expected %s to be classified as self-service", path)
+			t.Fatalf("expected %s to be classified as self-service path", path)
 		}
 	}
 
-	denied := []string{
-		"/api/v1/self",
-		"/api/v1/auth/discord/me",
-		"/api/v1/auth/discord/logout",
-		"/api/v1/auth/discord/player-links",
-		"/api/v1/players/123/profile",
+	allowedRoutes := []routeExpectation{
+		{http.MethodGet, "/api/v1/self/player-link"},
+		{http.MethodGet, "/api/v1/self/player-card"},
+		{http.MethodGet, "/api/v1/auth/discord/me"},
+		{http.MethodPost, "/api/v1/auth/discord/logout"},
 	}
-	for _, path := range denied {
-		if isSelfServicePath(path) {
-			t.Fatalf("expected %s not to be classified as self-service", path)
+	for _, route := range allowedRoutes {
+		if !isSelfServiceRoute(route.method, route.path) {
+			t.Fatalf("expected %s %s to be classified as self-service route", route.method, route.path)
+		}
+	}
+
+	denied := []routeExpectation{
+		{http.MethodGet, "/api/v1/self"},
+		{http.MethodPost, "/api/v1/auth/discord/me"},
+		{http.MethodGet, "/api/v1/auth/discord/logout"},
+		{http.MethodGet, "/api/v1/auth/discord/player-links"},
+		{http.MethodGet, "/api/v1/players/123/profile"},
+	}
+	for _, route := range denied {
+		if isSelfServiceRoute(route.method, route.path) {
+			t.Fatalf("expected %s %s not to be classified as self-service route", route.method, route.path)
 		}
 	}
 }
@@ -144,19 +157,66 @@ func TestAppSecSelfServiceRoutesDenyWithoutDiscordSessionOrAdminToken(t *testing
 	t.Cleanup(func() { adminToken = old })
 
 	h := authMiddleware(appsecNoopHandler())
-	for _, path := range []string{"/api/v1/self/player-link", "/api/v1/self/player-card"} {
+	for _, route := range []routeExpectation{{http.MethodGet, "/api/v1/self/player-link"}, {http.MethodGet, "/api/v1/self/player-card"}, {http.MethodGet, "/api/v1/auth/discord/me"}, {http.MethodPost, "/api/v1/auth/discord/logout"}} {
 		missing := httptest.NewRecorder()
-		h.ServeHTTP(missing, httptest.NewRequest(http.MethodGet, path, nil))
+		h.ServeHTTP(missing, httptest.NewRequest(route.method, route.path, nil))
 		if missing.Code != http.StatusUnauthorized {
-			t.Fatalf("%s: missing session/token got %d", path, missing.Code)
+			t.Fatalf("%s %s: missing session/token got %d", route.method, route.path, missing.Code)
 		}
 
 		allowed := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, path, nil)
+		req := httptest.NewRequest(route.method, route.path, nil)
 		req.Header.Set("Authorization", "Bearer "+testStrictAdminToken)
 		h.ServeHTTP(allowed, req)
 		if allowed.Code != http.StatusNoContent {
-			t.Fatalf("%s: admin token got %d", path, allowed.Code)
+			t.Fatalf("%s %s: admin token got %d", route.method, route.path, allowed.Code)
+		}
+	}
+}
+
+func TestAppSecRegisteredDiscordSelfSessionRouteBoundary(t *testing.T) {
+	resetDiscordSessionsForTest(t)
+	t.Setenv("DISCORD_AUTH_ENABLED", "1")
+	old := adminToken
+	adminToken = testStrictAdminToken
+	t.Cleanup(func() { adminToken = old })
+
+	sessionID := "normal-self-session-token"
+	discordSessionsMu.Lock()
+	discordSessions[sessionID] = discordSession{ID: sessionID, DiscordID: "discord-normal", Role: appRoleNormal, ExpiresAt: time.Now().Add(time.Hour)}
+	discordSessionsMu.Unlock()
+
+	h := authMiddleware(appsecNoopHandler())
+	allowed := []routeExpectation{
+		{http.MethodGet, "/api/v1/self/player-link"},
+		{http.MethodGet, "/api/v1/self/player-card"},
+		{http.MethodGet, "/api/v1/auth/discord/me"},
+		{http.MethodPost, "/api/v1/auth/discord/logout"},
+	}
+	for _, route := range allowed {
+		req := httptest.NewRequest(route.method, route.path, nil)
+		req.AddCookie(&http.Cookie{Name: discordSessionCookieName, Value: sessionID})
+		resp := httptest.NewRecorder()
+		h.ServeHTTP(resp, req)
+		if resp.Code != http.StatusNoContent {
+			t.Fatalf("%s %s: normal Discord session got %d", route.method, route.path, resp.Code)
+		}
+	}
+
+	denied := []routeExpectation{
+		{http.MethodGet, "/api/v1/auth/discord/users"},
+		{http.MethodGet, "/api/v1/auth/discord/player-links"},
+		{http.MethodGet, "/api/v1/status"},
+		{http.MethodGet, "/api/v1/players"},
+		{http.MethodPost, "/api/v1/players/give-item"},
+	}
+	for _, route := range denied {
+		req := httptest.NewRequest(route.method, route.path, nil)
+		req.AddCookie(&http.Cookie{Name: discordSessionCookieName, Value: sessionID})
+		resp := httptest.NewRecorder()
+		h.ServeHTTP(resp, req)
+		if resp.Code != http.StatusUnauthorized {
+			t.Fatalf("%s %s: normal Discord session should be denied, got %d", route.method, route.path, resp.Code)
 		}
 	}
 }
