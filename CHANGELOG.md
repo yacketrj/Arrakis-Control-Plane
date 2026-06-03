@@ -108,6 +108,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Updated `PATCH_NOTES.md` with verified Farming Requests hook-dependency lint validation.
 - Updated `docs/admin-implementation-tasks.md` so the AppSec endpoint audit is In Progress after creating the initial audit document.
 - Updated `PATCH_NOTES.md` with the initial AppSec endpoint audit pass.
 - Updated `docs/admin-implementation-tasks.md` with the P0 comprehensive AppSec endpoint audit backlog item and required audit scope.
@@ -188,6 +189,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Fixed
 
+- Fixed Farming Requests tab `react-hooks/exhaustive-deps` warning by stabilizing `load` with `useCallback` and depending on `load` in the reload effect.
 - Fixed Discord Links tab type usage by importing `CSSProperties` directly from React.
 - Fixed Discord-player link text validation so raw control characters are rejected before trimming.
 - Fixed Farming Requests tab type usage by importing `CSSProperties` directly from React and removing an unused memoized open-request list.
@@ -273,6 +275,10 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Validation
 
+- Validated clean canonical update sequence after the Farming Requests hook-dependency lint fix:
+  - `./update.sh`
+- Validated Inventory Studio stack-size edit code/build gate from the canonical local update path:
+  - `./update.sh`
 - Recorded initial AppSec endpoint audit document as documentation/audit review only.
 - Recorded AppSec endpoint audit backlog addition as documentation/planning review only.
 - Recorded backlog planning additions for Discord bot documentation and guild-management workflows as documentation/planning review only.
@@ -312,7 +318,6 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Validation still required before release
 
-- Run `./update.sh` after Inventory Studio stack-size edit changes.
 - Manually validate selected-item stack-size edit, unchanged-value guard, before-action snapshot export, required reason capture, post-action diff, action-history append, and inventory reload behavior.
 - Complete comprehensive AppSec endpoint audit, including SAST, DAST, dependency review, handler-by-handler review, and manual abuse-case validation.
 - Manually exercise Farming Requests UI list, create, group, fill, and cancel workflows.
