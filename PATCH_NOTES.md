@@ -1,6 +1,43 @@
 # Dune Admin Release Notes
 
-## Current update: Backlog planning additions
+## Current update: Inventory Studio stack-size edit workflow
+
+### Why this update was made
+
+Inventory Studio needed the next narrow confirmed edit workflow after action-history validation. Stack-size editing is the smallest direct item-row edit and can reuse the existing safety pattern: before-action snapshot, shared confirmation, admin reason, reload, post-action diff, and browser-session action history.
+
+### What changed
+
+- Added `inventory_stack_size.go` with a protected backend command and handler for item stack-size updates.
+- Registered `POST /api/v1/players/item/stack-size` in `routes.go`.
+- Added `web/src/api/inventoryStudioMutations.ts` with a frontend helper for stack-size edits.
+- Updated `web/src/tabs/InventoryStudioTab.tsx` with a confirmed selected-item stack-size edit control.
+- Stack-size edits clamp and validate values to `1..9999`.
+- Stack-size edits now export a before-action inventory snapshot, require shared mutation confirmation and admin reason capture, reload inventory after success, display post-action diff, and append to action history.
+- Updated `docs/inventory-studio.md` with the stack-size endpoint, payload, UI behavior, and safety notes.
+- Updated `docs/admin-implementation-tasks.md` so stack-size edit is In Progress and quality edit is the next planned Inventory Studio workflow after validation.
+
+### Security and operator impact
+
+- This adds one direct item-row mutation path for `dune.items.stack_size` only.
+- The backend validates item ID and stack size and rejects missing, zero, negative, or overly large stack sizes.
+- The frontend sends the admin reason through `X-Admin-Reason` and preserves the same operator confirmation flow as add, repair, and remove.
+- No quality edit, template replacement, augment/stat edit, Player 360 mutation, self-service mutation, or rollback automation was added.
+- Player 360 remains read-only.
+
+### Validation
+
+Required from the canonical local update path:
+
+```bash
+./update.sh
+```
+
+Manual browser validation should confirm selected-item stack-size edit, before-action snapshot export, required reason capture, post-action diff, action-history append, unchanged-value guard, and inventory reload behavior.
+
+---
+
+## Previous update: Backlog planning additions
 
 ### Why this update was made
 
@@ -60,39 +97,3 @@ Verified from the canonical local update path after the Inventory Studio action-
 ```
 
 Manual browser validation has also been verified for add/repair/removal history append behavior, reset on player change, JSON export, and clear-history behavior.
-
----
-
-## Previous update: Discord self-service frontend tabs
-
-### Why this update was made
-
-The validated Discord-to-player mapping foundation now needs frontend surfaces so admins can manage links and linked Discord users can view their own read-only player card. This slice exposes that functionality without adding any player mutation or Player 360 write path.
-
-### What changed
-
-- Added `web/src/api/discordSelfService.ts` with typed helpers for Discord player links and `/api/v1/self/*` endpoints.
-- Added `web/src/tabs/DiscordPlayerLinksTab.tsx` for admin link management.
-- Added `web/src/tabs/SelfPlayerCardTab.tsx` for read-only linked-player self-service.
-- Wired **Discord Links** and **My Player Card** into `web/src/App.tsx` navigation.
-- Updated `docs/discord-player-links.md` with frontend tab behavior, cookie-aware self-service calls, and validation notes.
-- Adjusted tab gating so **My Player Card** can load through Discord session cookies even when no Browser Access Key is configured.
-
-### Security and operator impact
-
-- **Discord Links** remains an admin surface and still requires Browser Access Key or Discord admin authorization through the backend.
-- **My Player Card** calls only `/api/v1/self/player-link` and `/api/v1/self/player-card` with browser session cookies.
-- No player inventory, guild storage, claim rewards, currency, XP, Player 360, or game-state mutation path was added.
-- Player 360 remains read-only. Future self-service mutation remains blocked until explicit mapped-player enforcement, auditability, and mutation-safety workflows are implemented.
-
-### Validation
-
-Verified from the canonical local update path after the Discord self-service frontend tab changes:
-
-```bash
-./update.sh
-```
-
-This covered backend tests/build plus frontend install/audit/typecheck/lint/build.
-
-Manual browser validation has also been verified for **Discord Links** list/create/edit/delete behavior and **My Player Card** loading through Discord session cookies without a Browser Access Key.
