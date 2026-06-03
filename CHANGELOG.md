@@ -8,6 +8,10 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Added
 
+- Added Inventory Studio stack-size update backend in `inventory_stack_size.go`.
+- Added protected `POST /api/v1/players/item/stack-size` endpoint for selected item stack-size edits.
+- Added `web/src/api/inventoryStudioMutations.ts` for Inventory Studio mutation helpers.
+- Added confirmed stack-size edit control to the Inventory Studio selected-item panel.
 - Added P5 Discord bot setup and usage guide task to the implementation tracker.
 - Added P2 Guild Management backlog task covering create/delete guild, add/remove player membership, and guild-rank changes.
 - Added P2 Player tab guild workflow task covering add/remove selected player from a guild and promote/change selected player rank from the Player tab.
@@ -101,6 +105,9 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Updated `docs/inventory-studio.md` with stack-size edit endpoint, payload, UI behavior, safety behavior, and validation notes.
+- Updated `docs/admin-implementation-tasks.md` so Inventory Studio stack-size edit is In Progress and quality edit is Next.
+- Updated `PATCH_NOTES.md` with Inventory Studio stack-size edit workflow status.
 - Updated `docs/admin-implementation-tasks.md` with Discord bot setup guide, guild management, and Player tab guild workflow backlog entries.
 - Updated `PATCH_NOTES.md` with backlog planning additions for Discord bot documentation and guild-management workflows.
 - Updated `docs/admin-implementation-tasks.md` so Inventory Studio browser-session action history is marked validated and done.
@@ -204,6 +211,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Security
 
+- Kept Inventory Studio stack-size edit behind shared mutation confirmation, admin reason capture, before-action snapshot export, post-action diff, and action-history capture.
+- Limited the new backend stack-size mutation to `dune.items.stack_size` with item ID and `1..9999` stack-size validation.
 - Added guild-management planning requirements that future guild mutations must use schema discovery, confirmation, admin reason capture, before-change review, refresh/diff where practical, and audit visibility.
 - Kept Inventory Studio action history browser-local; it does not add backend persistence, rollback automation, or new mutation routes.
 - Kept existing Inventory Studio confirmed add, repair, and removal workflows behind shared mutation confirmation, before-action snapshot export, and admin reason capture.
@@ -290,6 +299,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Validation still required before release
 
+- Run `./update.sh` after Inventory Studio stack-size edit changes.
+- Manually validate selected-item stack-size edit, unchanged-value guard, before-action snapshot export, required reason capture, post-action diff, action-history append, and inventory reload behavior.
 - Manually exercise Farming Requests UI list, create, group, fill, and cancel workflows.
 - Manually exercise inventory request/order personal/guild requests, order creation, fill/cancel propagation, and `PATCH` browser preflight.
 - Manually validate Discord OAuth login/callback, session context, logout, and registered-user review with configured Discord OAuth.
