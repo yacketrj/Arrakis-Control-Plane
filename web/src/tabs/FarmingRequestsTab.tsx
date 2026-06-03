@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import { Button, Spinner, toast } from '@heroui/react'
 import {
   inventoryRequestsApi,
@@ -78,7 +78,7 @@ export default function FarmingRequestsTab() {
     notes: '',
   })
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true)
     try {
       const [nextRequests, nextOrders] = await Promise.all([
@@ -93,9 +93,9 @@ export default function FarmingRequestsTab() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [scopeFilter, requestStatus, orderStatus])
 
-  useEffect(() => { void load() }, [scopeFilter, requestStatus, orderStatus])
+  useEffect(() => { void load() }, [load])
 
   const createRequest = async () => {
     try {
