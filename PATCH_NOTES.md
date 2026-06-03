@@ -1,6 +1,36 @@
 # Dune Admin Release Notes
 
-## Current update: Initial AppSec endpoint audit pass
+## Current update: Farming Requests lint warning fix
+
+### Why this update was made
+
+Frontend lint reported a `react-hooks/exhaustive-deps` warning in `web/src/tabs/FarmingRequestsTab.tsx` because the `useEffect` that reloads requests and orders referenced `load` without including it as a dependency.
+
+### What changed
+
+- Updated `FarmingRequestsTab.tsx` to import and use `useCallback`.
+- Wrapped `load` in `useCallback` with `scopeFilter`, `requestStatus`, and `orderStatus` as explicit dependencies.
+- Updated the reload effect to depend on `load` directly.
+
+### Security and operator impact
+
+- UI behavior should remain unchanged.
+- This is a frontend lint/quality fix only.
+- No route, backend behavior, auth behavior, inventory mutation, request/order model, or Player 360 behavior changed.
+
+### Validation
+
+Required from the canonical local update path:
+
+```bash
+./update.sh
+```
+
+This should clear the reported `react-hooks/exhaustive-deps` warning.
+
+---
+
+## Previous update: Initial AppSec endpoint audit pass
 
 ### Why this update was made
 
@@ -61,29 +91,3 @@ Required from the canonical local update path:
 ```
 
 Manual browser validation should confirm selected-item stack-size edit, before-action snapshot export, required reason capture, post-action diff, action-history append, unchanged-value guard, and inventory reload behavior.
-
----
-
-## Previous update: Backlog planning additions
-
-### Why this update was made
-
-The implementation tracker needed durable entries for newly requested roadmap work so future coding passes do not lose the intended scope.
-
-### What changed
-
-- Added a P5 documentation task for a detailed Discord bot setup and usage guide.
-- Added a P2 Guild Management feature covering create/delete guild, add/remove player membership, and player guild-rank changes.
-- Added a P2 Player tab guild workflow feature covering add/remove selected player from a guild and promote/change guild rank from the Player tab.
-- Updated `docs/admin-implementation-tasks.md` with guild-management backlog scope, Player tab guild workflow scope, and Discord bot documentation guide scope.
-
-### Security and operator impact
-
-- Planning-only change. No code, route, schema write, bot runtime, or UI mutation path was added.
-- Future guild-management work must perform schema discovery before writes are implemented.
-- Future guild mutations must use shared mutation confirmation, admin reason capture, before-change snapshot/review, post-action refresh/diff where practical, and audit visibility.
-- Future Discord bot documentation must include setup, permissions, secret handling, command behavior, troubleshooting, and security boundaries.
-
-### Validation
-
-Documentation/planning review only. No build validation is required for this planning-only update.
