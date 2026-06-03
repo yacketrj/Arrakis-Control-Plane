@@ -11,7 +11,7 @@ The audit covers public, Discord-session, admin-token, WebSocket, infrastructure
 | Area | Status | Notes |
 |---|---|---|
 | Route inventory | In Progress | Initial inventory taken from `routes.go`. |
-| Auth boundary review | In Progress | Initial middleware review complete; `appsec_auth_boundary_test.go` now has clean `./update.sh` validation for public, self-service, representative admin, and WebSocket-ticket boundaries. Generated full-route coverage remains a follow-up. |
+| Auth boundary review | In Progress | Initial middleware review complete; `appsec_auth_boundary_test.go` covers public, self-service, Discord self-session, representative admin, and WebSocket-ticket boundaries. Generated full-route coverage remains a follow-up. |
 | Input validation review | In Progress | Full handler-by-handler review still required. |
 | Mutation reason coverage | In Progress | Needs endpoint-by-endpoint confirmation. |
 | SAST | Pending | Run and record tool/version/result. |
@@ -26,6 +26,7 @@ Initial static review used:
 - `routes.go`
 - `auth.go`
 - `server.go`
+- `discord_auth.go`
 - `appsec_auth_boundary_test.go`
 - existing roadmap and release-tracking documents
 
@@ -48,7 +49,10 @@ Security-relevant observed behavior:
 - `GET /api/v1/logs/stream` with WebSocket upgrade uses a one-time log-stream ticket instead of static admin-token query usage.
 - Normal admin access accepts either `Authorization: Bearer <token>` or `X-Admin-Token` when the configured backend admin token is strict-valid and matches in constant time.
 - Discord admin sessions can reach protected routes when Discord auth is enabled.
-- Registered non-admin Discord sessions can reach only `/api/v1/self/*` routes.
+- Registered non-admin Discord sessions can reach only these self-session/self-service surfaces:
+  - `GET /api/v1/auth/discord/me`
+  - `POST /api/v1/auth/discord/logout`
+  - `/api/v1/self/*`
 - Backend startup normalizes loopback listen addresses and fails closed for unsafe non-loopback exposure unless explicitly configured elsewhere.
 - Error responses are passed through sensitive-text redaction before being returned.
 
@@ -58,6 +62,7 @@ Security-relevant observed behavior:
 |---|---|
 | Public | Explicitly allowed by `isPublicPath`; does not require admin token. |
 | Self-service | Requires registered Discord session and path under `/api/v1/self/*`, or admin access. |
+| Discord self-session | Requires registered Discord session for the caller's own auth/session context, or admin access. |
 | Admin | Requires strict admin token or Discord admin session. |
 | WebSocket ticket | Requires valid one-time stream ticket for WebSocket log stream. |
 | Mutation | Changes runtime, database, storage, player, request/order, or infrastructure state. |
@@ -79,8 +84,8 @@ Security-relevant observed behavior:
 |---|---|---|---|---|
 | GET | `/api/v1/self/player-link` | `handleSelfPlayerLink` | Self-service | Must enforce current Discord session to linked player only. |
 | GET | `/api/v1/self/player-card` | `handleSelfPlayerCard` | Self-service | Read-only self player card. Confirm no unrelated player lookup. |
-| GET | `/api/v1/auth/discord/me` | `handleDiscordMe` | Admin/mixed | Current middleware appears to require admin token or Discord admin. Confirm intended user-session UX. |
-| POST | `/api/v1/auth/discord/logout` | `handleDiscordLogout` | Admin/mixed mutation | Current middleware appears to require admin token or Discord admin. Review whether non-admin Discord users can clear their own session safely. |
+| GET | `/api/v1/auth/discord/me` | `handleDiscordMe` | Discord self-session | Normal registered Discord sessions can inspect their own auth context. |
+| POST | `/api/v1/auth/discord/logout` | `handleDiscordLogout` | Discord self-session mutation | Normal registered Discord sessions can clear their own session cookie and in-memory session. |
 | GET | `/api/v1/auth/discord/users` | `handleDiscordUsers` | Admin | Registered-user review surface. |
 | GET | `/api/v1/auth/discord/player-links` | `handleListDiscordPlayerLinks` | Admin | Identity mapping list. Sensitive association data. |
 | POST | `/api/v1/auth/discord/player-links` | `handleUpsertDiscordPlayerLink` | Admin mutation | Identity mapping mutation. Needs validation, reason/audit review. |
@@ -212,7 +217,7 @@ Security-relevant observed behavior:
 | ID | Severity | Status | Finding | Recommended action | Validation evidence |
 |---|---|---|---|---|---|
 | ASEA-001 | High | Validated partial remediation | No generated endpoint inventory/auth-boundary regression test existed for the full `routes.go` surface. Initial regression coverage now exists for public allowlist behavior, self-service path classification, admin-only representative routes, and WebSocket-ticket denial. Generated full-route coverage remains an open hardening follow-up. | Expand `appsec_auth_boundary_test.go` to generated full-route coverage in a future pass. | `appsec_auth_boundary_test.go` added and validated clean through `./update.sh`. |
-| ASEA-002 | Medium | Open | Discord `me` and `logout` routes are protected by the normal middleware boundary. Registered non-admin Discord sessions appear limited to `/api/v1/self/*`, so non-admin users may not be able to inspect or clear their session through those routes. | Confirm intended UX. If self-service logout is desired, add a session-scoped logout route with CSRF-aware design and tests. | Pending. |
+| ASEA-002 | Medium | Remediated pending validation | Discord `me` and `logout` handlers supported session-cookie behavior, but middleware limited registered non-admin Discord sessions to `/api/v1/self/*`. | Added a narrow Discord self-session middleware route allowlist for `GET /api/v1/auth/discord/me` and `POST /api/v1/auth/discord/logout`; added regression tests to confirm normal Discord sessions can use those two routes but not admin routes. | Local validation pending. |
 | ASEA-003 | High | Open | High-risk mutation endpoints require endpoint-by-endpoint verification for `X-Admin-Reason`, audit logging, mutation-safety classification, request-size limits, and pre/post-change review behavior. | Create a mutation endpoint checklist and add automated tests for reason/audit coverage where feasible. | Pending. |
 | ASEA-004 | High | Open | Database search/manual SQL endpoints need dedicated SQL injection, read-only guard, timeout, result-limit, and redaction review. | Perform handler-specific review and add abuse-case tests for dangerous SQL, multi-statement attempts, identifier injection, and large result sets. | Pending. |
 | ASEA-005 | High | Open | Infrastructure command/log endpoints need dedicated command allowlist, target validation, ticket replay, TTL, and data-redaction review. | Review battlegroup exec, diagnostics, log pod list, stream-ticket, stream, and cheat-log handlers; add tests for invalid targets and replay attempts. | Pending. |
