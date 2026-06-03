@@ -23,15 +23,23 @@ SESSION_COOKIE_SECURE=true
 
 ## Registered endpoints
 
-| Method | Path | Purpose | Public path |
-| --- | --- | --- | --- |
-| `GET` | `/api/v1/auth/discord/login` | Start Discord OAuth and set the state cookie. | Yes |
-| `GET` | `/api/v1/auth/discord/callback` | Complete Discord OAuth, map roles, upsert the registered-user store, and issue a session cookie. | Yes |
-| `GET` | `/api/v1/auth/discord/me` | Return current auth context for an authenticated Discord session or admin-token request. | No |
-| `POST` | `/api/v1/auth/discord/logout` | Clear the session cookie and remove the in-memory Discord session. | No |
-| `GET` | `/api/v1/auth/discord/users` | Return the registered Discord user store for administrative review. | No |
+| Method | Path | Purpose | Public path | Normal Discord session access |
+| --- | --- | --- | --- | --- |
+| `GET` | `/api/v1/auth/discord/login` | Start Discord OAuth and set the state cookie. | Yes | N/A |
+| `GET` | `/api/v1/auth/discord/callback` | Complete Discord OAuth, map roles, upsert the registered-user store, and issue a session cookie. | Yes | N/A |
+| `GET` | `/api/v1/auth/discord/me` | Return current auth context for an authenticated Discord session or admin-token request. | No | Yes |
+| `POST` | `/api/v1/auth/discord/logout` | Clear the session cookie and remove the in-memory Discord session. | No | Yes |
+| `GET` | `/api/v1/auth/discord/users` | Return the registered Discord user store for administrative review. | No | No |
 
-Only login and callback are included in the public-path allowlist. The remaining endpoints should be reached through the normal backend auth middleware.
+Only login and callback are included in the public-path allowlist.
+
+Registered non-admin Discord sessions are intentionally limited to:
+
+- `GET /api/v1/auth/discord/me`
+- `POST /api/v1/auth/discord/logout`
+- `/api/v1/self/*`
+
+All other protected routes require either a valid backend admin token or a Discord admin session.
 
 ## Role mapping
 
@@ -67,6 +75,8 @@ Manual OAuth validation should confirm:
 5. `/api/v1/auth/discord/me` returns `auth_type: "admin-token"` when reached through an authenticated admin-token request.
 6. `/api/v1/auth/discord/logout` clears the cookie and invalidates the session.
 7. `/api/v1/auth/discord/users` is not reachable without administrative authentication when served through the normal backend middleware.
+8. A normal registered Discord session can reach only `me`, `logout`, and `/api/v1/self/*` routes.
+9. A normal registered Discord session cannot reach admin review, player, database, infrastructure, or mutation routes.
 
 ## Current limitation
 
