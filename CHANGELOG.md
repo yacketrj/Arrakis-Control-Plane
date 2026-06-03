@@ -8,6 +8,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Added
 
+- Added AppSec Discord self-session route regression tests for normal Discord access to `me`, `logout`, and `/self/*` plus denial from representative admin routes.
 - Added `appsec_auth_boundary_test.go` with AppSec auth-boundary regression coverage for public allowlist, self-service classification, representative admin-only routes, and WebSocket-ticket enforcement.
 - Added initial `docs/appsec-endpoint-audit.md` with route inventory, auth-boundary summary, findings, remediation backlog, and manual abuse-case checklist.
 - Added P0 comprehensive AppSec endpoint audit backlog task covering public and protected backend routes.
@@ -109,6 +110,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Updated `docs/appsec-endpoint-audit.md` so `ASEA-002` is validated as remediated after clean local validation with a non-blocking Tailwind/Rolldown plugin timing warning.
+- Updated `PATCH_NOTES.md` with validated Discord self-session route remediation status and the non-blocking plugin timing warning.
 - Updated `docs/appsec-endpoint-audit.md` so `ASEA-001` is validated as partial remediation after clean local validation.
 - Updated `PATCH_NOTES.md` with validated AppSec auth-boundary regression test status.
 - Updated `PATCH_NOTES.md` with verified Farming Requests hook-dependency lint validation.
@@ -223,6 +226,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Security
 
+- Allowed registered non-admin Discord sessions to access only `GET /api/v1/auth/discord/me`, `POST /api/v1/auth/discord/logout`, and `/api/v1/self/*`; all admin review, player, database, infrastructure, and mutation routes remain admin-only.
+- Validated `ASEA-002` as remediated through clean local `./update.sh` validation; the build emitted a non-blocking Tailwind/Rolldown plugin timing warning.
 - Added AppSec auth-boundary regression tests for public route allowlisting, self-service path classification, representative admin-only routes, and WebSocket-ticket denial.
 - Validated `ASEA-001` as partial remediation through clean local `./update.sh` validation; generated full-route auth-boundary coverage remains a future hardening follow-up.
 - Added initial AppSec route inventory and auth-boundary audit document for all registered endpoints.
@@ -280,6 +285,9 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Validation
 
+- Validated Discord self-session route remediation from the canonical local update path:
+  - `./update.sh`
+  - Non-blocking build-performance warning observed: `[PLUGIN_TIMINGS] Your build spent significant time in plugin @tailwindcss/vite:generate:build`.
 - Validated AppSec auth-boundary regression tests from the canonical local update path:
   - `./update.sh`
 - Validated clean canonical update sequence after the Farming Requests hook-dependency lint fix:
