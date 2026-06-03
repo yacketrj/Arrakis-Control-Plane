@@ -8,6 +8,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Added
 
+- Added `appsec_auth_boundary_test.go` with AppSec auth-boundary regression coverage for public allowlist, self-service classification, representative admin-only routes, and WebSocket-ticket enforcement.
 - Added initial `docs/appsec-endpoint-audit.md` with route inventory, auth-boundary summary, findings, remediation backlog, and manual abuse-case checklist.
 - Added P0 comprehensive AppSec endpoint audit backlog task covering public and protected backend routes.
 - Added future documentation requirement for `docs/appsec-endpoint-audit.md`.
@@ -108,6 +109,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Updated `docs/appsec-endpoint-audit.md` so `ASEA-001` is partially remediated pending validation.
+- Updated `PATCH_NOTES.md` with AppSec auth-boundary regression test status.
 - Updated `PATCH_NOTES.md` with verified Farming Requests hook-dependency lint validation.
 - Updated `docs/admin-implementation-tasks.md` so the AppSec endpoint audit is In Progress after creating the initial audit document.
 - Updated `PATCH_NOTES.md` with the initial AppSec endpoint audit pass.
@@ -220,6 +223,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Security
 
+- Added AppSec auth-boundary regression tests for public route allowlisting, self-service path classification, representative admin-only routes, and WebSocket-ticket denial.
+- Marked `ASEA-001` as partially remediated pending local validation.
 - Added initial AppSec route inventory and auth-boundary audit document for all registered endpoints.
 - Added AppSec findings ASEA-001 through ASEA-006 covering auth-boundary tests, Discord session UX, mutation audit/reason coverage, database endpoint review, infrastructure/log endpoint review, and browser token/CORS follow-up.
 - Added AppSec endpoint audit planning requirement for all public and protected backend endpoints.
@@ -275,6 +280,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Validation
 
+- AppSec auth-boundary regression tests require local validation:
+  - `./update.sh`
 - Validated clean canonical update sequence after the Farming Requests hook-dependency lint fix:
   - `./update.sh`
 - Validated Inventory Studio stack-size edit code/build gate from the canonical local update path:
@@ -318,6 +325,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Validation still required before release
 
+- Run `./update.sh` after AppSec auth-boundary regression tests.
 - Manually validate selected-item stack-size edit, unchanged-value guard, before-action snapshot export, required reason capture, post-action diff, action-history append, and inventory reload behavior.
 - Complete comprehensive AppSec endpoint audit, including SAST, DAST, dependency review, handler-by-handler review, and manual abuse-case validation.
 - Manually exercise Farming Requests UI list, create, group, fill, and cancel workflows.
