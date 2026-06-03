@@ -1,27 +1,29 @@
 # Dune Admin Release Notes
 
-## Current update: AppSec endpoint audit backlog item
+## Current update: Initial AppSec endpoint audit pass
 
 ### Why this update was made
 
-The roadmap needed an explicit security review task for a comprehensive application-security audit of every backend endpoint, including both public and protected routes.
+The newly added P0 AppSec audit task needed a concrete starting point: a route inventory, auth-boundary summary, first findings, and a remediation checklist for public and protected backend endpoints.
 
 ### What changed
 
-- Added a P0 **Comprehensive AppSec endpoint audit** task to `docs/admin-implementation-tasks.md`.
-- Required the future audit document `docs/appsec-endpoint-audit.md`.
-- Defined the audit scope to include public, Discord-session, admin-token, and mixed-auth routes.
-- Defined expected review areas: auth boundaries, input validation, request limits, CORS/session behavior, mutation safety, audit reason coverage, SQL injection, command execution, WebSocket/log-stream behavior, data exposure, redaction, safe errors, rate limits, replay/brute-force abuse cases, frontend API helper behavior, and remediation tracking.
+- Added `docs/appsec-endpoint-audit.md`.
+- Documented the current global middleware/auth boundary from `auth.go` and `server.go`.
+- Inventoried endpoints from `routes.go` across public, Discord/self-service, core status/diagnostics/audit, Battlegroup, player read, player mutation, inventory request/order, database, log, notification, storage, and blueprint groups.
+- Added initial findings `ASEA-001` through `ASEA-006` covering endpoint auth-boundary regression tests, Discord session UX review, mutation reason/audit verification, database endpoint injection review, infrastructure/log endpoint review, and browser-token/CORS follow-up.
+- Added a manual abuse-case checklist for future endpoint-by-endpoint validation.
+- Marked the AppSec audit task as In Progress in `docs/admin-implementation-tasks.md`.
 
 ### Security and operator impact
 
-- Planning-only change. No route, auth behavior, endpoint implementation, validation gate, or UI behavior changed.
-- The future audit should produce endpoint-by-endpoint findings, severity, remediation owner/status, and validation evidence.
+- Documentation/audit pass only. No route, auth behavior, endpoint implementation, validation gate, or UI behavior changed.
+- The audit document is intentionally not marked complete; handler-by-handler review, SAST, DAST, dependency review, and manual abuse-case validation remain open.
 - Current Inventory Studio stack-size validation remains pending and unchanged.
 
 ### Validation
 
-Documentation/planning review only. No build validation is required for this planning-only update.
+Documentation/audit review only. No build validation is required for this documentation-only update.
 
 ---
 
