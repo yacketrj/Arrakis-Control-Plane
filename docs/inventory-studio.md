@@ -25,10 +25,12 @@ Inventory Studio is available from the main app navigation as:
 Inventory Studio
 ```
 
-Implementation file:
+Implementation files:
 
 ```text
 web/src/tabs/InventoryStudioTab.tsx
+web/src/api/inventoryStudioMutations.ts
+inventory_stack_size.go
 ```
 
 ## Current capabilities
@@ -91,6 +93,44 @@ Safety behavior:
 - post-action diff display
 - action history capture
 
+### Confirmed stack-size edit
+
+Inventory Studio supports changing the stack size of the selected inventory item.
+
+Inputs:
+
+- selected player
+- selected item row
+- new stack size
+
+Backend endpoint:
+
+```text
+POST /api/v1/players/item/stack-size
+```
+
+Payload:
+
+```json
+{
+  "id": 123,
+  "stack_size": 500
+}
+```
+
+Safety behavior:
+
+- client-side stack-size clamping to `1..9999`
+- backend stack-size validation to `1..9999`
+- backend item lookup before update
+- local before-action inventory snapshot export
+- shared mutation confirmation
+- required admin reason capture
+- reason sent through `X-Admin-Reason`
+- inventory reload after success
+- post-action diff display
+- action history capture
+
 ### Confirmed item repair
 
 Inventory Studio supports repairing the selected inventory item.
@@ -121,7 +161,7 @@ Safety behavior:
 
 ### Post-action diff panel
 
-After a confirmed add, repair, or removal completes, Inventory Studio compares the before-action in-memory inventory list against the reloaded inventory.
+After a confirmed add, stack-size edit, repair, or removal completes, Inventory Studio compares the before-action in-memory inventory list against the reloaded inventory.
 
 The panel displays:
 
@@ -158,7 +198,6 @@ This is browser-local review state. It does not replace the server-side audit lo
 
 The current implementation does not yet include:
 
-- stack-size editing for an existing row
 - quality editing for an existing row
 - template replacement for an existing row
 - augment/stat editing
@@ -171,7 +210,7 @@ The current implementation does not yet include:
 
 - Do not add inventory writes without shared mutation confirmation.
 - Do not send inventory writes without an admin reason.
-- Do not bypass the before-action snapshot behavior for item add, repair, removal, or future edit workflows.
+- Do not bypass the before-action snapshot behavior for item add, stack-size edit, repair, removal, or future edit workflows.
 - Do not bypass post-action diff review for confirmed Inventory Studio workflows.
 - Do not bypass action history capture for confirmed Inventory Studio workflows.
 - Do not add Player 360 quick actions that mutate inventory until they reuse this same safety pattern.
@@ -180,7 +219,7 @@ The current implementation does not yet include:
 
 ## Recommended next work
 
-1. Add stack-size edit only after before/after preview is displayed.
+1. Validate stack-size edit through `./update.sh` and browser workflow testing.
 2. Add quality edit only after before/after preview is displayed.
 3. Add server-side before-change snapshot persistence for inventory mutations.
 4. Add typed backend mutation wrappers for inventory operations.
