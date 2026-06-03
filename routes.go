@@ -46,6 +46,7 @@ func registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/players/award-intel", handleAwardIntel)
 	mux.HandleFunc("POST /api/v1/players/kick", handleKick)
 	mux.HandleFunc("DELETE /api/v1/players/item/{id}", handleDeleteItem)
+	mux.HandleFunc("POST /api/v1/players/item/stack-size", handleSetItemStackSize)
 	mux.HandleFunc("POST /api/v1/players/reset-spec", handleResetSpec)
 	mux.HandleFunc("POST /api/v1/players/set-faction-tier", handleSetFactionTier)
 	mux.HandleFunc("POST /api/v1/players/journey/complete", handleJourneyComplete)
