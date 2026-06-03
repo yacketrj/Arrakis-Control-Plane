@@ -30,6 +30,7 @@ Every feature task must update:
 | P0 | Public-safe vs protected admin portal design | In Progress | `docs/portal-separation-design.md` | Go + frontend validation |
 | P0 | Admin Action Audit Log | Done | `docs/admin-audit-log.md` | Go tests |
 | P0 | Mutation Safety Framework | In Progress | `docs/mutation-safety-framework.md` | Go + frontend tests |
+| P0 | Comprehensive AppSec endpoint audit | Planned | `docs/appsec-endpoint-audit.md` required | Endpoint inventory + SAST/DAST/manual abuse-case review |
 | P0 | Active Players-table mutation confirmation migration | Done | `docs/mutation-safety-framework.md` | Windows `update.ps1` validation |
 | P0 | PlayersTab inline modal cleanup | Done | `docs/mutation-safety-framework.md` | Windows `update.ps1` validation |
 | P0 | Storage mutation confirmation migration | Done | `docs/mutation-safety-framework.md` | Windows `update.ps1` validation |
@@ -102,13 +103,36 @@ Next framework hardening tasks:
 - Audit export and filtering.
 - UI visibility for reason-enforcement state.
 
-### 3. Preserve Player 360 validated state
+### 3. Comprehensive AppSec endpoint audit backlog
+
+P0 AppSec audit work should cover every backend route, public and protected.
+
+The audit should produce `docs/appsec-endpoint-audit.md` and include:
+
+- Full route inventory from `routes.go`.
+- Public, Discord-session, admin-token, and mixed-auth route classification.
+- Authentication and authorization boundary review for every endpoint.
+- Request method, request body, query parameter, path parameter, and response-shape review.
+- Input validation and request-size-limit review.
+- CORS, browser session, admin-token, cookie, and CSRF-relevant behavior review.
+- Audit-log and `X-Admin-Reason` coverage for mutation endpoints.
+- Mutation-safety classification coverage for high-risk and destructive actions.
+- SQL injection and unsafe dynamic SQL review, including database search and manual SQL endpoints.
+- Command execution and infrastructure diagnostic endpoint review.
+- WebSocket ticket and log-stream review.
+- Data exposure, redaction, and safe error-message review.
+- Rate-limit, replay, brute-force, and abuse-case review.
+- Frontend API helper review for accidental token leakage or unsafe route use.
+- SAST, DAST, dependency, and manual abuse-case validation notes.
+- Remediation backlog with severity, owner, status, and validation evidence.
+
+### 4. Preserve Player 360 validated state
 
 - Keep the standalone `Player 360` tab available.
 - Keep the Players-table `360` launcher read-only.
 - Do not add Player 360 quick actions until they are implemented as confirmed workflows with reason capture, target metadata, and audit visibility.
 
-### 4. Guild management backlog
+### 5. Guild management backlog
 
 P2 guild-management work now includes dedicated guild-management features.
 
@@ -131,7 +155,7 @@ Player tab guild workflows should cover:
 - Show current guild membership and rank context before any mutation.
 - Reuse the same confirmed mutation, admin reason, audit, and post-action refresh pattern as other player-management workflows.
 
-### 5. Documentation backlog
+### 6. Documentation backlog
 
 P5 documentation work now includes a detailed Discord bot setup and usage guide.
 
