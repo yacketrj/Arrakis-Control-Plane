@@ -76,6 +76,21 @@ func isSelfServicePath(path string) bool {
 	return strings.HasPrefix(path, "/api/v1/self/")
 }
 
+func isDiscordSelfSessionRoute(method, path string) bool {
+	switch {
+	case method == http.MethodGet && path == "/api/v1/auth/discord/me":
+		return true
+	case method == http.MethodPost && path == "/api/v1/auth/discord/logout":
+		return true
+	default:
+		return false
+	}
+}
+
+func isSelfServiceRoute(method, path string) bool {
+	return isSelfServicePath(path) || isDiscordSelfSessionRoute(method, path)
+}
+
 func authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodOptions || isPublicPath(r.URL.Path) {
@@ -111,7 +126,7 @@ func authMiddleware(next http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
-			if isSelfServicePath(r.URL.Path) && discordSessionIsRegistered(r) {
+			if isSelfServiceRoute(r.Method, r.URL.Path) && discordSessionIsRegistered(r) {
 				next.ServeHTTP(w, r)
 				return
 			}
