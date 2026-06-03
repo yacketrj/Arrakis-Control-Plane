@@ -8,6 +8,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Added
 
+- Added initial `docs/appsec-endpoint-audit.md` with route inventory, auth-boundary summary, findings, remediation backlog, and manual abuse-case checklist.
 - Added P0 comprehensive AppSec endpoint audit backlog task covering public and protected backend routes.
 - Added future documentation requirement for `docs/appsec-endpoint-audit.md`.
 - Added Inventory Studio stack-size update backend in `inventory_stack_size.go`.
@@ -107,6 +108,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Updated `docs/admin-implementation-tasks.md` so the AppSec endpoint audit is In Progress after creating the initial audit document.
+- Updated `PATCH_NOTES.md` with the initial AppSec endpoint audit pass.
 - Updated `docs/admin-implementation-tasks.md` with the P0 comprehensive AppSec endpoint audit backlog item and required audit scope.
 - Updated `PATCH_NOTES.md` with AppSec endpoint audit backlog planning details.
 - Updated `docs/inventory-studio.md` with stack-size edit endpoint, payload, UI behavior, safety behavior, and validation notes.
@@ -215,6 +218,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Security
 
+- Added initial AppSec route inventory and auth-boundary audit document for all registered endpoints.
+- Added AppSec findings ASEA-001 through ASEA-006 covering auth-boundary tests, Discord session UX, mutation audit/reason coverage, database endpoint review, infrastructure/log endpoint review, and browser token/CORS follow-up.
 - Added AppSec endpoint audit planning requirement for all public and protected backend endpoints.
 - Scoped the future endpoint audit to auth boundaries, input validation, request limits, CORS/session behavior, mutation safety, audit reason coverage, SQL injection, command execution, WebSocket/log-stream behavior, data exposure, rate limits, abuse cases, frontend helper behavior, and remediation evidence.
 - Kept Inventory Studio stack-size edit behind shared mutation confirmation, admin reason capture, before-action snapshot export, post-action diff, and action-history capture.
@@ -268,6 +273,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Validation
 
+- Recorded initial AppSec endpoint audit document as documentation/audit review only.
 - Recorded AppSec endpoint audit backlog addition as documentation/planning review only.
 - Recorded backlog planning additions for Discord bot documentation and guild-management workflows as documentation/planning review only.
 - Validated Inventory Studio action-history changes from the canonical local update path:
@@ -308,7 +314,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 - Run `./update.sh` after Inventory Studio stack-size edit changes.
 - Manually validate selected-item stack-size edit, unchanged-value guard, before-action snapshot export, required reason capture, post-action diff, action-history append, and inventory reload behavior.
-- Complete comprehensive AppSec endpoint audit and create `docs/appsec-endpoint-audit.md`.
+- Complete comprehensive AppSec endpoint audit, including SAST, DAST, dependency review, handler-by-handler review, and manual abuse-case validation.
 - Manually exercise Farming Requests UI list, create, group, fill, and cancel workflows.
 - Manually exercise inventory request/order personal/guild requests, order creation, fill/cancel propagation, and `PATCH` browser preflight.
 - Manually validate Discord OAuth login/callback, session context, logout, and registered-user review with configured Discord OAuth.
