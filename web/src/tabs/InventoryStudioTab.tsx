@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Button, Spinner, toast } from '@heroui/react'
 import { api } from '../api/client'
 import type { InventoryItem, ItemTemplate, Player } from '../api/client'
+import { inventoryStudioMutations } from '../api/inventoryStudioMutations'
 import { mutationConfirmationCancelledMessage, useMutationConfirmation } from '../hooks/useMutationConfirmation'
 
 type InventorySnapshot = { exported_at?: string; mode?: string; player?: Player; item_count?: number; items?: InventoryItem[] }
@@ -66,6 +67,7 @@ export default function InventoryStudioTab() {
   const [selectedTemplateId, setSelectedTemplateId] = useState('')
   const [addQty, setAddQty] = useState(1)
   const [addQuality, setAddQuality] = useState(1)
+  const [stackSizeDraft, setStackSizeDraft] = useState(1)
   const [comparisonSnapshot, setComparisonSnapshot] = useState<InventorySnapshot | null>(null)
   const [comparisonName, setComparisonName] = useState('')
   const [lastActionDiff, setLastActionDiff] = useState<LastActionDiff>(null)
@@ -77,6 +79,8 @@ export default function InventoryStudioTab() {
   const selectedTemplate = useMemo(() => templates.find(template => template.id === selectedTemplateId) ?? null, [selectedTemplateId, templates])
   const comparisonItems = useMemo(() => comparisonSnapshot ? snapshotItems(comparisonSnapshot) : [], [comparisonSnapshot])
   const comparisonDiffs = useMemo(() => comparisonSnapshot ? compareInventorySnapshots(comparisonItems, items) : [], [comparisonItems, comparisonSnapshot, items])
+
+  useEffect(() => { if (selectedItem) setStackSizeDraft(clampInt(selectedItem.stack_size, 1, 9999)) }, [selectedItem])
 
   const filteredPlayers = useMemo(() => {
     const q = playerSearch.toLowerCase().trim()
@@ -217,6 +221,27 @@ export default function InventoryStudioTab() {
     } catch (e: unknown) { toast.danger(e instanceof Error ? e.message : String(e)) } finally { setMutationBusy(false) }
   }
 
+  const setSelectedItemStackSize = async () => {
+    if (!selectedPlayer || !selectedItem) return
+    const nextStack = clampInt(stackSizeDraft, 1, 9999)
+    if (nextStack === selectedItem.stack_size) { toast.warning('Stack size is unchanged'); return }
+    let reason: string | undefined
+    try {
+      reason = await confirmMutation({ method: 'POST', path: '/api/v1/players/item/stack-size', title: 'Change selected item stack size', summary: `Change ${itemLabel(selectedItem)} stack from ${selectedItem.stack_size} to ${nextStack}.`, target: `actor:${selectedPlayer.id} · item:${selectedItem.id}`, details: [`Player: ${selectedPlayer.name}`, `Online state: ${selectedPlayer.online_status || 'Offline'}`, `Item ID: ${selectedItem.id}`, `Template: ${selectedItem.template_id}`, `Current stack: ${selectedItem.stack_size}`, `New stack: ${nextStack}`, 'A before-action inventory snapshot will be downloaded before the stack-size request is sent.'], confirmLabel: 'Set stack size', forceReason: true })
+    } catch (e: unknown) { handleMutationCancel(e); return }
+    if (!reason) { toast.warning('Cancelled: admin reason is required for this action'); return }
+
+    setMutationBusy(true)
+    const beforeItems = [...items]
+    try {
+      exportBeforeActionSnapshot('stack-size', beforeItems, { target_item: selectedItem, previous_stack_size: selectedItem.stack_size, next_stack_size: nextStack })
+      await inventoryStudioMutations.setItemStackSize(selectedItem.id, nextStack, reason)
+      const afterItems = await reloadInventory(selectedPlayer)
+      setPostActionDiff('stack-size', itemLabel(selectedItem), beforeItems, afterItems)
+      toast.success(`Set stack size to ${nextStack}`)
+    } catch (e: unknown) { toast.danger(e instanceof Error ? e.message : String(e)) } finally { setMutationBusy(false) }
+  }
+
   const loadComparisonSnapshot = async (file: File | null) => {
     if (!file) return
     try {
@@ -236,7 +261,7 @@ export default function InventoryStudioTab() {
     <>
       <div className="flex flex-col gap-3 h-full min-h-0 overflow-hidden">
         <div className="rounded-lg px-4 py-2 text-xs" style={{ background: '#0f0d09', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>
-          <strong style={{ color: 'var(--color-primary)' }}>Inventory Studio v2:</strong> inventory inspection, snapshot export/compare, catalog browsing, confirmed add/repair/removal, post-action diff review, and browser-session action history.
+          <strong style={{ color: 'var(--color-primary)' }}>Inventory Studio v2:</strong> inventory inspection, snapshot export/compare, catalog browsing, confirmed add/repair/removal, stack-size edits, post-action diff review, and browser-session action history.
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr_420px] gap-3 flex-1 min-h-0 overflow-hidden">
@@ -262,7 +287,7 @@ export default function InventoryStudioTab() {
               <DiffPanel title="Post-action Diff" emptyText="No confirmed action has been completed in this session." diff={lastActionDiff} />
               <ActionHistoryPanel history={actionDiffHistory} onClear={() => { setActionDiffHistory([]); setLastActionDiff(null) }} onExport={exportActionHistory} />
               <SnapshotCompare comparisonName={comparisonName} comparisonSnapshot={comparisonSnapshot} beforeCount={comparisonItems.length} currentCount={items.length} diffs={comparisonDiffs} disabled={!selectedPlayer || items.length === 0} onLoad={loadComparisonSnapshot} />
-              <SelectedItemPanel item={selectedItem} mutationBusy={mutationBusy} onRepair={repairSelectedItem} onDelete={deleteSelectedItem} />
+              <SelectedItemPanel item={selectedItem} mutationBusy={mutationBusy} stackSizeDraft={stackSizeDraft} onStackSizeDraft={value => setStackSizeDraft(clampInt(value, 1, 9999))} onSetStackSize={setSelectedItemStackSize} onRepair={repairSelectedItem} onDelete={deleteSelectedItem} />
             </div>
           </section>
         </div>
@@ -291,8 +316,8 @@ function CatalogPanel(props: { templatesLoading: boolean; templates: ItemTemplat
   return <div className="rounded p-3" style={{ background: '#0a0806', border: '1px solid #2a2418' }}><div className="flex items-center justify-between gap-2 mb-2"><div className="font-semibold" style={{ color: 'var(--color-primary)' }}>Item Catalog</div><Button size="sm" variant="ghost" onPress={props.onRefresh} isDisabled={props.templatesLoading}>{props.templatesLoading ? <Spinner size="sm" color="current" /> : 'Refresh'}</Button></div><TextInput placeholder="Search catalog template ID or name..." value={props.templateSearch} onChange={props.onSearch} /><div className="mt-2 rounded overflow-y-auto" style={{ border: '1px solid #2a2418', maxHeight: 180 }}>{props.templatesLoading ? <div className="flex justify-center py-4"><Spinner size="sm" /></div> : props.templates.length === 0 ? <div className="px-3 py-4 text-center" style={{ color: 'var(--color-text-dim)' }}>No matching templates</div> : props.templates.map(template => <button key={template.id} type="button" onClick={() => props.onSelectTemplate(template.id)} className="w-full text-left px-2 py-1.5" style={{ borderBottom: '1px solid #1a1610', background: props.selectedTemplateId === template.id ? '#241e12' : 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}><div className="font-mono truncate" style={{ color: props.selectedTemplateId === template.id ? 'var(--color-primary)' : 'var(--color-text)' }}>{template.id}</div>{template.name && <div className="truncate" style={{ color: 'var(--color-text-dim)' }}>{template.name}</div>}</button>)}</div>{props.selectedTemplate && <div className="mt-2 grid grid-cols-1 gap-2"><Detail label="Selected Template" value={props.selectedTemplate.id} /><Detail label="Catalog Name" value={props.selectedTemplate.name || '—'} /><div className="grid grid-cols-2 gap-2"><NumberField label="Quantity" value={props.addQty} min={1} max={9999} onChange={props.onQty} /><NumberField label="Quality" value={props.addQuality} min={0} max={5} onChange={props.onQuality} /></div><Button size="sm" onPress={props.onAdd} isDisabled={!props.selectedPlayer || props.mutationBusy}>{props.mutationBusy ? <Spinner size="sm" color="current" /> : null}Add Selected Catalog Item</Button></div>}</div>
 }
 
-function NumberField({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void }) {
-  return <label className="flex flex-col gap-1" style={{ color: 'var(--color-text-dim)' }}>{label}<input type="number" min={min} max={max} value={value} onChange={event => onChange(Number(event.target.value))} className="rounded px-2 py-1 text-xs border" style={{ background: '#0d0b07', color: 'var(--color-text)', borderColor: '#2a2418', outline: 'none' }} /></label>
+function NumberField({ label, value, min, max, onChange, disabled }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void; disabled?: boolean }) {
+  return <label className="flex flex-col gap-1" style={{ color: 'var(--color-text-dim)' }}>{label}<input type="number" min={min} max={max} value={value} onChange={event => onChange(Number(event.target.value))} className="rounded px-2 py-1 text-xs border" style={{ background: '#0d0b07', color: 'var(--color-text)', borderColor: '#2a2418', outline: 'none' }} disabled={disabled} /></label>
 }
 
 function SnapshotCompare({ comparisonName, comparisonSnapshot, beforeCount, currentCount, diffs, disabled, onLoad }: { comparisonName: string; comparisonSnapshot: InventorySnapshot | null; beforeCount: number; currentCount: number; diffs: InventoryDiffRow[]; disabled: boolean; onLoad: (file: File | null) => void }) {
@@ -312,7 +337,7 @@ function DiffList({ diffs, emptyText }: { diffs: InventoryDiffRow[]; emptyText: 
   return <div className="mt-3 flex flex-col gap-2">{diffs.slice(0, 25).map(diff => <div key={`${diff.status}-${diff.key}`} className="rounded p-2" style={{ background: '#0f0d09', border: '1px solid #2a2418' }}><div className="flex items-center justify-between gap-2"><span className="font-semibold" style={{ color: diff.status === 'removed' ? '#e88' : diff.status === 'added' ? 'var(--color-success)' : '#f0a830' }}>{diff.status.toUpperCase()}</span><span className="font-mono" style={{ color: 'var(--color-text-dim)' }}>item:{diff.key}</span></div><div className="mt-1" style={{ color: 'var(--color-text)' }}>{itemLabel((diff.after ?? diff.before) as InventoryItem)}</div><ul className="mt-1 pl-4" style={{ color: 'var(--color-text-dim)', listStyle: 'disc' }}>{diff.changes.map(change => <li key={change}>{change}</li>)}</ul></div>)}{diffs.length > 25 && <div style={{ color: 'var(--color-text-dim)' }}>Showing first 25 of {diffs.length} differences.</div>}</div>
 }
 
-function SelectedItemPanel({ item, mutationBusy, onRepair, onDelete }: { item: InventoryItem | null; mutationBusy: boolean; onRepair: () => void; onDelete: () => void }) {
+function SelectedItemPanel({ item, mutationBusy, stackSizeDraft, onStackSizeDraft, onSetStackSize, onRepair, onDelete }: { item: InventoryItem | null; mutationBusy: boolean; stackSizeDraft: number; onStackSizeDraft: (value: number) => void; onSetStackSize: () => void; onRepair: () => void; onDelete: () => void }) {
   if (!item) return <div className="flex items-center justify-center text-sm p-4 text-center mt-3" style={{ color: 'var(--color-text-dim)' }}>Select an inventory row to inspect item details.</div>
-  return <div className="mt-3"><div className="font-semibold text-sm" style={{ color: 'var(--color-text)' }}>{itemLabel(item)}</div><div className="font-mono mt-1" style={{ color: 'var(--color-text-dim)' }}>{item.template_id}</div><div className="grid grid-cols-2 gap-2 mt-4"><Detail label="Item ID" value={String(item.id)} /><Detail label="Stack" value={String(item.stack_size)} /><Detail label="Quality" value={String(item.quality)} /><Detail label="Durability" value={`${item.durability} / ${item.max_durability}`} /></div><div className="rounded p-3 mt-4" style={{ background: '#0a0806', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}><div className="font-semibold mb-1" style={{ color: 'var(--color-primary)' }}>Confirmed item actions</div><p>Repair and remove actions download a before-action inventory snapshot, then require shared mutation confirmation and an admin reason.</p><div className="flex flex-wrap gap-2 mt-3"><Button size="sm" onPress={onRepair} isDisabled={mutationBusy}>{mutationBusy ? <Spinner size="sm" color="current" /> : null}Repair Selected Item</Button><Button size="sm" variant="danger-soft" onPress={onDelete} isDisabled={mutationBusy}>Remove Selected Item</Button></div></div><pre className="rounded p-3 mt-4 overflow-auto" style={{ background: '#0a0806', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>{JSON.stringify(item, null, 2)}</pre></div>
+  return <div className="mt-3"><div className="font-semibold text-sm" style={{ color: 'var(--color-text)' }}>{itemLabel(item)}</div><div className="font-mono mt-1" style={{ color: 'var(--color-text-dim)' }}>{item.template_id}</div><div className="grid grid-cols-2 gap-2 mt-4"><Detail label="Item ID" value={String(item.id)} /><Detail label="Stack" value={String(item.stack_size)} /><Detail label="Quality" value={String(item.quality)} /><Detail label="Durability" value={`${item.durability} / ${item.max_durability}`} /></div><div className="rounded p-3 mt-4" style={{ background: '#0a0806', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}><div className="font-semibold mb-1" style={{ color: 'var(--color-primary)' }}>Confirmed stack-size edit</div><p>Stack-size edits download a before-action inventory snapshot, require shared mutation confirmation, require an admin reason, reload inventory, and update post-action diff/history.</p><div className="grid grid-cols-[1fr_auto] gap-2 mt-3 items-end"><NumberField label="New stack size" value={stackSizeDraft} min={1} max={9999} onChange={onStackSizeDraft} disabled={mutationBusy} /><Button size="sm" onPress={onSetStackSize} isDisabled={mutationBusy || stackSizeDraft === item.stack_size}>{mutationBusy ? <Spinner size="sm" color="current" /> : null}Set Stack</Button></div></div><div className="rounded p-3 mt-4" style={{ background: '#0a0806', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}><div className="font-semibold mb-1" style={{ color: 'var(--color-primary)' }}>Confirmed item actions</div><p>Repair and remove actions download a before-action inventory snapshot, then require shared mutation confirmation and an admin reason.</p><div className="flex flex-wrap gap-2 mt-3"><Button size="sm" onPress={onRepair} isDisabled={mutationBusy}>{mutationBusy ? <Spinner size="sm" color="current" /> : null}Repair Selected Item</Button><Button size="sm" variant="danger-soft" onPress={onDelete} isDisabled={mutationBusy}>Remove Selected Item</Button></div></div><pre className="rounded p-3 mt-4 overflow-auto" style={{ background: '#0a0806', border: '1px solid #2a2418', color: 'var(--color-text-dim)' }}>{JSON.stringify(item, null, 2)}</pre></div>
 }
