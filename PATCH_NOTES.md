@@ -1,6 +1,41 @@
 # Dune Admin Release Notes
 
-## Current update: Farming Requests lint warning fix
+## Current update: AppSec auth boundary regression tests
+
+### Why this update was made
+
+The AppSec endpoint audit identified `ASEA-001`: route and auth-boundary expectations were documented, but representative automated regression tests were missing for public, self-service, admin-only, and WebSocket-ticket boundaries.
+
+### What changed
+
+- Added `appsec_auth_boundary_test.go`.
+- Added tests for the public path allowlist.
+- Added tests for self-service path classification.
+- Added tests confirming public routes bypass backend admin-token validation.
+- Added tests confirming representative admin routes reject missing tokens and accept a valid strict admin token.
+- Added tests confirming self-service routes are denied without a Discord session or admin token.
+- Added tests confirming WebSocket log-stream upgrades require a one-time ticket before admin-token fallback.
+- Updated `docs/appsec-endpoint-audit.md` so `ASEA-001` is marked partially remediated pending local validation.
+
+### Security and operator impact
+
+- Test/documentation change only. No route behavior, auth behavior, endpoint implementation, UI behavior, or data mutation behavior changed.
+- This reduces regression risk around public route allowlisting, protected route enforcement, self-service boundaries, and log-stream ticket handling.
+- `ASEA-001` remains partially remediated until the new test coverage passes the canonical validation path.
+
+### Validation
+
+Required from the canonical local update path:
+
+```bash
+./update.sh
+```
+
+This should run the new Go auth-boundary regression tests.
+
+---
+
+## Previous update: Farming Requests lint warning fix
 
 ### Why this update was made
 
@@ -54,40 +89,3 @@ The newly added P0 AppSec audit task needed a concrete starting point: a route i
 ### Validation
 
 Documentation/audit review only. No build validation is required for this documentation-only update.
-
----
-
-## Previous update: Inventory Studio stack-size edit workflow
-
-### Why this update was made
-
-Inventory Studio needed the next narrow confirmed edit workflow after action-history validation. Stack-size editing is the smallest direct item-row edit and can reuse the existing safety pattern: before-action snapshot, shared confirmation, admin reason, reload, post-action diff, and browser-session action history.
-
-### What changed
-
-- Added `inventory_stack_size.go` with a protected backend command and handler for item stack-size updates.
-- Registered `POST /api/v1/players/item/stack-size` in `routes.go`.
-- Added `web/src/api/inventoryStudioMutations.ts` with a frontend helper for stack-size edits.
-- Updated `web/src/tabs/InventoryStudioTab.tsx` with a confirmed selected-item stack-size edit control.
-- Stack-size edits clamp and validate values to `1..9999`.
-- Stack-size edits now export a before-action inventory snapshot, require shared mutation confirmation and admin reason capture, reload inventory after success, display post-action diff, and append to action history.
-- Updated `docs/inventory-studio.md` with the stack-size endpoint, payload, UI behavior, and safety notes.
-- Updated `docs/admin-implementation-tasks.md` so stack-size edit is In Progress and quality edit is the next planned Inventory Studio workflow after validation.
-
-### Security and operator impact
-
-- This adds one direct item-row mutation path for `dune.items.stack_size` only.
-- The backend validates item ID and stack size and rejects missing, zero, negative, or overly large stack sizes.
-- The frontend sends the admin reason through `X-Admin-Reason` and preserves the same operator confirmation flow as add, repair, and remove.
-- No quality edit, template replacement, augment/stat edit, Player 360 mutation, self-service mutation, or rollback automation was added.
-- Player 360 remains read-only.
-
-### Validation
-
-Required from the canonical local update path:
-
-```bash
-./update.sh
-```
-
-Manual browser validation should confirm selected-item stack-size edit, before-action snapshot export, required reason capture, post-action diff, action-history append, unchanged-value guard, and inventory reload behavior.
