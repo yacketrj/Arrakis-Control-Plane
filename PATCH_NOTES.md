@@ -16,7 +16,7 @@ The AppSec endpoint audit identified `ASEA-002`: the Discord `me` and `logout` h
 - Kept `GET /api/v1/auth/discord/users`, Discord player-link admin endpoints, player routes, database routes, infrastructure routes, and all admin mutation routes admin-only.
 - Added AppSec regression tests confirming normal Discord sessions can reach `me`, `logout`, and self-service routes but cannot reach representative admin routes.
 - Updated `docs/discord-auth.md` with the explicit normal-session route boundary.
-- Updated `docs/appsec-endpoint-audit.md` so `ASEA-002` is remediated pending validation.
+- Updated `docs/appsec-endpoint-audit.md` so `ASEA-002` is validated as remediated.
 
 ### Security and operator impact
 
@@ -27,13 +27,19 @@ The AppSec endpoint audit identified `ASEA-002`: the Discord `me` and `logout` h
 
 ### Validation
 
-Required from the canonical local update path:
+Verified from the canonical local update path:
 
 ```bash
 ./update.sh
 ```
 
-This should run the new AppSec Discord self-session route tests.
+The run was clean. It emitted this non-blocking build-performance warning:
+
+```text
+[PLUGIN_TIMINGS] Your build spent significant time in plugin `@tailwindcss/vite:generate:build`. See https://rolldown.rs/options/checks#plugintimings for more details.
+```
+
+This warning did not fail the validation gate.
 
 ---
 
