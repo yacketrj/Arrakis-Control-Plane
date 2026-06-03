@@ -1,6 +1,43 @@
 # Dune Admin Release Notes
 
-## Current update: AppSec auth boundary regression tests
+## Current update: Discord self-session route remediation
+
+### Why this update was made
+
+The AppSec endpoint audit identified `ASEA-002`: the Discord `me` and `logout` handlers supported session-cookie behavior, but middleware allowed registered non-admin Discord sessions only through `/api/v1/self/*`. That meant normal Discord users could use self-service player-card routes but could not reliably inspect or clear their own auth session through the intended Discord session endpoints.
+
+### What changed
+
+- Added `isDiscordSelfSessionRoute` and `isSelfServiceRoute` middleware helpers.
+- Allowed registered non-admin Discord sessions to reach only:
+  - `GET /api/v1/auth/discord/me`
+  - `POST /api/v1/auth/discord/logout`
+  - `/api/v1/self/*`
+- Kept `GET /api/v1/auth/discord/users`, Discord player-link admin endpoints, player routes, database routes, infrastructure routes, and all admin mutation routes admin-only.
+- Added AppSec regression tests confirming normal Discord sessions can reach `me`, `logout`, and self-service routes but cannot reach representative admin routes.
+- Updated `docs/discord-auth.md` with the explicit normal-session route boundary.
+- Updated `docs/appsec-endpoint-audit.md` so `ASEA-002` is remediated pending validation.
+
+### Security and operator impact
+
+- This is a narrow auth-boundary change for self-session behavior.
+- Normal Discord sessions can now inspect their own auth context and clear their own session cookie/session record.
+- Normal Discord sessions still cannot access admin review, player, database, infrastructure, or mutation routes.
+- No Player 360 mutation, inventory mutation, guild mutation, or direct game-state mutation was added.
+
+### Validation
+
+Required from the canonical local update path:
+
+```bash
+./update.sh
+```
+
+This should run the new AppSec Discord self-session route tests.
+
+---
+
+## Previous update: AppSec auth boundary regression tests
 
 ### Why this update was made
 
@@ -62,30 +99,3 @@ Verified from the canonical local update path:
 ```
 
 This cleared the reported `react-hooks/exhaustive-deps` warning.
-
----
-
-## Previous update: Initial AppSec endpoint audit pass
-
-### Why this update was made
-
-The newly added P0 AppSec audit task needed a concrete starting point: a route inventory, auth-boundary summary, first findings, and a remediation checklist for public and protected backend endpoints.
-
-### What changed
-
-- Added `docs/appsec-endpoint-audit.md`.
-- Documented the current global middleware/auth boundary from `auth.go` and `server.go`.
-- Inventoried endpoints from `routes.go` across public, Discord/self-service, core status/diagnostics/audit, Battlegroup, player read, player mutation, inventory request/order, database, log, notification, storage, and blueprint groups.
-- Added initial findings `ASEA-001` through `ASEA-006` covering endpoint auth-boundary regression tests, Discord session UX review, mutation reason/audit verification, database endpoint injection review, infrastructure/log endpoint review, and browser-token/CORS follow-up.
-- Added a manual abuse-case checklist for future endpoint-by-endpoint validation.
-- Marked the AppSec audit task as In Progress in `docs/admin-implementation-tasks.md`.
-
-### Security and operator impact
-
-- Documentation/audit pass only. No route, auth behavior, endpoint implementation, validation gate, or UI behavior changed.
-- The audit document is intentionally not marked complete; handler-by-handler review, SAST, DAST, dependency review, and manual abuse-case validation remain open.
-- Current Inventory Studio stack-size validation remains pending and unchanged.
-
-### Validation
-
-Documentation/audit review only. No build validation is required for this documentation-only update.
