@@ -15,23 +15,23 @@ The AppSec endpoint audit identified `ASEA-001`: route and auth-boundary expecta
 - Added tests confirming representative admin routes reject missing tokens and accept a valid strict admin token.
 - Added tests confirming self-service routes are denied without a Discord session or admin token.
 - Added tests confirming WebSocket log-stream upgrades require a one-time ticket before admin-token fallback.
-- Updated `docs/appsec-endpoint-audit.md` so `ASEA-001` is marked partially remediated pending local validation.
+- Updated `docs/appsec-endpoint-audit.md` so `ASEA-001` is marked as validated partial remediation.
 
 ### Security and operator impact
 
 - Test/documentation change only. No route behavior, auth behavior, endpoint implementation, UI behavior, or data mutation behavior changed.
 - This reduces regression risk around public route allowlisting, protected route enforcement, self-service boundaries, and log-stream ticket handling.
-- `ASEA-001` remains partially remediated until the new test coverage passes the canonical validation path.
+- `ASEA-001` is validated as partial remediation; generated full-route auth-boundary coverage remains a future hardening step.
 
 ### Validation
 
-Required from the canonical local update path:
+Verified from the canonical local update path:
 
 ```bash
 ./update.sh
 ```
 
-This should run the new Go auth-boundary regression tests.
+This validated the new Go auth-boundary regression tests.
 
 ---
 
