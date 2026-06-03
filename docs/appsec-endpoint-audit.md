@@ -11,7 +11,7 @@ The audit covers public, Discord-session, admin-token, WebSocket, infrastructure
 | Area | Status | Notes |
 |---|---|---|
 | Route inventory | In Progress | Initial inventory taken from `routes.go`. |
-| Auth boundary review | In Progress | Initial middleware review complete; `appsec_auth_boundary_test.go` adds regression coverage for public, self-service, admin, and WebSocket-ticket boundaries. |
+| Auth boundary review | In Progress | Initial middleware review complete; `appsec_auth_boundary_test.go` now has clean `./update.sh` validation for public, self-service, representative admin, and WebSocket-ticket boundaries. Generated full-route coverage remains a follow-up. |
 | Input validation review | In Progress | Full handler-by-handler review still required. |
 | Mutation reason coverage | In Progress | Needs endpoint-by-endpoint confirmation. |
 | SAST | Pending | Run and record tool/version/result. |
@@ -211,7 +211,7 @@ Security-relevant observed behavior:
 
 | ID | Severity | Status | Finding | Recommended action | Validation evidence |
 |---|---|---|---|---|---|
-| ASEA-001 | High | Partially remediated | No generated endpoint inventory/auth-boundary regression test existed for the full `routes.go` surface. Initial regression coverage now exists for public allowlist behavior, self-service path classification, admin-only representative routes, and WebSocket-ticket denial. | Expand `appsec_auth_boundary_test.go` to generated full-route coverage and validate locally with `./update.sh`. | `appsec_auth_boundary_test.go` added; local validation pending. |
+| ASEA-001 | High | Validated partial remediation | No generated endpoint inventory/auth-boundary regression test existed for the full `routes.go` surface. Initial regression coverage now exists for public allowlist behavior, self-service path classification, admin-only representative routes, and WebSocket-ticket denial. Generated full-route coverage remains an open hardening follow-up. | Expand `appsec_auth_boundary_test.go` to generated full-route coverage in a future pass. | `appsec_auth_boundary_test.go` added and validated clean through `./update.sh`. |
 | ASEA-002 | Medium | Open | Discord `me` and `logout` routes are protected by the normal middleware boundary. Registered non-admin Discord sessions appear limited to `/api/v1/self/*`, so non-admin users may not be able to inspect or clear their session through those routes. | Confirm intended UX. If self-service logout is desired, add a session-scoped logout route with CSRF-aware design and tests. | Pending. |
 | ASEA-003 | High | Open | High-risk mutation endpoints require endpoint-by-endpoint verification for `X-Admin-Reason`, audit logging, mutation-safety classification, request-size limits, and pre/post-change review behavior. | Create a mutation endpoint checklist and add automated tests for reason/audit coverage where feasible. | Pending. |
 | ASEA-004 | High | Open | Database search/manual SQL endpoints need dedicated SQL injection, read-only guard, timeout, result-limit, and redaction review. | Perform handler-specific review and add abuse-case tests for dangerous SQL, multi-statement attempts, identifier injection, and large result sets. | Pending. |
