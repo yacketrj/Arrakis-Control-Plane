@@ -1,6 +1,52 @@
 # Dune Admin Release Notes
 
-## Current update: Infrastructure and log endpoint security hardening
+## Current update: Browser token and CORS security hardening
+
+### Why this update was made
+
+The AppSec endpoint audit item `ASEA-006` requires review of browser token handling and CORS behavior. The current Browser Access Key flow is already session-scoped and strict-token validated, but CORS allowed-origin parsing needed stronger protection against unsafe misconfiguration values.
+
+### What changed
+
+- Hardened `auth.go` CORS origin parsing:
+  - rejects wildcard `*`
+  - rejects `null`
+  - rejects control characters
+  - rejects non-HTTP(S) schemes such as `file://` and `javascript:`
+  - rejects origins with userinfo
+  - rejects origins with path, query, or fragment components
+  - continues exact-match origin allowlisting only
+- Added CORS/origin tests in `auth_test.go` covering:
+  - unsafe origin value rejection
+  - safe origin value acceptance
+  - mixed safe/unsafe allowed-origin parsing
+  - disallowed-origin preflight behavior
+  - allowed-origin preflight reflection and `Vary: Origin`
+- Added `docs/browser-token-cors-security.md` to capture the `ASEA-006` review state, current guardrails, tests, and remaining work.
+- Updated `docs/appsec-endpoint-audit.md` so `ASEA-006` is partially remediated pending validation.
+
+### Security and operator impact
+
+- CORS remains exact-match only.
+- Disallowed origins are not reflected.
+- Unsafe `ALLOWED_ORIGINS` values are ignored instead of accepted.
+- Browser Access Key storage remains session-scoped in `sessionStorage`, with legacy `localStorage` cleanup still in place.
+- No new admin route, auth mode, mutation path, Player 360 mutation, inventory mutation, or self-service admin access was added.
+- `ASEA-006` remains partially remediated pending validation and future memory-only or HttpOnly secure session-cookie authentication design.
+
+### Validation
+
+Required from the canonical local update path:
+
+```bash
+./update.sh
+```
+
+This should run the updated CORS/origin tests.
+
+---
+
+## Previous update: Infrastructure and log endpoint security hardening
 
 ### Why this update was made
 
@@ -107,52 +153,3 @@ Verified from the canonical local update path:
 ```
 
 This validated the new database handler security tests and database endpoint hardening changes.
-
----
-
-## Previous update: Mutation safety classification coverage
-
-### Why this update was made
-
-The AppSec endpoint audit item `ASEA-003` requires verification of high-risk mutation endpoints for admin reason handling, audit visibility, mutation-safety classification, request-size limits, and pre/post-change safety behavior. Initial review found several high-risk mutation routes were classified only as medium risk.
-
-A follow-up validation run also found an invalid JSON payload in `audit_log_test.go` that prevented the audit metadata reason from being parsed. The update script output was also improved so test status lines are easier to read during local validation.
-
-### What changed
-
-- Tightened mutation-safety risk classification in `audit_log.go`.
-- Marked these mutation paths high risk:
-  - `POST /api/v1/reconnect`
-  - `POST /api/v1/database/sql`
-  - `POST /api/v1/logs/stream-ticket`
-  - `POST /api/v1/notify`
-  - `POST /api/v1/players/item/stack-size`
-- Preserved destructive classification for reset, wipe, delete, and blueprint import paths.
-- Added regression coverage in `mutation_safety_test.go` for high-risk mutation paths.
-- Added regression coverage for destructive mutation paths.
-- Added an oversized-body reason-enforcement test for high-risk mutations when `ADMIN_REQUIRE_REASON=true`.
-- Fixed `audit_log_test.go` so the audit metadata payload uses valid JSON with an escaped newline in the `reason` field.
-- Updated `update.sh` to colorize validation output:
-  - `=== RUN` in cyan
-  - `PASS` and `--- PASS:` in green
-  - `FAIL` and `--- FAIL:` in red
-  - `Update failed.` in red
-- Updated `docs/appsec-endpoint-audit.md` so `ASEA-003` is validated as partial remediation.
-
-### Security and operator impact
-
-- High-risk routes now correctly require reason and preview metadata in mutation-safety classification.
-- When reason enforcement is enabled, these routes participate in `X-Admin-Reason` / body `reason` checks like other high-risk mutations.
-- Local validation output now makes failures more visually obvious; `FAIL` is red.
-- No new mutation route, UI workflow, game-state operation, or Player 360 mutation was added.
-- Full endpoint-by-endpoint audit-event assertion coverage is still required before `ASEA-003` can be closed.
-
-### Validation
-
-Verified from the canonical local update path:
-
-```bash
-./update.sh
-```
-
-This validated the updated Go mutation-safety and audit-log tests, including the corrected audit metadata JSON payload and the colored update output path.
