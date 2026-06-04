@@ -19,6 +19,10 @@ type logPod struct {
 }
 
 func handleLogPods(w http.ResponseWriter, r *http.Request) {
+	if err := validateRuntimeCommandNamespace(); err != nil {
+		jsonErr(w, err, http.StatusBadRequest)
+		return
+	}
 	cmd := runtimeLogPodsCommand()
 	out, err := sshExec(cmd)
 	if err != nil {
@@ -40,7 +44,7 @@ func handleLogPods(w http.ResponseWriter, r *http.Request) {
 			}
 			display := id
 			if name != "" {
-				display = fmt.Sprintf("%s (%s)", name, id)
+				display = fmt.Sprintf("%s (%s)", RedactSensitiveText(name), id)
 			}
 			pods = append(pods, logPod{Namespace: normalizeRuntime(serverRuntime), Name: id, Display: display})
 		}
@@ -116,9 +120,21 @@ func handleGetCheatLog(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, fmt.Errorf("%s", RedactSensitiveText(msg.err.Error())), 500)
 		return
 	}
-	rows := msg.rows
+	rows := redactCheatEntries(msg.rows)
 	if rows == nil {
 		rows = []cheatEntry{}
 	}
 	jsonOK(w, rows)
+}
+
+func redactCheatEntries(rows []cheatEntry) []cheatEntry {
+	if rows == nil {
+		return nil
+	}
+	out := make([]cheatEntry, len(rows))
+	copy(out, rows)
+	for i := range out {
+		out[i].Message = RedactSensitiveText(out[i].Message)
+	}
+	return out
 }
