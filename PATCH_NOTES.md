@@ -1,6 +1,46 @@
 # Dune Admin Release Notes
 
-## Current update: Discord self-session route remediation
+## Current update: Mutation safety classification coverage
+
+### Why this update was made
+
+The AppSec endpoint audit item `ASEA-003` requires verification of high-risk mutation endpoints for admin reason handling, audit visibility, mutation-safety classification, request-size limits, and pre/post-change safety behavior. Initial review found several high-risk mutation routes were classified only as medium risk.
+
+### What changed
+
+- Tightened mutation-safety risk classification in `audit_log.go`.
+- Marked these mutation paths high risk:
+  - `POST /api/v1/reconnect`
+  - `POST /api/v1/database/sql`
+  - `POST /api/v1/logs/stream-ticket`
+  - `POST /api/v1/notify`
+  - `POST /api/v1/players/item/stack-size`
+- Preserved destructive classification for reset, wipe, delete, and blueprint import paths.
+- Added regression coverage in `mutation_safety_test.go` for high-risk mutation paths.
+- Added regression coverage for destructive mutation paths.
+- Added an oversized-body reason-enforcement test for high-risk mutations when `ADMIN_REQUIRE_REASON=true`.
+- Updated `docs/appsec-endpoint-audit.md` so `ASEA-003` is partially remediated pending local validation.
+
+### Security and operator impact
+
+- High-risk routes now correctly require reason and preview metadata in mutation-safety classification.
+- When reason enforcement is enabled, these routes participate in `X-Admin-Reason` / body `reason` checks like other high-risk mutations.
+- No new mutation route, UI workflow, game-state operation, or Player 360 mutation was added.
+- Full endpoint-by-endpoint audit-event assertion coverage is still required before `ASEA-003` can be closed.
+
+### Validation
+
+Required from the canonical local update path:
+
+```bash
+./update.sh
+```
+
+This should run the updated Go mutation-safety tests.
+
+---
+
+## Previous update: Discord self-session route remediation
 
 ### Why this update was made
 
@@ -75,33 +115,3 @@ Verified from the canonical local update path:
 ```
 
 This validated the new Go auth-boundary regression tests.
-
----
-
-## Previous update: Farming Requests lint warning fix
-
-### Why this update was made
-
-Frontend lint reported a `react-hooks/exhaustive-deps` warning in `web/src/tabs/FarmingRequestsTab.tsx` because the `useEffect` that reloads requests and orders referenced `load` without including it as a dependency.
-
-### What changed
-
-- Updated `FarmingRequestsTab.tsx` to import and use `useCallback`.
-- Wrapped `load` in `useCallback` with `scopeFilter`, `requestStatus`, and `orderStatus` as explicit dependencies.
-- Updated the reload effect to depend on `load` directly.
-
-### Security and operator impact
-
-- UI behavior should remain unchanged.
-- This is a frontend lint/quality fix only.
-- No route, backend behavior, auth behavior, inventory mutation, request/order model, or Player 360 behavior changed.
-
-### Validation
-
-Verified from the canonical local update path:
-
-```bash
-./update.sh
-```
-
-This cleared the reported `react-hooks/exhaustive-deps` warning.
