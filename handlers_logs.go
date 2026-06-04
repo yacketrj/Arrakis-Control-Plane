@@ -134,7 +134,10 @@ func redactCheatEntries(rows []cheatEntry) []cheatEntry {
 	out := make([]cheatEntry, len(rows))
 	copy(out, rows)
 	for i := range out {
-		out[i].Message = RedactSensitiveText(out[i].Message)
+		out[i].FLSID = RedactSensitiveText(out[i].FLSID)
+		out[i].CheatType = RedactSensitiveText(out[i].CheatType)
+		out[i].EventTime = RedactSensitiveText(out[i].EventTime)
+		out[i].CharacterName = RedactSensitiveText(out[i].CharacterName)
 	}
 	return out
 }
