@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -156,16 +157,37 @@ func parseAllowedOrigins(raw string) map[string]bool {
 	allowed := map[string]bool{}
 	for _, origin := range strings.Split(raw, ",") {
 		origin = strings.TrimSpace(origin)
-		if origin != "" {
+		if isAllowedOriginValue(origin) {
 			allowed[origin] = true
 		}
 	}
 	return allowed
 }
 
+func isAllowedOriginValue(origin string) bool {
+	if origin == "" || origin == "*" || strings.EqualFold(origin, "null") || containsUnsafeControl(origin) {
+		return false
+	}
+	parsed, err := url.Parse(origin)
+	if err != nil {
+		return false
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return false
+	}
+	if parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return false
+	}
+	path := strings.Trim(parsed.EscapedPath(), "/")
+	return path == ""
+}
+
 func originAllowed(origin string) bool {
 	if origin == "" {
 		return true
+	}
+	if !isAllowedOriginValue(origin) {
+		return false
 	}
 	if v := os.Getenv("ALLOWED_ORIGINS"); v != "" {
 		allowedOrigins = v
