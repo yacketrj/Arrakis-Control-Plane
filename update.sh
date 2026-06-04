@@ -25,6 +25,13 @@ UPDATE_SUCCEEDED=0
 AUTO_COMMIT_SHA=""
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
 
+COLOR_RESET=$'\033[0m'
+COLOR_DIM=$'\033[90m'
+COLOR_CYAN=$'\033[36m'
+COLOR_GREEN=$'\033[32m'
+COLOR_RED=$'\033[31m'
+COLOR_YELLOW=$'\033[33m'
+
 usage() {
   cat <<'EOF'
 Usage: ./update.sh [options]
@@ -84,14 +91,26 @@ REPO_ROOT="$(cd "$REPO_ROOT" && pwd -P)"
 WEB_ROOT="$REPO_ROOT/web"
 
 section() {
-  printf '\n\033[36m=== %s ===\033[0m\n' "$1"
+  printf '\n%s=== %s ===%s\n' "$COLOR_CYAN" "$1" "$COLOR_RESET"
+}
+
+colorize_output() {
+  sed -E \
+    -e "s/(^|[[:space:]])(=== RUN[[:space:]])/\1${COLOR_CYAN}\2${COLOR_RESET}/g" \
+    -e "s/(^|[[:space:]])(--- PASS:|PASS)([[:space:]]|$)/\1${COLOR_GREEN}\2${COLOR_RESET}\3/g" \
+    -e "s/(^|[[:space:]])(--- FAIL:|FAIL)([[:space:]]|$)/\1${COLOR_RED}\2${COLOR_RESET}\3/g" \
+    -e "s/(^|[[:space:]])(Update failed\.)([[:space:]]|$)/\1${COLOR_RED}\2${COLOR_RESET}\3/g"
 }
 
 run() {
-  printf '\033[90m>>> '
+  printf '%s>>> ' "$COLOR_DIM"
   printf '%q ' "$@"
-  printf '\033[0m\n'
-  "$@"
+  printf '%s\n' "$COLOR_RESET"
+  set +e
+  "$@" 2>&1 | colorize_output
+  local status=${PIPESTATUS[0]}
+  set -e
+  return "$status"
 }
 
 step() {
@@ -360,7 +379,7 @@ EOF
 on_error() {
   local exit_code=$?
   echo ""
-  echo "Update failed." >&2
+  printf '%sUpdate failed.%s\n' "$COLOR_RED" "$COLOR_RESET" >&2
   case "${BASH_COMMAND:-}" in
     *npm*|*node_modules*|*rm\ -rf*) show_npm_lock_help ;;
   esac
