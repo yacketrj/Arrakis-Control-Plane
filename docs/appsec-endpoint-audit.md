@@ -12,7 +12,7 @@ The audit covers public, Discord-session, admin-token, WebSocket, infrastructure
 |---|---|---|
 | Route inventory | In Progress | Initial inventory taken from `routes.go`. |
 | Auth boundary review | In Progress | Initial middleware review complete; `appsec_auth_boundary_test.go` covers public, self-service, Discord self-session, representative admin, and WebSocket-ticket boundaries. Generated full-route coverage remains a follow-up. |
-| Input validation review | In Progress | Full handler-by-handler review still required. |
+| Input validation review | In Progress | Database handler parameter bounds/control-character checks, numeric function OID validation, unsafe SQL rejection, and database output redaction are validated. Full handler-by-handler review still required. |
 | Mutation reason coverage | In Progress | High-risk/destructive classification, oversized-body reason-enforcement, audit metadata parsing, and colorized validation-output changes are validated. Full endpoint-by-endpoint audit-event assertion coverage still required. |
 | SAST | Pending | Run and record tool/version/result. |
 | DAST | Pending | Run and record tool/version/result. |
@@ -31,6 +31,9 @@ Initial static review used:
 - `mutation_safety.go`
 - `mutation_safety_handler.go`
 - `mutation_safety_test.go`
+- `handlers_database.go`
+- `handlers_database_test.go`
+- `docs/database-endpoint-security.md`
 - `appsec_auth_boundary_test.go`
 - existing roadmap and release-tracking documents
 
@@ -58,6 +61,7 @@ Security-relevant observed behavior:
   - `POST /api/v1/auth/discord/logout`
   - `/api/v1/self/*`
 - Mutation safety classification now treats reconnect, Battlegroup exec, database SQL, log stream ticket issuance, notify, direct item-row edits, inventory writes, player state edits, storage writes, and destructive reset/wipe/delete/import paths as high-risk or destructive as appropriate.
+- Database endpoint handlers now trim and bound query parameters, reject unsafe control characters, require numeric function OIDs, redact sampled/search rows, redact manual SQL output, and keep existing database row-limit guardrails.
 - Backend startup normalizes loopback listen addresses and fails closed for unsafe non-loopback exposure unless explicitly configured elsewhere.
 - Error responses are passed through sensitive-text redaction before being returned.
 
@@ -179,12 +183,12 @@ Security-relevant observed behavior:
 | Method | Path | Handler | Classification | Initial notes |
 |---|---|---|---|---|
 | GET | `/api/v1/database/tables` | `handleDBTables` | Admin/high risk | Schema exposure. |
-| GET | `/api/v1/database/describe` | `handleDBDescribe` | Admin/high risk | Schema exposure. Review identifier validation. |
-| GET | `/api/v1/database/sample` | `handleDBSample` | Admin/high risk | Data exposure. Review sampling limits/redaction. |
-| GET | `/api/v1/database/search` | `handleDBSearch` | Admin/high risk | Dynamic search. Review SQL injection and result limits. |
-| GET | `/api/v1/database/functions` | `handleDBFunctions` | Admin/high risk | Function metadata exposure. |
-| GET | `/api/v1/database/functions/inspect` | `handleDBFunctionInspect` | Admin/high risk | Function definition exposure. |
-| POST | `/api/v1/database/sql` | `handleDBSQL` | Admin mutation/high risk | Manual SQL runner. Mutation-safety classification now marks this high risk. Confirm read-only guard, dangerous keyword detection, reason/audit behavior, and timeout/result limits. |
+| GET | `/api/v1/database/describe` | `handleDBDescribe` | Admin/high risk | Schema exposure. Parameter is now bounded and control-character checked; command uses parameterized information-schema lookup. |
+| GET | `/api/v1/database/sample` | `handleDBSample` | Admin/high risk | Data exposure. Parameter is now bounded/control-character checked; limit clamps to 200; response rows are redacted. |
+| GET | `/api/v1/database/search` | `handleDBSearch` | Admin/high risk | Dynamic search. Term is now bounded/control-character checked; command uses parameterized search; response rows are redacted. |
+| GET | `/api/v1/database/functions` | `handleDBFunctions` | Admin/high risk | Function metadata exposure. Optional term/category parameters are bounded and control-character checked. |
+| GET | `/api/v1/database/functions/inspect` | `handleDBFunctionInspect` | Admin/high risk | Function definition exposure. OID is now bounded and numeric-only. |
+| POST | `/api/v1/database/sql` | `handleDBSQL` | Admin mutation/high risk | Manual SQL runner. SQL is trimmed before read-only validation, output is redacted, and existing single-statement/read-only/result-limit guardrails remain. SQL timeout review remains open. |
 
 ### Log endpoints
 
@@ -224,7 +228,7 @@ Security-relevant observed behavior:
 | ASEA-001 | High | Validated partial remediation | No generated endpoint inventory/auth-boundary regression test existed for the full `routes.go` surface. Initial regression coverage now exists for public allowlist behavior, self-service path classification, admin-only representative routes, and WebSocket-ticket denial. Generated full-route coverage remains an open hardening follow-up. | Expand `appsec_auth_boundary_test.go` to generated full-route coverage in a future pass. | `appsec_auth_boundary_test.go` added and validated clean through `./update.sh`. |
 | ASEA-002 | Medium | Validated remediation | Discord `me` and `logout` handlers supported session-cookie behavior, but middleware limited registered non-admin Discord sessions to `/api/v1/self/*`. | Added a narrow Discord self-session middleware route allowlist for `GET /api/v1/auth/discord/me` and `POST /api/v1/auth/discord/logout`; added regression tests to confirm normal Discord sessions can use those two routes but not admin routes. | `./update.sh` passed clean; build emitted non-blocking `[PLUGIN_TIMINGS]` warning for `@tailwindcss/vite:generate:build`. |
 | ASEA-003 | High | Validated partial remediation | High-risk mutation endpoints require endpoint-by-endpoint verification for `X-Admin-Reason`, audit logging, mutation-safety classification, request-size limits, and pre/post-change review behavior. Initial review found some high-risk mutation paths were under-classified as medium. | Tightened mutation-safety classification for reconnect, database SQL, log stream ticket issuance, notify, and direct item-row edits. Added high-risk/destructive route coverage tests and oversized-body reason-enforcement test. Fixed audit metadata JSON test payload and added colorized validation output for `RUN`, `PASS`, and `FAIL`. Full endpoint-by-endpoint audit-event assertion coverage remains required. | `./update.sh` passed clean after the audit metadata JSON fix and update-script color-output change. |
-| ASEA-004 | High | Open | Database search/manual SQL endpoints need dedicated SQL injection, read-only guard, timeout, result-limit, and redaction review. | Perform handler-specific review and add abuse-case tests for dangerous SQL, multi-statement attempts, identifier injection, and large result sets. | Pending. |
+| ASEA-004 | High | Validated partial remediation | Database search/manual SQL endpoints needed dedicated SQL injection, read-only guard, result-limit, and redaction review. Initial review confirmed parameterization/safe identifier quoting in key commands, then added handler-level parameter bounds, control-character checks, numeric OID validation, SQL trimming, and output redaction. | Added database handler security tests and `docs/database-endpoint-security.md`. SQL timeout review, expanded read-only bypass tests, live-data redaction review, and manual abuse-case validation remain open. | `./update.sh` passed clean after database handler hardening and tests. |
 | ASEA-005 | High | Open | Infrastructure command/log endpoints need dedicated command allowlist, target validation, ticket replay, TTL, and data-redaction review. | Review battlegroup exec, diagnostics, log pod list, stream-ticket, stream, and cheat-log handlers; add tests for invalid targets and replay attempts. | Pending. |
 | ASEA-006 | Medium | Open | CORS allows configured origins and `X-Admin-Token`/`X-Admin-Reason` headers. Browser-stored admin token remains JavaScript-readable per known issue. | Continue migration plan toward memory-only or HttpOnly secure session-cookie auth; document CSRF approach before cookie-based admin auth. | Pending. |
 
