@@ -38,18 +38,22 @@ func battlegroupHealthSpecs(namespace string) []battlegroupHealthSpec {
 }
 
 func handleBGStatus(w http.ResponseWriter, r *http.Request) {
+	if err := validateRuntimeCommandNamespace(); err != nil {
+		jsonErr(w, err, http.StatusBadRequest)
+		return
+	}
 	cmd := runtimeBGStatusCommand()
 	out, err := sshExec(cmd)
 	if err != nil {
-		jsonErr(w, fmt.Errorf("runtime %s status failed: %w — output: %s", normalizeRuntime(serverRuntime), err, out), 500)
+		jsonErr(w, fmt.Errorf("runtime %s status failed: %w — output: %s", normalizeRuntime(serverRuntime), err, RedactSensitiveText(out)), 500)
 		return
 	}
-	jsonOK(w, map[string]string{"output": out, "runtime": normalizeRuntime(serverRuntime)})
+	jsonOK(w, map[string]string{"output": RedactSensitiveText(out), "runtime": normalizeRuntime(serverRuntime)})
 }
 
 func handleBGHealth(w http.ResponseWriter, r *http.Request) {
-	if runtimeUsesKubernetesCommands() && !isValidK8sName(globalPodNS) {
-		jsonErr(w, fmt.Errorf("invalid namespace %q", globalPodNS), http.StatusBadRequest)
+	if err := validateRuntimeCommandNamespace(); err != nil {
+		jsonErr(w, err, http.StatusBadRequest)
 		return
 	}
 
@@ -65,9 +69,9 @@ func handleBGHealth(w http.ResponseWriter, r *http.Request) {
 			Command:     spec.Command,
 		}
 		out, err := sshExec(spec.Command)
-		section.Output = out
+		section.Output = RedactSensitiveText(out)
 		if err != nil {
-			section.Error = err.Error()
+			section.Error = RedactSensitiveText(err.Error())
 		}
 		response.Sections = append(response.Sections, section)
 	}
@@ -87,28 +91,66 @@ func handleBGExec(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, err, 400)
 		return
 	}
-	if !bgCmdAllowlist[req.Cmd] {
-		jsonErr(w, fmt.Errorf("unknown command %q", req.Cmd), 400)
-		return
-	}
-	out, err := sshExec(fmt.Sprintf("sudo ~/.dune/download/scripts/battlegroup.sh %s 2>&1", req.Cmd))
+	cmd, err := normalizeBattlegroupCommand(req.Cmd)
 	if err != nil {
-		jsonErr(w, fmt.Errorf("exec: %w — output: %s", err, out), 500)
+		jsonErr(w, err, 400)
 		return
 	}
-	jsonOK(w, map[string]string{"output": out})
+	out, err := sshExec(fmt.Sprintf("sudo ~/.dune/download/scripts/battlegroup.sh %s 2>&1", cmd))
+	if err != nil {
+		jsonErr(w, fmt.Errorf("exec: %w — output: %s", err, RedactSensitiveText(out)), 500)
+		return
+	}
+	jsonOK(w, map[string]string{"output": RedactSensitiveText(out)})
 }
 
 func handleBGPods(w http.ResponseWriter, r *http.Request) {
+	if err := validateRuntimeCommandNamespace(); err != nil {
+		jsonErr(w, err, http.StatusBadRequest)
+		return
+	}
 	cmd := runtimeBGPodsCommand()
 	out, err := sshExec(cmd)
 	if err != nil {
-		jsonErr(w, fmt.Errorf("runtime %s container/pod list failed: %w", normalizeRuntime(serverRuntime), err), 500)
+		jsonErr(w, fmt.Errorf("runtime %s container/pod list failed: %w — output: %s", normalizeRuntime(serverRuntime), err, RedactSensitiveText(out)), 500)
 		return
 	}
-	lines := strings.Split(strings.TrimSpace(out), "\n")
-	if len(lines) == 1 && lines[0] == "" {
-		lines = []string{}
-	}
+	lines := splitAndRedactLines(out)
 	jsonOK(w, map[string]any{"pods": lines, "namespace": globalPodNS, "runtime": normalizeRuntime(serverRuntime)})
+}
+
+func normalizeBattlegroupCommand(raw string) (string, error) {
+	cmd := strings.ToLower(strings.TrimSpace(raw))
+	if cmd == "" {
+		return "", fmt.Errorf("cmd required")
+	}
+	if containsUnsafeControl(cmd) {
+		return "", fmt.Errorf("cmd contains unsupported control characters")
+	}
+	if !bgCmdAllowlist[cmd] {
+		return "", fmt.Errorf("unknown command %q", sanitizedAuditString(cmd, 64))
+	}
+	return cmd, nil
+}
+
+func validateRuntimeCommandNamespace() error {
+	if runtimeUsesDockerCommands() {
+		return nil
+	}
+	if !isValidK8sName(globalPodNS) {
+		return fmt.Errorf("invalid namespace %q", sanitizedAuditString(globalPodNS, 128))
+	}
+	return nil
+}
+
+func splitAndRedactLines(s string) []string {
+	lines := strings.Split(strings.TrimSpace(s), "\n")
+	out := make([]string, 0, len(lines))
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			out = append(out, RedactSensitiveText(line))
+		}
+	}
+	return out
 }
