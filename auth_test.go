@@ -115,6 +115,89 @@ func TestOriginAllowed(t *testing.T) {
 	}
 }
 
+func TestAllowedOriginValueRejectsUnsafeOrigins(t *testing.T) {
+	invalid := []string{
+		"*",
+		"null",
+		"file://localhost",
+		"javascript:alert(1)",
+		"https://user:pass@example.com",
+		"https://example.com/path",
+		"https://example.com?x=1",
+		"https://example.com#frag",
+		"https://example.com\n",
+	}
+	for _, origin := range invalid {
+		if isAllowedOriginValue(origin) {
+			t.Fatalf("expected origin to be rejected: %q", origin)
+		}
+	}
+
+	valid := []string{"http://localhost:5173", "https://example.com", "https://example.com:8443"}
+	for _, origin := range valid {
+		if !isAllowedOriginValue(origin) {
+			t.Fatalf("expected origin to be accepted: %q", origin)
+		}
+	}
+}
+
+func TestParseAllowedOriginsIgnoresUnsafeValues(t *testing.T) {
+	allowed := parseAllowedOrigins("*,null,http://localhost:5173,https://example.com/path,https://admin.example")
+	if allowed["*"] || allowed["null"] || allowed["https://example.com/path"] {
+		t.Fatalf("unsafe origins should not be parsed as allowed: %#v", allowed)
+	}
+	if !allowed["http://localhost:5173"] || !allowed["https://admin.example"] {
+		t.Fatalf("expected safe origins to be allowed: %#v", allowed)
+	}
+}
+
+func TestCorsMiddlewareDoesNotReflectDisallowedOrigin(t *testing.T) {
+	old := allowedOrigins
+	allowedOrigins = "http://localhost:5173"
+	t.Cleanup(func() { allowedOrigins = old })
+
+	h := corsMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodOptions, "/api/v1/status", nil)
+	req.Header.Set("Origin", "https://evil.example")
+	res := httptest.NewRecorder()
+	h.ServeHTTP(res, req)
+
+	if res.Code != http.StatusNoContent {
+		t.Fatalf("expected preflight no-content, got %d", res.Code)
+	}
+	if got := res.Header().Get("Access-Control-Allow-Origin"); got != "" {
+		t.Fatalf("expected no reflected disallowed origin, got %q", got)
+	}
+}
+
+func TestCorsMiddlewareReflectsAllowedOrigin(t *testing.T) {
+	old := allowedOrigins
+	allowedOrigins = "http://localhost:5173"
+	t.Cleanup(func() { allowedOrigins = old })
+
+	h := corsMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodOptions, "/api/v1/status", nil)
+	req.Header.Set("Origin", "http://localhost:5173")
+	res := httptest.NewRecorder()
+	h.ServeHTTP(res, req)
+
+	if res.Code != http.StatusNoContent {
+		t.Fatalf("expected preflight no-content, got %d", res.Code)
+	}
+	if got := res.Header().Get("Access-Control-Allow-Origin"); got != "http://localhost:5173" {
+		t.Fatalf("expected reflected allowed origin, got %q", got)
+	}
+	if got := res.Header().Get("Vary"); got != "Origin" {
+		t.Fatalf("expected Vary Origin, got %q", got)
+	}
+}
+
 func TestK8sNameValidation(t *testing.T) {
 	valid := []string{"bgd-0", "funcom-operators", "pod123"}
 	invalid := []string{"", "PodUpper", "pod;rm-rf", "../pod", "pod name", "-bad", "bad-"}
