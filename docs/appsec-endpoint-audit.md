@@ -13,7 +13,7 @@ The audit covers public, Discord-session, admin-token, WebSocket, infrastructure
 | Route inventory | In Progress | Initial inventory taken from `routes.go`. |
 | Auth boundary review | In Progress | Initial middleware review complete; `appsec_auth_boundary_test.go` covers public, self-service, Discord self-session, representative admin, and WebSocket-ticket boundaries. Generated full-route coverage remains a follow-up. |
 | Input validation review | In Progress | Full handler-by-handler review still required. |
-| Mutation reason coverage | In Progress | Needs endpoint-by-endpoint confirmation. |
+| Mutation reason coverage | In Progress | High-risk/destructive classification and oversized-body reason-enforcement tests added. Full endpoint-by-endpoint audit-event assertion coverage still required. |
 | SAST | Pending | Run and record tool/version/result. |
 | DAST | Pending | Run and record tool/version/result. |
 | Dependency review | Pending | Run and record tool/version/result. |
@@ -27,6 +27,10 @@ Initial static review used:
 - `auth.go`
 - `server.go`
 - `discord_auth.go`
+- `audit_log.go`
+- `mutation_safety.go`
+- `mutation_safety_handler.go`
+- `mutation_safety_test.go`
 - `appsec_auth_boundary_test.go`
 - existing roadmap and release-tracking documents
 
@@ -53,6 +57,7 @@ Security-relevant observed behavior:
   - `GET /api/v1/auth/discord/me`
   - `POST /api/v1/auth/discord/logout`
   - `/api/v1/self/*`
+- Mutation safety classification now treats reconnect, Battlegroup exec, database SQL, log stream ticket issuance, notify, direct item-row edits, inventory writes, player state edits, storage writes, and destructive reset/wipe/delete/import paths as high-risk or destructive as appropriate.
 - Backend startup normalizes loopback listen addresses and fails closed for unsafe non-loopback exposure unless explicitly configured elsewhere.
 - Error responses are passed through sensitive-text redaction before being returned.
 
@@ -96,7 +101,7 @@ Security-relevant observed behavior:
 | Method | Path | Handler | Classification | Initial notes |
 |---|---|---|---|---|
 | GET | `/api/v1/status` | `handleStatus` | Admin | May expose runtime, DB, SSH, or tunnel status. Review redaction. |
-| POST | `/api/v1/reconnect` | `handleReconnect` | Admin mutation/high risk | Reopens DB/SSH/tunnels. Needs audit/reason review and abuse-case coverage. |
+| POST | `/api/v1/reconnect` | `handleReconnect` | Admin mutation/high risk | Reopens DB/SSH/tunnels. Mutation-safety classification now marks this high risk. |
 | GET | `/api/v1/connectivity/diagnostics` | `handleConnectivityDiagnostics` | Admin/high risk | Review host, port, username, and secret redaction. |
 | GET | `/api/v1/diagnostics/export` | `handleDiagnosticExport` | Admin/high risk | Review raw vs redacted content and external-sharing warnings. |
 | GET | `/api/v1/audit/events` | `handleAdminAuditEvents` | Admin | Audit log review endpoint. Review pagination, filtering, and data exposure. |
@@ -108,7 +113,7 @@ Security-relevant observed behavior:
 |---|---|---|---|---|
 | GET | `/api/v1/battlegroup/status` | `handleBGStatus` | Admin/high risk | Infrastructure status exposure. Review redaction. |
 | GET | `/api/v1/battlegroup/health` | `handleBGHealth` | Admin/high risk | Kubernetes diagnostic exposure. Review fixed-command constraints and redaction. |
-| POST | `/api/v1/battlegroup/exec` | `handleBGExec` | Admin mutation/high risk | Server-control command path. Must require confirmation, reason, audit, allowlist. |
+| POST | `/api/v1/battlegroup/exec` | `handleBGExec` | Admin mutation/high risk | Server-control command path. Requires confirmation, reason, audit, allowlist. |
 | GET | `/api/v1/battlegroup/pods` | `handleBGPods` | Admin/high risk | Pod metadata exposure. Review namespace and name validation. |
 
 ### Player read endpoints
@@ -136,7 +141,7 @@ Security-relevant observed behavior:
 | Method | Path | Handler | Classification | Initial notes |
 |---|---|---|---|---|
 | POST | `/api/v1/players/templates/refresh` | `handleRefreshTemplates` | Admin mutation | Refreshes template cache. Review audit/reason coverage. |
-| POST | `/api/v1/players/give-item` | `handleGiveItems` | Admin mutation/high risk | Direct inventory write. Must require reason/audit/validation. |
+| POST | `/api/v1/players/give-item` | `handleGiveItems` | Admin mutation/high risk | Direct inventory write. Requires reason/audit/validation. |
 | POST | `/api/v1/players/give-currency` | `handleGiveCurrency` | Admin mutation/high risk | Economy mutation. |
 | POST | `/api/v1/players/grant-live` | `handleGrantLive` | Admin mutation/high risk | Claim reward/live grant path. |
 | POST | `/api/v1/players/give-faction-rep` | `handleGiveFactionRep` | Admin mutation/high risk | Faction mutation. |
@@ -145,15 +150,15 @@ Security-relevant observed behavior:
 | POST | `/api/v1/players/award-char-xp` | `handleAwardCharXP` | Admin mutation/high risk | Character XP mutation. |
 | POST | `/api/v1/players/award-intel` | `handleAwardIntel` | Admin mutation/high risk | Intel mutation. |
 | POST | `/api/v1/players/kick` | `handleKick` | Admin mutation/high risk | Active session/player disruption. |
-| DELETE | `/api/v1/players/item/{id}` | `handleDeleteItem` | Admin mutation/high risk | Inventory deletion. |
-| POST | `/api/v1/players/item/stack-size` | `handleSetItemStackSize` | Admin mutation/high risk | Direct item stack-size update. New route requires validation. |
-| POST | `/api/v1/players/reset-spec` | `handleResetSpec` | Admin mutation/high risk | Progression mutation. |
+| DELETE | `/api/v1/players/item/{id}` | `handleDeleteItem` | Admin mutation/destructive | Inventory deletion. |
+| POST | `/api/v1/players/item/stack-size` | `handleSetItemStackSize` | Admin mutation/high risk | Direct item stack-size update. Mutation-safety classification now marks this high risk. |
+| POST | `/api/v1/players/reset-spec` | `handleResetSpec` | Admin mutation/destructive | Progression mutation. |
 | POST | `/api/v1/players/set-faction-tier` | `handleSetFactionTier` | Admin mutation/high risk | Faction mutation. |
 | POST | `/api/v1/players/journey/complete` | `handleJourneyComplete` | Admin mutation/high risk | Journey mutation. |
-| POST | `/api/v1/players/journey/reset` | `handleJourneyReset` | Admin mutation/high risk | Journey mutation. |
-| POST | `/api/v1/players/journey/wipe` | `handleJourneyWipe` | Admin mutation/high risk | Destructive journey mutation. |
-| POST | `/api/v1/players/delete-tutorials` | `handleDeleteTutorials` | Admin mutation/high risk | Destructive/tutorial state mutation. |
-| POST | `/api/v1/players/wipe-codex` | `handleWipeCodex` | Admin mutation/high risk | Destructive codex mutation. |
+| POST | `/api/v1/players/journey/reset` | `handleJourneyReset` | Admin mutation/destructive | Journey mutation. |
+| POST | `/api/v1/players/journey/wipe` | `handleJourneyWipe` | Admin mutation/destructive | Journey mutation. |
+| POST | `/api/v1/players/delete-tutorials` | `handleDeleteTutorials` | Admin mutation/destructive | Destructive/tutorial state mutation. |
+| POST | `/api/v1/players/wipe-codex` | `handleWipeCodex` | Admin mutation/destructive | Destructive codex mutation. |
 | POST | `/api/v1/players/set-spec-xp` | `handleSetSpecXP` | Admin mutation/high risk | Specialization XP mutation. |
 | POST | `/api/v1/players/repair-item` | `handleRepairItem` | Admin mutation/high risk | Inventory durability mutation. |
 | POST | `/api/v1/players/teleport` | `handleTeleportPlayer` | Admin mutation/high risk | Movement/rescue mutation. |
@@ -179,14 +184,14 @@ Security-relevant observed behavior:
 | GET | `/api/v1/database/search` | `handleDBSearch` | Admin/high risk | Dynamic search. Review SQL injection and result limits. |
 | GET | `/api/v1/database/functions` | `handleDBFunctions` | Admin/high risk | Function metadata exposure. |
 | GET | `/api/v1/database/functions/inspect` | `handleDBFunctionInspect` | Admin/high risk | Function definition exposure. |
-| POST | `/api/v1/database/sql` | `handleDBSQL` | Admin mutation/high risk | Manual SQL runner. Confirm read-only guard, dangerous keyword detection, reason/audit behavior, and timeout/result limits. |
+| POST | `/api/v1/database/sql` | `handleDBSQL` | Admin mutation/high risk | Manual SQL runner. Mutation-safety classification now marks this high risk. Confirm read-only guard, dangerous keyword detection, reason/audit behavior, and timeout/result limits. |
 
 ### Log endpoints
 
 | Method | Path | Handler | Classification | Initial notes |
 |---|---|---|---|---|
 | GET | `/api/v1/logs/pods` | `handleLogPods` | Admin/high risk | Pod/log target listing. Review target validation. |
-| POST | `/api/v1/logs/stream-ticket` | `handleIssueLogStreamTicket` | Admin mutation/high risk | Issues one-time scoped ticket. Review TTL, scope, replay, and audit behavior. |
+| POST | `/api/v1/logs/stream-ticket` | `handleIssueLogStreamTicket` | Admin mutation/high risk | Issues one-time scoped ticket. Mutation-safety classification now marks this high risk. Review TTL, scope, replay, and audit behavior. |
 | GET | `/api/v1/logs/stream` | `handleLogStream` | WebSocket ticket/high risk | Requires ticket on WebSocket upgrade. Review non-upgrade behavior. |
 | GET | `/api/v1/logs/cheats` | `handleGetCheatLog` | Admin/high risk | Sensitive log exposure. Review redaction and result limits. |
 
@@ -194,7 +199,7 @@ Security-relevant observed behavior:
 
 | Method | Path | Handler | Classification | Initial notes |
 |---|---|---|---|---|
-| POST | `/api/v1/notify` | `handleNotify` | Admin mutation/high risk | Broadcast/notification path. Review message validation, size limits, audit reason, and abuse cases. |
+| POST | `/api/v1/notify` | `handleNotify` | Admin mutation/high risk | Broadcast/notification path. Mutation-safety classification now marks this high risk. Review message validation, size limits, audit reason, and abuse cases. |
 
 ### Storage endpoints
 
@@ -210,7 +215,7 @@ Security-relevant observed behavior:
 |---|---|---|---|---|
 | GET | `/api/v1/blueprints` | `handleListBlueprints` | Admin | Blueprint metadata exposure. |
 | GET | `/api/v1/blueprints/{id}/export` | `handleExportBlueprint` | Admin/high risk | Blueprint export. Review output size and data exposure. |
-| POST | `/api/v1/blueprints/import` | `handleImportBlueprint` | Admin mutation/high risk | Import mutation. Requires confirmation, reason, payload limits, validation, audit review. |
+| POST | `/api/v1/blueprints/import` | `handleImportBlueprint` | Admin mutation/destructive | Import mutation. Requires confirmation, reason, payload limits, validation, audit review. |
 
 ## Initial findings and remediation backlog
 
@@ -218,7 +223,7 @@ Security-relevant observed behavior:
 |---|---|---|---|---|---|
 | ASEA-001 | High | Validated partial remediation | No generated endpoint inventory/auth-boundary regression test existed for the full `routes.go` surface. Initial regression coverage now exists for public allowlist behavior, self-service path classification, admin-only representative routes, and WebSocket-ticket denial. Generated full-route coverage remains an open hardening follow-up. | Expand `appsec_auth_boundary_test.go` to generated full-route coverage in a future pass. | `appsec_auth_boundary_test.go` added and validated clean through `./update.sh`. |
 | ASEA-002 | Medium | Validated remediation | Discord `me` and `logout` handlers supported session-cookie behavior, but middleware limited registered non-admin Discord sessions to `/api/v1/self/*`. | Added a narrow Discord self-session middleware route allowlist for `GET /api/v1/auth/discord/me` and `POST /api/v1/auth/discord/logout`; added regression tests to confirm normal Discord sessions can use those two routes but not admin routes. | `./update.sh` passed clean; build emitted non-blocking `[PLUGIN_TIMINGS]` warning for `@tailwindcss/vite:generate:build`. |
-| ASEA-003 | High | Open | High-risk mutation endpoints require endpoint-by-endpoint verification for `X-Admin-Reason`, audit logging, mutation-safety classification, request-size limits, and pre/post-change review behavior. | Create a mutation endpoint checklist and add automated tests for reason/audit coverage where feasible. | Pending. |
+| ASEA-003 | High | Partially remediated pending validation | High-risk mutation endpoints require endpoint-by-endpoint verification for `X-Admin-Reason`, audit logging, mutation-safety classification, request-size limits, and pre/post-change review behavior. Initial review found some high-risk mutation paths were under-classified as medium. | Tightened mutation-safety classification for reconnect, database SQL, log stream ticket issuance, notify, and direct item-row edits. Added high-risk/destructive route coverage tests and oversized-body reason-enforcement test. Full endpoint-by-endpoint audit-event assertion coverage remains required. | Local validation pending. |
 | ASEA-004 | High | Open | Database search/manual SQL endpoints need dedicated SQL injection, read-only guard, timeout, result-limit, and redaction review. | Perform handler-specific review and add abuse-case tests for dangerous SQL, multi-statement attempts, identifier injection, and large result sets. | Pending. |
 | ASEA-005 | High | Open | Infrastructure command/log endpoints need dedicated command allowlist, target validation, ticket replay, TTL, and data-redaction review. | Review battlegroup exec, diagnostics, log pod list, stream-ticket, stream, and cheat-log handlers; add tests for invalid targets and replay attempts. | Pending. |
 | ASEA-006 | Medium | Open | CORS allows configured origins and `X-Admin-Token`/`X-Admin-Reason` headers. Browser-stored admin token remains JavaScript-readable per known issue. | Continue migration plan toward memory-only or HttpOnly secure session-cookie auth; document CSRF approach before cookie-based admin auth. | Pending. |
