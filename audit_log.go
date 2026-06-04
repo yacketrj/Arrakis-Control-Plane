@@ -135,7 +135,12 @@ func mutationRiskForRequest(method, path string) string {
 		return "destructive"
 	}
 	highRiskMarkers := []string{
+		"/reconnect",
 		"/battlegroup/exec",
+		"/database/sql",
+		"/logs/stream-ticket",
+		"/notify",
+		"/players/item/",
 		"/give-item",
 		"/give-currency",
 		"/give-faction-rep",
