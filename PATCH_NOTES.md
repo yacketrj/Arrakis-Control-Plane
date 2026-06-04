@@ -6,6 +6,8 @@
 
 The AppSec endpoint audit item `ASEA-003` requires verification of high-risk mutation endpoints for admin reason handling, audit visibility, mutation-safety classification, request-size limits, and pre/post-change safety behavior. Initial review found several high-risk mutation routes were classified only as medium risk.
 
+A follow-up validation run also found an invalid JSON payload in `audit_log_test.go` that prevented the audit metadata reason from being parsed. The update script output was also improved so test status lines are easier to read during local validation.
+
 ### What changed
 
 - Tightened mutation-safety risk classification in `audit_log.go`.
@@ -19,24 +21,31 @@ The AppSec endpoint audit item `ASEA-003` requires verification of high-risk mut
 - Added regression coverage in `mutation_safety_test.go` for high-risk mutation paths.
 - Added regression coverage for destructive mutation paths.
 - Added an oversized-body reason-enforcement test for high-risk mutations when `ADMIN_REQUIRE_REASON=true`.
-- Updated `docs/appsec-endpoint-audit.md` so `ASEA-003` is partially remediated pending local validation.
+- Fixed `audit_log_test.go` so the audit metadata payload uses valid JSON with an escaped newline in the `reason` field.
+- Updated `update.sh` to colorize validation output:
+  - `=== RUN` in cyan
+  - `PASS` and `--- PASS:` in green
+  - `FAIL` and `--- FAIL:` in red
+  - `Update failed.` in red
+- Updated `docs/appsec-endpoint-audit.md` so `ASEA-003` is validated as partial remediation.
 
 ### Security and operator impact
 
 - High-risk routes now correctly require reason and preview metadata in mutation-safety classification.
 - When reason enforcement is enabled, these routes participate in `X-Admin-Reason` / body `reason` checks like other high-risk mutations.
+- Local validation output now makes failures more visually obvious; `FAIL` is red.
 - No new mutation route, UI workflow, game-state operation, or Player 360 mutation was added.
 - Full endpoint-by-endpoint audit-event assertion coverage is still required before `ASEA-003` can be closed.
 
 ### Validation
 
-Required from the canonical local update path:
+Verified from the canonical local update path:
 
 ```bash
 ./update.sh
 ```
 
-This should run the updated Go mutation-safety tests.
+This validated the updated Go mutation-safety and audit-log tests, including the corrected audit metadata JSON payload and the colored update output path.
 
 ---
 
