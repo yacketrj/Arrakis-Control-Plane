@@ -12,7 +12,7 @@ The audit covers public, Discord-session, admin-token, WebSocket, infrastructure
 |---|---|---|
 | Route inventory | In Progress | Initial inventory taken from `routes.go`. |
 | Auth boundary review | In Progress | Initial middleware review complete; `appsec_auth_boundary_test.go` covers public, self-service, Discord self-session, representative admin, and WebSocket-ticket boundaries. Generated full-route coverage remains a follow-up. |
-| Input validation review | In Progress | Database handler parameter bounds/control-character checks, numeric function OID validation, unsafe SQL rejection, and database output redaction are validated. Full handler-by-handler review still required. |
+| Input validation review | In Progress | Database handler parameter bounds/control-character checks, numeric function OID validation, unsafe SQL rejection, database output redaction, infrastructure namespace/command checks, log target checks, and log-ticket replay tests are in progress/validated by slice. Full handler-by-handler review still required. |
 | Mutation reason coverage | In Progress | High-risk/destructive classification, oversized-body reason-enforcement, audit metadata parsing, and colorized validation-output changes are validated. Full endpoint-by-endpoint audit-event assertion coverage still required. |
 | SAST | Pending | Run and record tool/version/result. |
 | DAST | Pending | Run and record tool/version/result. |
@@ -34,6 +34,12 @@ Initial static review used:
 - `handlers_database.go`
 - `handlers_database_test.go`
 - `docs/database-endpoint-security.md`
+- `handlers_battlegroup.go`
+- `handlers_logs.go`
+- `ws_ticket.go`
+- `runtime_commands.go`
+- `infrastructure_security_test.go`
+- `docs/infrastructure-log-endpoint-security.md`
 - `appsec_auth_boundary_test.go`
 - existing roadmap and release-tracking documents
 
@@ -62,6 +68,7 @@ Security-relevant observed behavior:
   - `/api/v1/self/*`
 - Mutation safety classification now treats reconnect, Battlegroup exec, database SQL, log stream ticket issuance, notify, direct item-row edits, inventory writes, player state edits, storage writes, and destructive reset/wipe/delete/import paths as high-risk or destructive as appropriate.
 - Database endpoint handlers now trim and bound query parameters, reject unsafe control characters, require numeric function OIDs, redact sampled/search rows, redact manual SQL output, and keep existing database row-limit guardrails.
+- Infrastructure/log handlers now normalize Battlegroup command input, enforce a static command allowlist, validate runtime namespace before Kubernetes command construction, redact returned runtime/log/cheat outputs, and test log-stream ticket single-use, wrong-target, and expiry behavior.
 - Backend startup normalizes loopback listen addresses and fails closed for unsafe non-loopback exposure unless explicitly configured elsewhere.
 - Error responses are passed through sensitive-text redaction before being returned.
 
@@ -115,10 +122,10 @@ Security-relevant observed behavior:
 
 | Method | Path | Handler | Classification | Initial notes |
 |---|---|---|---|---|
-| GET | `/api/v1/battlegroup/status` | `handleBGStatus` | Admin/high risk | Infrastructure status exposure. Review redaction. |
-| GET | `/api/v1/battlegroup/health` | `handleBGHealth` | Admin/high risk | Kubernetes diagnostic exposure. Review fixed-command constraints and redaction. |
-| POST | `/api/v1/battlegroup/exec` | `handleBGExec` | Admin mutation/high risk | Server-control command path. Requires confirmation, reason, audit, allowlist. |
-| GET | `/api/v1/battlegroup/pods` | `handleBGPods` | Admin/high risk | Pod metadata exposure. Review namespace and name validation. |
+| GET | `/api/v1/battlegroup/status` | `handleBGStatus` | Admin/high risk | Validates Kubernetes namespace before command construction and redacts command output. |
+| GET | `/api/v1/battlegroup/health` | `handleBGHealth` | Admin/high risk | Validates Kubernetes namespace before fixed health commands and redacts section output/errors. |
+| POST | `/api/v1/battlegroup/exec` | `handleBGExec` | Admin mutation/high risk | Server-control command path. Normalizes command input and enforces static allowlist. |
+| GET | `/api/v1/battlegroup/pods` | `handleBGPods` | Admin/high risk | Validates Kubernetes namespace before command construction and redacts returned lines. |
 
 ### Player read endpoints
 
@@ -194,10 +201,10 @@ Security-relevant observed behavior:
 
 | Method | Path | Handler | Classification | Initial notes |
 |---|---|---|---|---|
-| GET | `/api/v1/logs/pods` | `handleLogPods` | Admin/high risk | Pod/log target listing. Review target validation. |
-| POST | `/api/v1/logs/stream-ticket` | `handleIssueLogStreamTicket` | Admin mutation/high risk | Issues one-time scoped ticket. Mutation-safety classification now marks this high risk. Review TTL, scope, replay, and audit behavior. |
-| GET | `/api/v1/logs/stream` | `handleLogStream` | WebSocket ticket/high risk | Requires ticket on WebSocket upgrade. Review non-upgrade behavior. |
-| GET | `/api/v1/logs/cheats` | `handleGetCheatLog` | Admin/high risk | Sensitive log exposure. Review redaction and result limits. |
+| GET | `/api/v1/logs/pods` | `handleLogPods` | Admin/high risk | Validates runtime namespace/targets and redacts Docker display names. |
+| POST | `/api/v1/logs/stream-ticket` | `handleIssueLogStreamTicket` | Admin mutation/high risk | Issues scoped, one-time, 60-second tickets after target validation; regression tests cover replay, wrong target, expiry, and invalid targets. |
+| GET | `/api/v1/logs/stream` | `handleLogStream` | WebSocket ticket/high risk | Rejects legacy `ws_token`, validates target, and streams redacted log lines. |
+| GET | `/api/v1/logs/cheats` | `handleGetCheatLog` | Admin/high risk | Redacts returned cheat-log fields before returning rows. |
 
 ### Notification endpoint
 
@@ -229,7 +236,7 @@ Security-relevant observed behavior:
 | ASEA-002 | Medium | Validated remediation | Discord `me` and `logout` handlers supported session-cookie behavior, but middleware limited registered non-admin Discord sessions to `/api/v1/self/*`. | Added a narrow Discord self-session middleware route allowlist for `GET /api/v1/auth/discord/me` and `POST /api/v1/auth/discord/logout`; added regression tests to confirm normal Discord sessions can use those two routes but not admin routes. | `./update.sh` passed clean; build emitted non-blocking `[PLUGIN_TIMINGS]` warning for `@tailwindcss/vite:generate:build`. |
 | ASEA-003 | High | Validated partial remediation | High-risk mutation endpoints require endpoint-by-endpoint verification for `X-Admin-Reason`, audit logging, mutation-safety classification, request-size limits, and pre/post-change review behavior. Initial review found some high-risk mutation paths were under-classified as medium. | Tightened mutation-safety classification for reconnect, database SQL, log stream ticket issuance, notify, and direct item-row edits. Added high-risk/destructive route coverage tests and oversized-body reason-enforcement test. Fixed audit metadata JSON test payload and added colorized validation output for `RUN`, `PASS`, and `FAIL`. Full endpoint-by-endpoint audit-event assertion coverage remains required. | `./update.sh` passed clean after the audit metadata JSON fix and update-script color-output change. |
 | ASEA-004 | High | Validated partial remediation | Database search/manual SQL endpoints needed dedicated SQL injection, read-only guard, result-limit, and redaction review. Initial review confirmed parameterization/safe identifier quoting in key commands, then added handler-level parameter bounds, control-character checks, numeric OID validation, SQL trimming, and output redaction. | Added database handler security tests and `docs/database-endpoint-security.md`. SQL timeout review, expanded read-only bypass tests, live-data redaction review, and manual abuse-case validation remain open. | `./update.sh` passed clean after database handler hardening and tests. |
-| ASEA-005 | High | Open | Infrastructure command/log endpoints need dedicated command allowlist, target validation, ticket replay, TTL, and data-redaction review. | Review battlegroup exec, diagnostics, log pod list, stream-ticket, stream, and cheat-log handlers; add tests for invalid targets and replay attempts. | Pending. |
+| ASEA-005 | High | Partially remediated pending validation | Infrastructure command/log endpoints needed dedicated command allowlist, target validation, ticket replay, TTL, and data-redaction review. Initial review found namespace validation and output redaction should be applied more consistently across runtime command/log paths. | Added Battlegroup command normalization/allowlist checks, shared runtime namespace validation, infrastructure output redaction, cheat-log field redaction, log-ticket replay/wrong-target/expiry tests, and `docs/infrastructure-log-endpoint-security.md`. Handler-level SSH/database-stub tests, command timeout review, WebSocket origin review, live runtime/manual validation, and real-output redaction review remain open. | Local validation pending. |
 | ASEA-006 | Medium | Open | CORS allows configured origins and `X-Admin-Token`/`X-Admin-Reason` headers. Browser-stored admin token remains JavaScript-readable per known issue. | Continue migration plan toward memory-only or HttpOnly secure session-cookie auth; document CSRF approach before cookie-based admin auth. | Pending. |
 
 ## Manual abuse-case checklist
