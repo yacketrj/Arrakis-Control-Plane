@@ -1,6 +1,63 @@
 # Dune Admin Release Notes
 
-## Current update: Database endpoint security hardening
+## Current update: Infrastructure and log endpoint security hardening
+
+### Why this update was made
+
+The AppSec endpoint audit item `ASEA-005` requires review of infrastructure command and log endpoints for command allowlisting, runtime target validation, log-stream ticket replay/TTL behavior, and output redaction. Initial review found that namespace validation and output redaction should be applied more consistently across Battlegroup and log paths.
+
+### What changed
+
+- Hardened `handlers_battlegroup.go`:
+  - validates Kubernetes namespace before status, health, and pod command construction
+  - normalizes Battlegroup command input by trimming and lowercasing it
+  - rejects Battlegroup command control characters
+  - enforces the static Battlegroup command allowlist
+  - redacts status, health, exec, and pod-list output before returning it
+- Hardened `handlers_logs.go`:
+  - validates runtime namespace before log target discovery
+  - redacts Docker display names
+  - redacts log stream error and line output
+  - redacts returned cheat-log fields before returning rows
+- Added `infrastructure_security_test.go` covering:
+  - Battlegroup command normalization and strict allowlist behavior
+  - command control-character/metacharacter rejection
+  - Kubernetes namespace validation
+  - Docker runtime namespace bypass behavior
+  - split-and-redact line handling
+  - Docker/Kubernetes log target rejection for unsafe targets
+  - log-stream ticket single-use behavior
+  - log-stream ticket wrong-target behavior
+  - expired-ticket rejection
+  - invalid-target ticket issuance rejection
+  - cheat-log field redaction
+- Added `docs/infrastructure-log-endpoint-security.md` to capture the `ASEA-005` review state, guardrails, tests, and remaining work.
+- Updated `docs/appsec-endpoint-audit.md` so `ASEA-005` is partially remediated pending validation.
+
+### Security and operator impact
+
+- Infrastructure and log endpoints remain admin-only.
+- Battlegroup exec remains restricted to the static allowlist: `start`, `stop`, `restart`, `update`, `backup`, and `restore`.
+- Kubernetes namespace command interpolation is now guarded by shared validation.
+- Log-stream tickets remain one-time, scoped, and 60-second TTL limited.
+- Wrong-target ticket use consumes and rejects the ticket.
+- Returned remote output is redacted before reaching the browser.
+- No new infrastructure command, direct game-state mutation, Player 360 mutation, inventory mutation, or self-service log access was added.
+- `ASEA-005` remains partially remediated pending validation and further handler-level SSH/database-stub tests, command timeout review, WebSocket origin review, live runtime/manual validation, and real-output redaction review.
+
+### Validation
+
+Required from the canonical local update path:
+
+```bash
+./update.sh
+```
+
+This should run the new infrastructure/log security tests.
+
+---
+
+## Previous update: Database endpoint security hardening
 
 ### Why this update was made
 
@@ -99,46 +156,3 @@ Verified from the canonical local update path:
 ```
 
 This validated the updated Go mutation-safety and audit-log tests, including the corrected audit metadata JSON payload and the colored update output path.
-
----
-
-## Previous update: Discord self-session route remediation
-
-### Why this update was made
-
-The AppSec endpoint audit identified `ASEA-002`: the Discord `me` and `logout` handlers supported session-cookie behavior, but middleware allowed registered non-admin Discord sessions only through `/api/v1/self/*`. That meant normal Discord users could use self-service player-card routes but could not reliably inspect or clear their own auth session through the intended Discord session endpoints.
-
-### What changed
-
-- Added `isDiscordSelfSessionRoute` and `isSelfServiceRoute` middleware helpers.
-- Allowed registered non-admin Discord sessions to reach only:
-  - `GET /api/v1/auth/discord/me`
-  - `POST /api/v1/auth/discord/logout`
-  - `/api/v1/self/*`
-- Kept `GET /api/v1/auth/discord/users`, Discord player-link admin endpoints, player routes, database routes, infrastructure routes, and all admin mutation routes admin-only.
-- Added AppSec regression tests confirming normal Discord sessions can reach `me`, `logout`, and self-service routes but cannot reach representative admin routes.
-- Updated `docs/discord-auth.md` with the explicit normal-session route boundary.
-- Updated `docs/appsec-endpoint-audit.md` so `ASEA-002` is validated as remediated.
-
-### Security and operator impact
-
-- This is a narrow auth-boundary change for self-session behavior.
-- Normal Discord sessions can now inspect their own auth context and clear their own session cookie/session record.
-- Normal Discord sessions still cannot access admin review, player, database, infrastructure, or mutation routes.
-- No Player 360 mutation, inventory mutation, guild mutation, or direct game-state mutation was added.
-
-### Validation
-
-Verified from the canonical local update path:
-
-```bash
-./update.sh
-```
-
-The run was clean. It emitted this non-blocking build-performance warning:
-
-```text
-[PLUGIN_TIMINGS] Your build spent significant time in plugin `@tailwindcss/vite:generate:build`. See https://rolldown.rs/options/checks#plugintimings for more details.
-```
-
-This warning did not fail the validation gate.
