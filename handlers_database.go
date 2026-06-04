@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 )
+
+const maxDBQueryParamLength = 128
 
 func handleDBTables(w http.ResponseWriter, r *http.Request) {
 	msg, ok := cmdFetchTables().(msgTables)
@@ -28,9 +31,9 @@ func handleDBTables(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleDBDescribe(w http.ResponseWriter, r *http.Request) {
-	table := r.URL.Query().Get("table")
-	if table == "" {
-		jsonErr(w, fmt.Errorf("table required"), 400)
+	table, err := requiredDBQueryParam(r, "table")
+	if err != nil {
+		jsonErr(w, err, 400)
 		return
 	}
 	msg, ok := cmdDescribeTable(table)().(msgDescribe)
@@ -55,9 +58,9 @@ func handleDBDescribe(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleDBSample(w http.ResponseWriter, r *http.Request) {
-	table := r.URL.Query().Get("table")
-	if table == "" {
-		jsonErr(w, fmt.Errorf("table required"), 400)
+	table, err := requiredDBQueryParam(r, "table")
+	if err != nil {
+		jsonErr(w, err, 400)
 		return
 	}
 	limitStr := r.URL.Query().Get("limit")
@@ -80,14 +83,14 @@ func handleDBSample(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, map[string]any{
 		"table":   msg.table,
 		"headers": msg.headers,
-		"rows":    msg.rows,
+		"rows":    redactDBStringRows(msg.rows),
 	})
 }
 
 func handleDBSearch(w http.ResponseWriter, r *http.Request) {
-	term := r.URL.Query().Get("term")
-	if term == "" {
-		jsonErr(w, fmt.Errorf("term required"), 400)
+	term, err := requiredDBQueryParam(r, "term")
+	if err != nil {
+		jsonErr(w, err, 400)
 		return
 	}
 	msg, ok := cmdSearchColumns(term)().(msgSearchCols)
@@ -101,13 +104,21 @@ func handleDBSearch(w http.ResponseWriter, r *http.Request) {
 	}
 	jsonOK(w, map[string]any{
 		"headers": msg.headers,
-		"rows":    msg.rows,
+		"rows":    redactDBStringRows(msg.rows),
 	})
 }
 
 func handleDBFunctions(w http.ResponseWriter, r *http.Request) {
-	term := r.URL.Query().Get("term")
-	category := r.URL.Query().Get("category")
+	term, err := optionalDBQueryParam(r, "term")
+	if err != nil {
+		jsonErr(w, err, 400)
+		return
+	}
+	category, err := optionalDBQueryParam(r, "category")
+	if err != nil {
+		jsonErr(w, err, 400)
+		return
+	}
 	msg, ok := cmdFetchDBFunctions(term, category)().(msgDBFunctions)
 	if !ok {
 		jsonErr(w, fmt.Errorf("internal error"), 500)
@@ -125,9 +136,13 @@ func handleDBFunctions(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleDBFunctionInspect(w http.ResponseWriter, r *http.Request) {
-	oid := r.URL.Query().Get("oid")
-	if oid == "" {
-		jsonErr(w, fmt.Errorf("oid required"), 400)
+	oid, err := requiredDBQueryParam(r, "oid")
+	if err != nil {
+		jsonErr(w, err, 400)
+		return
+	}
+	if _, err := strconv.ParseInt(oid, 10, 64); err != nil {
+		jsonErr(w, fmt.Errorf("oid must be numeric"), 400)
 		return
 	}
 	msg, ok := cmdInspectDBFunction(oid)().(msgDBFunctionInspection)
@@ -151,6 +166,7 @@ func handleDBSQL(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, err, 400)
 		return
 	}
+	req.SQL = strings.TrimSpace(req.SQL)
 	if req.SQL == "" {
 		jsonErr(w, fmt.Errorf("sql required"), 400)
 		return
@@ -168,5 +184,44 @@ func handleDBSQL(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, msg.err, 500)
 		return
 	}
-	jsonOK(w, map[string]string{"result": msg.result})
+	jsonOK(w, map[string]string{"result": RedactSensitiveText(msg.result)})
+}
+
+func requiredDBQueryParam(r *http.Request, name string) (string, error) {
+	value, err := optionalDBQueryParam(r, name)
+	if err != nil {
+		return "", err
+	}
+	if value == "" {
+		return "", fmt.Errorf("%s required", name)
+	}
+	return value, nil
+}
+
+func optionalDBQueryParam(r *http.Request, name string) (string, error) {
+	value := strings.TrimSpace(r.URL.Query().Get(name))
+	if value == "" {
+		return "", nil
+	}
+	if len(value) > maxDBQueryParamLength {
+		return "", fmt.Errorf("%s is too long", name)
+	}
+	if containsUnsafeControl(value) {
+		return "", fmt.Errorf("%s contains unsupported control characters", name)
+	}
+	return value, nil
+}
+
+func redactDBStringRows(rows [][]string) [][]string {
+	if rows == nil {
+		return nil
+	}
+	out := make([][]string, len(rows))
+	for i, row := range rows {
+		out[i] = make([]string, len(row))
+		for j, value := range row {
+			out[i][j] = RedactSensitiveText(value)
+		}
+	}
+	return out
 }
