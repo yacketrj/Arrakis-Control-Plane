@@ -90,7 +90,8 @@ func TestAuditMiddlewareCapturesReasonAndTargetMetadata(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	body := `{"player_id":42,"account_id":77,"reason":" support grant\nverified by admin ","admin_token":"must-not-log"}`
+	body := `{"player_id":42,"account_id":77,"reason":" support grant
+verified by admin ","admin_token":"must-not-log"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/players/give-item", strings.NewReader(body))
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
@@ -179,7 +180,7 @@ func TestMutationRiskForExpandedHighRiskRoutes(t *testing.T) {
 		{http.MethodPost, "/api/v1/storage/42/give-item", "high"},
 		{http.MethodPost, "/api/v1/players/reset-spec", "destructive"},
 		{http.MethodPost, "/api/v1/blueprints/import", "destructive"},
-		{http.MethodPost, "/api/v1/database/sql", "medium"},
+		{http.MethodPost, "/api/v1/database/sql", "high"},
 	}
 
 	for _, tt := range tests {
