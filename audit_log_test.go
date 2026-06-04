@@ -90,8 +90,7 @@ func TestAuditMiddlewareCapturesReasonAndTargetMetadata(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	body := `{"player_id":42,"account_id":77,"reason":" support grant
-verified by admin ","admin_token":"must-not-log"}`
+	body := `{"player_id":42,"account_id":77,"reason":" support grant\nverified by admin ","admin_token":"must-not-log"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/players/give-item", strings.NewReader(body))
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
