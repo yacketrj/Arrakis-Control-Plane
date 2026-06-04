@@ -1,6 +1,58 @@
 # Dune Admin Release Notes
 
-## Current update: Mutation safety classification coverage
+## Current update: Database endpoint security hardening
+
+### Why this update was made
+
+The AppSec endpoint audit item `ASEA-004` requires review of database endpoints for SQL injection, read-only SQL enforcement, timeout/result-limit behavior, and redaction. Initial review found the main SQL paths already used parameterization or safe table quoting, but handler-level query parameter validation and response redaction needed stronger durable coverage.
+
+### What changed
+
+- Hardened `handlers_database.go` database endpoint inputs:
+  - trims database query parameters
+  - rejects overlong database query parameters above 128 characters
+  - rejects unsafe control characters in database query parameters
+  - requires numeric `oid` for function inspection
+  - trims submitted manual SQL before validation
+- Redacts sampled/search database rows before returning them.
+- Redacts manual SQL output before returning it.
+- Preserves existing sample/manual SQL row limits:
+  - sample endpoint clamps to 200 rows
+  - manual SQL output remains capped at 200 rows in `cmdRunSQL`
+- Added `handlers_database_test.go` covering:
+  - overlong database query parameters
+  - unsafe control-character parameters
+  - trimmed parameter behavior
+  - database row redaction helper behavior
+  - non-numeric function OID rejection
+  - unsafe SQL rejection before database use
+  - trimmed unsafe SQL rejection
+  - blank SQL rejection
+  - overlong search-term rejection before database use
+  - redacted SQL response payload shape
+- Added `docs/database-endpoint-security.md` to capture the `ASEA-004` review state, guardrails, tests, and remaining work.
+
+### Security and operator impact
+
+- Database routes remain admin-only.
+- Manual SQL remains restricted to single-statement read-only SQL by `isReadOnlySQL`.
+- Returned sampled/search rows and manual SQL text now pass through `RedactSensitiveText` before reaching the browser.
+- No database mutation capability, new admin route, Player 360 mutation, inventory mutation, or self-service database access was added.
+- `ASEA-004` remains partially remediated pending validation and further timeout/manual abuse-case review.
+
+### Validation
+
+Required from the canonical local update path:
+
+```bash
+./update.sh
+```
+
+This should run the new database handler security tests.
+
+---
+
+## Previous update: Mutation safety classification coverage
 
 ### Why this update was made
 
@@ -89,38 +141,3 @@ The run was clean. It emitted this non-blocking build-performance warning:
 ```
 
 This warning did not fail the validation gate.
-
----
-
-## Previous update: AppSec auth boundary regression tests
-
-### Why this update was made
-
-The AppSec endpoint audit identified `ASEA-001`: route and auth-boundary expectations were documented, but representative automated regression tests were missing for public, self-service, admin-only, and WebSocket-ticket boundaries.
-
-### What changed
-
-- Added `appsec_auth_boundary_test.go`.
-- Added tests for the public path allowlist.
-- Added tests for self-service path classification.
-- Added tests confirming public routes bypass backend admin-token validation.
-- Added tests confirming representative admin routes reject missing tokens and accept a valid strict admin token.
-- Added tests confirming self-service routes are denied without a Discord session or admin token.
-- Added tests confirming WebSocket log-stream upgrades require a one-time ticket before admin-token fallback.
-- Updated `docs/appsec-endpoint-audit.md` so `ASEA-001` is marked as validated partial remediation.
-
-### Security and operator impact
-
-- Test/documentation change only. No route behavior, auth behavior, endpoint implementation, UI behavior, or data mutation behavior changed.
-- This reduces regression risk around public route allowlisting, protected route enforcement, self-service boundaries, and log-stream ticket handling.
-- `ASEA-001` is validated as partial remediation; generated full-route auth-boundary coverage remains a future hardening step.
-
-### Validation
-
-Verified from the canonical local update path:
-
-```bash
-./update.sh
-```
-
-This validated the new Go auth-boundary regression tests.
