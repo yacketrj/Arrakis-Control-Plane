@@ -32,7 +32,7 @@ The AppSec endpoint audit item `ASEA-005` requires review of infrastructure comm
   - invalid-target ticket issuance rejection
   - cheat-log field redaction
 - Added `docs/infrastructure-log-endpoint-security.md` to capture the `ASEA-005` review state, guardrails, tests, and remaining work.
-- Updated `docs/appsec-endpoint-audit.md` so `ASEA-005` is partially remediated pending validation.
+- Updated `docs/appsec-endpoint-audit.md` so `ASEA-005` is validated as partial remediation.
 
 ### Security and operator impact
 
@@ -43,17 +43,17 @@ The AppSec endpoint audit item `ASEA-005` requires review of infrastructure comm
 - Wrong-target ticket use consumes and rejects the ticket.
 - Returned remote output is redacted before reaching the browser.
 - No new infrastructure command, direct game-state mutation, Player 360 mutation, inventory mutation, or self-service log access was added.
-- `ASEA-005` remains partially remediated pending validation and further handler-level SSH/database-stub tests, command timeout review, WebSocket origin review, live runtime/manual validation, and real-output redaction review.
+- `ASEA-005` is validated as partial remediation; further handler-level SSH/database-stub tests, command timeout review, WebSocket origin review, live runtime/manual validation, and real-output redaction review remain open.
 
 ### Validation
 
-Required from the canonical local update path:
+Verified from the canonical local update path:
 
 ```bash
 ./update.sh
 ```
 
-This should run the new infrastructure/log security tests.
+This validated the new infrastructure/log security tests and infrastructure/log endpoint hardening changes.
 
 ---
 
