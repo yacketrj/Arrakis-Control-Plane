@@ -8,6 +8,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Added
 
+- Added `handlers_database_test.go` with database handler security coverage for bounded query parameters, control-character rejection, numeric function OID validation, unsafe SQL rejection, and redacted SQL/database result shape.
+- Added `docs/database-endpoint-security.md` with the `ASEA-004` database endpoint security review state, current guardrails, added tests, and remaining work.
 - Added AppSec Discord self-session route regression tests for normal Discord access to `me`, `logout`, and `/self/*` plus denial from representative admin routes.
 - Added `appsec_auth_boundary_test.go` with AppSec auth-boundary regression coverage for public allowlist, self-service classification, representative admin-only routes, and WebSocket-ticket enforcement.
 - Added initial `docs/appsec-endpoint-audit.md` with route inventory, auth-boundary summary, findings, remediation backlog, and manual abuse-case checklist.
@@ -110,6 +112,12 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Updated `docs/appsec-endpoint-audit.md` so `ASEA-004` is validated as partial remediation after database endpoint hardening and clean local validation.
+- Updated `PATCH_NOTES.md` with validated database endpoint security hardening status.
+- Updated database endpoint handlers to trim and bound query parameters, reject unsafe controls, require numeric function OIDs, trim manual SQL before validation, and redact sampled/search/manual SQL output.
+- Updated `update.sh` to colorize validation output for `RUN`, `PASS`, `FAIL`, and `Update failed.` status lines.
+- Updated `docs/appsec-endpoint-audit.md` so `ASEA-003` is validated as partial remediation after mutation-safety classification, audit metadata JSON, and colored-output validation.
+- Updated `PATCH_NOTES.md` with validated mutation-safety classification and colored update-output status.
 - Updated `docs/appsec-endpoint-audit.md` so `ASEA-002` is validated as remediated after clean local validation with a non-blocking Tailwind/Rolldown plugin timing warning.
 - Updated `PATCH_NOTES.md` with validated Discord self-session route remediation status and the non-blocking plugin timing warning.
 - Updated `docs/appsec-endpoint-audit.md` so `ASEA-001` is validated as partial remediation after clean local validation.
@@ -195,6 +203,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Fixed
 
+- Fixed `audit_log_test.go` so the audit metadata payload uses valid JSON while still testing newline sanitization.
 - Fixed Farming Requests tab `react-hooks/exhaustive-deps` warning by stabilizing `load` with `useCallback` and depending on `load` in the reload effect.
 - Fixed Discord Links tab type usage by importing `CSSProperties` directly from React.
 - Fixed Discord-player link text validation so raw control characters are rejected before trimming.
@@ -226,6 +235,10 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Security
 
+- Hardened database endpoints with bounded/control-character checked query parameters, numeric function OID validation, manual SQL trimming, and redaction for sampled/search/manual SQL output.
+- Validated `ASEA-004` as partial remediation through clean local `./update.sh` validation; SQL timeout review, expanded read-only bypass tests, live-data redaction review, and manual abuse-case validation remain open.
+- Tightened high-risk mutation classification for reconnect, database SQL, log stream ticket issuance, notify, and direct item-row edits.
+- Validated `ASEA-003` as partial remediation through clean local `./update.sh` validation; full endpoint-by-endpoint audit-event assertion coverage remains open.
 - Allowed registered non-admin Discord sessions to access only `GET /api/v1/auth/discord/me`, `POST /api/v1/auth/discord/logout`, and `/api/v1/self/*`; all admin review, player, database, infrastructure, and mutation routes remain admin-only.
 - Validated `ASEA-002` as remediated through clean local `./update.sh` validation; the build emitted a non-blocking Tailwind/Rolldown plugin timing warning.
 - Added AppSec auth-boundary regression tests for public route allowlisting, self-service path classification, representative admin-only routes, and WebSocket-ticket denial.
@@ -285,6 +298,10 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Validation
 
+- Validated database endpoint security hardening from the canonical local update path:
+  - `./update.sh`
+- Validated mutation-safety classification coverage, audit metadata JSON fix, and colored update output from the canonical local update path:
+  - `./update.sh`
 - Validated Discord self-session route remediation from the canonical local update path:
   - `./update.sh`
   - Non-blocking build-performance warning observed: `[PLUGIN_TIMINGS] Your build spent significant time in plugin @tailwindcss/vite:generate:build`.
