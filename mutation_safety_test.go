@@ -55,6 +55,52 @@ func TestMutationSafetyStorage(t *testing.T) {
 	}
 }
 
+func TestMutationSafetyHighRiskCoverage(t *testing.T) {
+	tests := []struct {
+		method string
+		path   string
+	}{
+		{http.MethodPost, "/api/v1/reconnect"},
+		{http.MethodPost, "/api/v1/battlegroup/exec"},
+		{http.MethodPost, "/api/v1/database/sql"},
+		{http.MethodPost, "/api/v1/logs/stream-ticket"},
+		{http.MethodPost, "/api/v1/notify"},
+		{http.MethodPost, "/api/v1/players/item/stack-size"},
+		{http.MethodPost, "/api/v1/players/repair-item"},
+		{http.MethodPost, "/api/v1/players/teleport"},
+		{http.MethodPost, "/api/v1/players/journey/complete"},
+		{http.MethodPost, "/api/v1/players/set-spec-xp"},
+		{http.MethodPost, "/api/v1/storage/123/give-item"},
+	}
+	for _, tc := range tests {
+		got := mutationSafetyForPath(tc.method, tc.path)
+		if got.Risk != "high" || !got.RequiresReason || !got.RequiresPreview || got.Destructive {
+			t.Fatalf("%s %s: expected high risk requiring reason/preview, got %#v", tc.method, tc.path, got)
+		}
+	}
+}
+
+func TestMutationSafetyDestructiveCoverage(t *testing.T) {
+	tests := []struct {
+		method string
+		path   string
+	}{
+		{http.MethodDelete, "/api/v1/auth/discord/player-links/123"},
+		{http.MethodDelete, "/api/v1/players/item/99"},
+		{http.MethodPost, "/api/v1/players/journey/reset"},
+		{http.MethodPost, "/api/v1/players/journey/wipe"},
+		{http.MethodPost, "/api/v1/players/delete-tutorials"},
+		{http.MethodPost, "/api/v1/players/wipe-codex"},
+		{http.MethodPost, "/api/v1/blueprints/import"},
+	}
+	for _, tc := range tests {
+		got := mutationSafetyForPath(tc.method, tc.path)
+		if got.Risk != "destructive" || !got.Destructive || !got.RequiresReason || !got.RequiresPreview {
+			t.Fatalf("%s %s: expected destructive risk requiring reason/preview, got %#v", tc.method, tc.path, got)
+		}
+	}
+}
+
 func TestMutationSafetyReasonEnforcementFlag(t *testing.T) {
 	t.Setenv("ADMIN_REQUIRE_REASON", "true")
 	got := mutationSafetyForPath(http.MethodPost, "/api/v1/players/give-item")
@@ -165,5 +211,22 @@ func TestMutationSafetyMiddlewareAcceptsBodyReasonWhenEnabled(t *testing.T) {
 	}
 	if bodyAfterMiddleware["player_id"].(float64) != 1 {
 		t.Fatalf("request body was not restored after middleware: %#v", bodyAfterMiddleware)
+	}
+}
+
+func TestMutationSafetyMiddlewareRejectsOversizedInspectableBodyWhenReasonRequired(t *testing.T) {
+	t.Setenv("ADMIN_REQUIRE_REASON", "true")
+	handler := mutationSafetyMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	body := strings.NewReader(strings.Repeat("a", int(maxAuditInspectableBodyBytes)+1))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/players/give-item", body)
+	req.ContentLength = maxAuditInspectableBodyBytes + 1
+	res := httptest.NewRecorder()
+	handler.ServeHTTP(res, req)
+
+	if res.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for oversized body when reason inspection is required, got %d", res.Code)
 	}
 }
