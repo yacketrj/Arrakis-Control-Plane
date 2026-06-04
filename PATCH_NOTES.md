@@ -31,6 +31,7 @@ The AppSec endpoint audit item `ASEA-004` requires review of database endpoints 
   - overlong search-term rejection before database use
   - redacted SQL response payload shape
 - Added `docs/database-endpoint-security.md` to capture the `ASEA-004` review state, guardrails, tests, and remaining work.
+- Updated `docs/appsec-endpoint-audit.md` so `ASEA-004` is validated as partial remediation.
 
 ### Security and operator impact
 
@@ -38,17 +39,17 @@ The AppSec endpoint audit item `ASEA-004` requires review of database endpoints 
 - Manual SQL remains restricted to single-statement read-only SQL by `isReadOnlySQL`.
 - Returned sampled/search rows and manual SQL text now pass through `RedactSensitiveText` before reaching the browser.
 - No database mutation capability, new admin route, Player 360 mutation, inventory mutation, or self-service database access was added.
-- `ASEA-004` remains partially remediated pending validation and further timeout/manual abuse-case review.
+- `ASEA-004` is validated as partial remediation; SQL timeout/manual abuse-case review remains open.
 
 ### Validation
 
-Required from the canonical local update path:
+Verified from the canonical local update path:
 
 ```bash
 ./update.sh
 ```
 
-This should run the new database handler security tests.
+This validated the new database handler security tests and database endpoint hardening changes.
 
 ---
 
