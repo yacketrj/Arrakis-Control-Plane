@@ -18,8 +18,9 @@ The AppSec endpoint audit identified generated full-route auth-boundary coverage
   - a self-service route is not denied without auth, allowed with admin token, and allowed with a normal registered Discord session
   - an admin route is not denied without auth, allowed with admin token, and denied to a normal registered Discord session
   - the WebSocket log-stream upgrade path does not require a one-time ticket before admin-token fallback
+- Fixed the route-inventory test helper name from `containsString` to `appsecContainsString` to avoid colliding with the existing production helper in `db_functions.go`.
 - Added `docs/generated-route-auth-boundary-coverage.md` to document the route-inventory/auth-boundary coverage model.
-- Updated `docs/appsec-endpoint-audit.md` so `ASEA-001` generated full-route coverage is pending local validation.
+- Updated `docs/appsec-endpoint-audit.md` so `ASEA-001` generated full-route coverage is validated as partial remediation.
 
 ### Security and operator impact
 
@@ -31,13 +32,13 @@ The AppSec endpoint audit identified generated full-route auth-boundary coverage
 
 ### Validation
 
-Required from the canonical local update path:
+Verified from the canonical local update path:
 
 ```bash
 ./update.sh
 ```
 
-This should run the generated route inventory/auth-boundary coverage test.
+This validated the generated route inventory/auth-boundary coverage test after the test-helper rename fix.
 
 ---
 
