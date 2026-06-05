@@ -1,6 +1,47 @@
 # Dune Admin Release Notes
 
-## Current update: Browser token and CORS security hardening
+## Current update: Generated route auth-boundary coverage
+
+### Why this update was made
+
+The AppSec endpoint audit identified generated full-route auth-boundary coverage as an open follow-up under `ASEA-001`. Representative auth-boundary tests existed, but new routes could still be added to `routes.go` without an explicit AppSec exposure expectation.
+
+### What changed
+
+- Added `appsec_route_inventory_test.go`.
+- The new test parses `routes.go` using Go's AST parser and extracts every registered `mux.HandleFunc("METHOD /path", handler)` route.
+- Every registered route must now have an explicit auth-boundary expectation in `appsecExpectedRouteAuth`.
+- The test fails if:
+  - a registered route has no auth-boundary expectation
+  - an expectation references a route no longer registered in `routes.go`
+  - a public route does not bypass auth as expected
+  - a self-service route is not denied without auth, allowed with admin token, and allowed with a normal registered Discord session
+  - an admin route is not denied without auth, allowed with admin token, and denied to a normal registered Discord session
+  - the WebSocket log-stream upgrade path does not require a one-time ticket before admin-token fallback
+- Added `docs/generated-route-auth-boundary-coverage.md` to document the route-inventory/auth-boundary coverage model.
+- Updated `docs/appsec-endpoint-audit.md` so `ASEA-001` generated full-route coverage is pending local validation.
+
+### Security and operator impact
+
+- No route behavior changed.
+- No new route was added.
+- No mutation path was added.
+- Player 360 remains read-only.
+- Future route additions now fail local validation until their auth-boundary expectation is explicitly reviewed and added.
+
+### Validation
+
+Required from the canonical local update path:
+
+```bash
+./update.sh
+```
+
+This should run the generated route inventory/auth-boundary coverage test.
+
+---
+
+## Previous update: Browser token and CORS security hardening
 
 ### Why this update was made
 
