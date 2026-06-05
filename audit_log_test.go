@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -234,6 +235,100 @@ func TestAuditMiddlewareWritesRedactedEvent(t *testing.T) {
 	}
 	if itemID := event.Target["item_id"]; strings.Contains(itemID, "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG") || !strings.Contains(itemID, "[REDACTED]") {
 		t.Fatalf("expected redacted item target, got %q", itemID)
+	}
+}
+
+func TestAuditMiddlewareHighRiskAndDestructiveRouteCoverage(t *testing.T) {
+	tests := []struct {
+		method string
+		path   string
+	}{
+		{http.MethodDelete, "/api/v1/auth/discord/player-links/discord-123"},
+		{http.MethodPost, "/api/v1/reconnect"},
+		{http.MethodPost, "/api/v1/battlegroup/exec"},
+		{http.MethodPost, "/api/v1/players/give-item"},
+		{http.MethodPost, "/api/v1/players/give-currency"},
+		{http.MethodPost, "/api/v1/players/grant-live"},
+		{http.MethodPost, "/api/v1/players/give-faction-rep"},
+		{http.MethodPost, "/api/v1/players/give-scrip"},
+		{http.MethodPost, "/api/v1/players/award-xp"},
+		{http.MethodPost, "/api/v1/players/award-char-xp"},
+		{http.MethodPost, "/api/v1/players/award-intel"},
+		{http.MethodPost, "/api/v1/players/kick"},
+		{http.MethodDelete, "/api/v1/players/item/123"},
+		{http.MethodPost, "/api/v1/players/item/stack-size"},
+		{http.MethodPost, "/api/v1/players/reset-spec"},
+		{http.MethodPost, "/api/v1/players/set-faction-tier"},
+		{http.MethodPost, "/api/v1/players/journey/complete"},
+		{http.MethodPost, "/api/v1/players/journey/reset"},
+		{http.MethodPost, "/api/v1/players/journey/wipe"},
+		{http.MethodPost, "/api/v1/players/delete-tutorials"},
+		{http.MethodPost, "/api/v1/players/wipe-codex"},
+		{http.MethodPost, "/api/v1/players/set-spec-xp"},
+		{http.MethodPost, "/api/v1/players/repair-item"},
+		{http.MethodPost, "/api/v1/players/teleport"},
+		{http.MethodPost, "/api/v1/storage/123/give-item"},
+		{http.MethodPost, "/api/v1/database/sql"},
+		{http.MethodPost, "/api/v1/logs/stream-ticket"},
+		{http.MethodPost, "/api/v1/notify"},
+		{http.MethodPost, "/api/v1/blueprints/import"},
+	}
+
+	for i, tc := range tests {
+		t.Run(fmt.Sprintf("%s %s", tc.method, tc.path), func(t *testing.T) {
+			auditPath := filepath.Join(t.TempDir(), "audit.jsonl")
+			t.Setenv("ADMIN_AUDIT_LOG", auditPath)
+			safety := mutationSafetyForPath(tc.method, tc.path)
+			if safety.Risk != "high" && safety.Risk != "destructive" {
+				t.Fatalf("test route must be high/destructive, got %#v", safety)
+			}
+
+			handler := auditMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusAccepted)
+			}))
+			body := strings.NewReader(`{"reason":"audit coverage","player_id":123,"account_id":77,"item_id":456,"storage_id":789,"pod":"pod-1","cmd":"restart"}`)
+			req := httptest.NewRequest(tc.method, tc.path, body)
+			req.Header.Set("X-Request-ID", fmt.Sprintf("audit-route-%02d", i))
+			res := httptest.NewRecorder()
+
+			handler.ServeHTTP(res, req)
+			if res.Code != http.StatusAccepted {
+				t.Fatalf("expected 202, got %d", res.Code)
+			}
+
+			events, err := readAdminAuditEvents(10)
+			if err != nil {
+				t.Fatalf("read audit events: %v", err)
+			}
+			if len(events) != 1 {
+				t.Fatalf("expected 1 audit event, got %d", len(events))
+			}
+			event := events[0]
+			if event.Method != tc.method || event.Path != tc.path {
+				t.Fatalf("unexpected method/path: %#v", event)
+			}
+			if event.Action != safety.Action {
+				t.Fatalf("expected action %q, got %q", safety.Action, event.Action)
+			}
+			if event.Risk != safety.Risk || event.Destructive != safety.Destructive {
+				t.Fatalf("unexpected risk/destructive: got %#v want %#v", event, safety)
+			}
+			if event.RequiresReason != safety.RequiresReason || event.RequiresPreview != safety.RequiresPreview {
+				t.Fatalf("unexpected reason/preview flags: got %#v want %#v", event, safety)
+			}
+			if event.Result != "success" || event.Status != http.StatusAccepted {
+				t.Fatalf("unexpected status/result: %#v", event)
+			}
+			if event.Reason != "audit coverage" {
+				t.Fatalf("unexpected reason: %q", event.Reason)
+			}
+			if event.Target["player_id"] != "123" || event.Target["account_id"] != "77" || event.Target["item_id"] != "456" {
+				t.Fatalf("expected common target metadata, got %#v", event.Target)
+			}
+			if event.RequestID == "" {
+				t.Fatalf("expected request id in audit event: %#v", event)
+			}
+		})
 	}
 }
 
