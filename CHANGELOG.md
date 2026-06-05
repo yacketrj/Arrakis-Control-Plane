@@ -8,6 +8,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Added
 
+- Added generated full-route auth-boundary coverage in `appsec_route_inventory_test.go` that parses `routes.go`, requires every registered route to have an explicit auth-boundary expectation, and verifies public, self-service, admin, and WebSocket-ticket enforcement through middleware.
+- Added `docs/generated-route-auth-boundary-coverage.md` with the generated route inventory/auth-boundary coverage model, auth classes, security impact, and validation expectations.
 - Added CORS/origin regression tests in `auth_test.go` for strict allowed-origin parsing, unsafe origin rejection, mixed safe/unsafe origin parsing, allowed/disallowed preflight behavior, and `Vary: Origin` behavior.
 - Added `docs/browser-token-cors-security.md` with the `ASEA-006` browser-token and CORS review state, current guardrails, added tests, and remaining work.
 - Added `infrastructure_security_test.go` with infrastructure/log security coverage for Battlegroup command allowlisting, namespace validation, runtime log target validation, log-stream ticket replay/wrong-target/expiry behavior, and cheat-log redaction.
@@ -116,6 +118,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Updated `docs/appsec-endpoint-audit.md` so `ASEA-001` generated full-route auth-boundary coverage is validated after clean local validation.
+- Updated `PATCH_NOTES.md` with validated generated route auth-boundary coverage status.
 - Updated `docs/appsec-endpoint-audit.md` so `ASEA-006` is validated as partial remediation after CORS/browser-token hardening and clean local validation.
 - Updated `PATCH_NOTES.md` with validated browser-token and CORS hardening status.
 - Updated CORS allowed-origin parsing to reject wildcard, `null`, control-character, non-HTTP(S), userinfo, path, query, and fragment origins before exact-match allowlisting.
@@ -213,6 +217,7 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Fixed
 
+- Fixed AppSec route-inventory test helper name from `containsString` to `appsecContainsString` to avoid collision with the existing production helper in `db_functions.go`.
 - Fixed `audit_log_test.go` so the audit metadata payload uses valid JSON while still testing newline sanitization.
 - Fixed Farming Requests tab `react-hooks/exhaustive-deps` warning by stabilizing `load` with `useCallback` and depending on `load` in the reload effect.
 - Fixed Discord Links tab type usage by importing `CSSProperties` directly from React.
@@ -245,6 +250,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Security
 
+- Added generated full-route auth-boundary coverage so every registered `routes.go` route must have an explicit public, self-service, admin, or WebSocket-ticket expectation before local validation can pass.
+- Validated `ASEA-001` generated full-route auth-boundary coverage through clean local `./update.sh` validation; endpoint-by-endpoint audit-event assertions, SAST/DAST/dependency evidence, and manual abuse-case validation remain open.
 - Hardened CORS allowed-origin parsing to reject wildcard, `null`, control-character, non-HTTP(S), userinfo, path, query, and fragment origins before exact-match allowlisting.
 - Validated `ASEA-006` as partial remediation through clean local `./update.sh` validation; memory-only or HttpOnly secure session-cookie auth, CSRF design, frontend storage tests, and manual reverse-proxy CORS validation remain open.
 - Hardened infrastructure/log endpoints with Battlegroup command normalization/allowlisting, shared runtime namespace validation, runtime target validation, log-stream ticket replay/wrong-target/expiry coverage, and output redaction.
@@ -256,7 +263,6 @@ This project follows a corporate change-management style informed by ITIL releas
 - Allowed registered non-admin Discord sessions to access only `GET /api/v1/auth/discord/me`, `POST /api/v1/auth/discord/logout`, and `/api/v1/self/*`; all admin review, player, database, infrastructure, and mutation routes remain admin-only.
 - Validated `ASEA-002` as remediated through clean local `./update.sh` validation; the build emitted a non-blocking Tailwind/Rolldown plugin timing warning.
 - Added AppSec auth-boundary regression tests for public route allowlisting, self-service path classification, representative admin-only routes, and WebSocket-ticket denial.
-- Validated `ASEA-001` as partial remediation through clean local `./update.sh` validation; generated full-route auth-boundary coverage remains a future hardening follow-up.
 - Added initial AppSec route inventory and auth-boundary audit document for all registered endpoints.
 - Added AppSec findings ASEA-001 through ASEA-006 covering auth-boundary tests, Discord session UX, mutation audit/reason coverage, database endpoint review, infrastructure/log endpoint review, and browser token/CORS follow-up.
 - Added AppSec endpoint audit planning requirement for all public and protected backend endpoints.
@@ -312,6 +318,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Validation
 
+- Validated generated route auth-boundary coverage from the canonical local update path:
+  - `./update.sh`
 - Validated browser-token and CORS security hardening from the canonical local update path:
   - `./update.sh`
 - Validated infrastructure/log endpoint security hardening from the canonical local update path:
