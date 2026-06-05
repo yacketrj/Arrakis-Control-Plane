@@ -8,6 +8,10 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Added
 
+- Added CORS/origin regression tests in `auth_test.go` for strict allowed-origin parsing, unsafe origin rejection, mixed safe/unsafe origin parsing, allowed/disallowed preflight behavior, and `Vary: Origin` behavior.
+- Added `docs/browser-token-cors-security.md` with the `ASEA-006` browser-token and CORS review state, current guardrails, added tests, and remaining work.
+- Added `infrastructure_security_test.go` with infrastructure/log security coverage for Battlegroup command allowlisting, namespace validation, runtime log target validation, log-stream ticket replay/wrong-target/expiry behavior, and cheat-log redaction.
+- Added `docs/infrastructure-log-endpoint-security.md` with the `ASEA-005` infrastructure/log endpoint security review state, current guardrails, added tests, and remaining work.
 - Added `handlers_database_test.go` with database handler security coverage for bounded query parameters, control-character rejection, numeric function OID validation, unsafe SQL rejection, and redacted SQL/database result shape.
 - Added `docs/database-endpoint-security.md` with the `ASEA-004` database endpoint security review state, current guardrails, added tests, and remaining work.
 - Added AppSec Discord self-session route regression tests for normal Discord access to `me`, `logout`, and `/self/*` plus denial from representative admin routes.
@@ -112,6 +116,12 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Updated `docs/appsec-endpoint-audit.md` so `ASEA-006` is validated as partial remediation after CORS/browser-token hardening and clean local validation.
+- Updated `PATCH_NOTES.md` with validated browser-token and CORS hardening status.
+- Updated CORS allowed-origin parsing to reject wildcard, `null`, control-character, non-HTTP(S), userinfo, path, query, and fragment origins before exact-match allowlisting.
+- Updated `docs/appsec-endpoint-audit.md` so `ASEA-005` is validated as partial remediation after infrastructure/log endpoint hardening and clean local validation.
+- Updated `PATCH_NOTES.md` with validated infrastructure/log endpoint security hardening status.
+- Updated Battlegroup and log handlers to apply runtime namespace validation, command allowlisting, target validation, log-stream ticket hardening, and output redaction more consistently.
 - Updated `docs/appsec-endpoint-audit.md` so `ASEA-004` is validated as partial remediation after database endpoint hardening and clean local validation.
 - Updated `PATCH_NOTES.md` with validated database endpoint security hardening status.
 - Updated database endpoint handlers to trim and bound query parameters, reject unsafe controls, require numeric function OIDs, trim manual SQL before validation, and redact sampled/search/manual SQL output.
@@ -235,6 +245,10 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Security
 
+- Hardened CORS allowed-origin parsing to reject wildcard, `null`, control-character, non-HTTP(S), userinfo, path, query, and fragment origins before exact-match allowlisting.
+- Validated `ASEA-006` as partial remediation through clean local `./update.sh` validation; memory-only or HttpOnly secure session-cookie auth, CSRF design, frontend storage tests, and manual reverse-proxy CORS validation remain open.
+- Hardened infrastructure/log endpoints with Battlegroup command normalization/allowlisting, shared runtime namespace validation, runtime target validation, log-stream ticket replay/wrong-target/expiry coverage, and output redaction.
+- Validated `ASEA-005` as partial remediation through clean local `./update.sh` validation; handler-level SSH/database-stub tests, command timeout review, WebSocket origin review, live runtime/manual validation, and real-output redaction review remain open.
 - Hardened database endpoints with bounded/control-character checked query parameters, numeric function OID validation, manual SQL trimming, and redaction for sampled/search/manual SQL output.
 - Validated `ASEA-004` as partial remediation through clean local `./update.sh` validation; SQL timeout review, expanded read-only bypass tests, live-data redaction review, and manual abuse-case validation remain open.
 - Tightened high-risk mutation classification for reconnect, database SQL, log stream ticket issuance, notify, and direct item-row edits.
@@ -298,6 +312,10 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Validation
 
+- Validated browser-token and CORS security hardening from the canonical local update path:
+  - `./update.sh`
+- Validated infrastructure/log endpoint security hardening from the canonical local update path:
+  - `./update.sh`
 - Validated database endpoint security hardening from the canonical local update path:
   - `./update.sh`
 - Validated mutation-safety classification coverage, audit metadata JSON fix, and colored update output from the canonical local update path:
