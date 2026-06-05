@@ -10,8 +10,8 @@ The audit covers public, Discord-session, admin-token, WebSocket, infrastructure
 
 | Area | Status | Notes |
 |---|---|---|
-| Route inventory | In Progress | Initial inventory taken from `routes.go`. |
-| Auth boundary review | In Progress | Initial middleware review complete; `appsec_auth_boundary_test.go` covers public, self-service, Discord self-session, representative admin, and WebSocket-ticket boundaries. Generated full-route coverage remains a follow-up. |
+| Route inventory | In Progress | Initial inventory taken from `routes.go`; generated full-route inventory/auth-boundary coverage is now added pending validation. |
+| Auth boundary review | In Progress | Initial middleware review complete; `appsec_auth_boundary_test.go` covers public, self-service, Discord self-session, representative admin, and WebSocket-ticket boundaries. `appsec_route_inventory_test.go` now parses all registered `routes.go` routes and requires explicit auth-boundary expectations pending validation. |
 | Input validation review | In Progress | Database handler parameter bounds/control-character checks, numeric function OID validation, unsafe SQL rejection, database output redaction, infrastructure namespace/command checks, log target checks, log-ticket replay tests, and strict CORS origin parsing are validated by slice. Full handler-by-handler review still required. |
 | Mutation reason coverage | In Progress | High-risk/destructive classification, oversized-body reason-enforcement, audit metadata parsing, and colorized validation-output changes are validated. Full endpoint-by-endpoint audit-event assertion coverage still required. |
 | SAST | Pending | Run and record tool/version/result. |
@@ -44,6 +44,8 @@ Initial static review used:
 - `web/src/api/client.ts`
 - `docs/browser-token-cors-security.md`
 - `appsec_auth_boundary_test.go`
+- `appsec_route_inventory_test.go`
+- `docs/generated-route-auth-boundary-coverage.md`
 - existing roadmap and release-tracking documents
 
 ## Global middleware and boundary summary
@@ -70,6 +72,7 @@ Security-relevant observed behavior:
   - `GET /api/v1/auth/discord/me`
   - `POST /api/v1/auth/discord/logout`
   - `/api/v1/self/*`
+- Generated route inventory/auth-boundary coverage now requires every `routes.go` route to have an explicit expected auth class before local validation can pass.
 - Browser Access Key handling uses strict 43-character base64url validation and current frontend storage is session-scoped; legacy `localStorage` values are migrated only when valid and then removed.
 - Mutation safety classification now treats reconnect, Battlegroup exec, database SQL, log stream ticket issuance, notify, direct item-row edits, inventory writes, player state edits, storage writes, and destructive reset/wipe/delete/import paths as high-risk or destructive as appropriate.
 - Database endpoint handlers now trim and bound query parameters, reject unsafe control characters, require numeric function OIDs, redact sampled/search rows, redact manual SQL output, and keep existing database row-limit guardrails.
@@ -237,7 +240,7 @@ Security-relevant observed behavior:
 
 | ID | Severity | Status | Finding | Recommended action | Validation evidence |
 |---|---|---|---|---|---|
-| ASEA-001 | High | Validated partial remediation | No generated endpoint inventory/auth-boundary regression test existed for the full `routes.go` surface. Initial regression coverage now exists for public allowlist behavior, self-service path classification, admin-only representative routes, and WebSocket-ticket denial. Generated full-route coverage remains an open hardening follow-up. | Expand `appsec_auth_boundary_test.go` to generated full-route coverage in a future pass. | `appsec_auth_boundary_test.go` added and validated clean through `./update.sh`. |
+| ASEA-001 | High | Validated partial remediation | No generated endpoint inventory/auth-boundary regression test existed for the full `routes.go` surface. Initial regression coverage existed for public allowlist behavior, self-service path classification, admin-only representative routes, and WebSocket-ticket denial. Generated full-route coverage is now added pending validation. | Validate `appsec_route_inventory_test.go`; keep expectation map current with every `routes.go` change. | Local validation pending. |
 | ASEA-002 | Medium | Validated remediation | Discord `me` and `logout` handlers supported session-cookie behavior, but middleware limited registered non-admin Discord sessions to `/api/v1/self/*`. | Added a narrow Discord self-session middleware route allowlist for `GET /api/v1/auth/discord/me` and `POST /api/v1/auth/discord/logout`; added regression tests to confirm normal Discord sessions can use those two routes but not admin routes. | `./update.sh` passed clean; build emitted non-blocking `[PLUGIN_TIMINGS]` warning for `@tailwindcss/vite:generate:build`. |
 | ASEA-003 | High | Validated partial remediation | High-risk mutation endpoints require endpoint-by-endpoint verification for `X-Admin-Reason`, audit logging, mutation-safety classification, request-size limits, and pre/post-change review behavior. Initial review found some high-risk mutation paths were under-classified as medium. | Tightened mutation-safety classification for reconnect, database SQL, log stream ticket issuance, notify, and direct item-row edits. Added high-risk/destructive route coverage tests and oversized-body reason-enforcement test. Fixed audit metadata JSON test payload and added colorized validation output for `RUN`, `PASS`, and `FAIL`. Full endpoint-by-endpoint audit-event assertion coverage remains required. | `./update.sh` passed clean after the audit metadata JSON fix and update-script color-output change. |
 | ASEA-004 | High | Validated partial remediation | Database search/manual SQL endpoints needed dedicated SQL injection, read-only guard, result-limit, and redaction review. Initial review confirmed parameterization/safe identifier quoting in key commands, then added handler-level parameter bounds, control-character checks, numeric OID validation, SQL trimming, and output redaction. | Added database handler security tests and `docs/database-endpoint-security.md`. SQL timeout review, expanded read-only bypass tests, live-data redaction review, and manual abuse-case validation remain open. | `./update.sh` passed clean after database handler hardening and tests. |
