@@ -1,6 +1,53 @@
 # Dune Admin Release Notes
 
-## Current update: Generated route auth-boundary coverage
+## Current update: High-risk mutation audit-event coverage
+
+### Why this update was made
+
+The AppSec endpoint audit identified endpoint-by-endpoint audit-event assertion coverage as an open follow-up under `ASEA-003`. Representative audit tests existed, but the high-risk/destructive mutation route set needed durable coverage proving that audit events carry the expected accountability fields.
+
+### What changed
+
+- Expanded `audit_log_test.go` with `TestAuditMiddlewareHighRiskAndDestructiveRouteCoverage`.
+- The new table-driven test enumerates high-risk and destructive mutation routes and verifies each route emits exactly one audit event.
+- The test asserts:
+  - request method
+  - request path
+  - mutation-safety action
+  - mutation-safety risk
+  - destructive flag
+  - requires-reason flag
+  - requires-preview flag
+  - HTTP status
+  - result outcome
+  - sanitized reason
+  - common target metadata
+  - request ID
+- Added `docs/high-risk-mutation-audit-coverage.md` to document the coverage model, covered routes, security impact, and remaining work.
+- Updated `docs/appsec-endpoint-audit.md` so `ASEA-003` audit-event assertion coverage is partially remediated pending validation.
+
+### Security and operator impact
+
+- No route behavior changed.
+- No mutation behavior changed.
+- No new endpoint was added.
+- Player 360 remains read-only.
+- This adds regression evidence that high-risk/destructive mutation routes produce expected audit accountability fields.
+- `ASEA-003` remains pending validation for this slice; route-specific target assertions and pre/post-change review verification remain open.
+
+### Validation
+
+Required from the canonical local update path:
+
+```bash
+./update.sh
+```
+
+This should run the expanded audit-log coverage.
+
+---
+
+## Previous update: Generated route auth-boundary coverage
 
 ### Why this update was made
 
@@ -85,60 +132,3 @@ Verified from the canonical local update path:
 ```
 
 This validated the updated CORS/origin tests and browser-token/CORS hardening changes.
-
----
-
-## Previous update: Infrastructure and log endpoint security hardening
-
-### Why this update was made
-
-The AppSec endpoint audit item `ASEA-005` requires review of infrastructure command and log endpoints for command allowlisting, runtime target validation, log-stream ticket replay/TTL behavior, and output redaction. Initial review found that namespace validation and output redaction should be applied more consistently across Battlegroup and log paths.
-
-### What changed
-
-- Hardened `handlers_battlegroup.go`:
-  - validates Kubernetes namespace before status, health, and pod command construction
-  - normalizes Battlegroup command input by trimming and lowercasing it
-  - rejects Battlegroup command control characters
-  - enforces the static Battlegroup command allowlist
-  - redacts status, health, exec, and pod-list output before returning it
-- Hardened `handlers_logs.go`:
-  - validates runtime namespace before log target discovery
-  - redacts Docker display names
-  - redacts log stream error and line output
-  - redacts returned cheat-log fields before returning rows
-- Added `infrastructure_security_test.go` covering:
-  - Battlegroup command normalization and strict allowlist behavior
-  - command control-character/metacharacter rejection
-  - Kubernetes namespace validation
-  - Docker runtime namespace bypass behavior
-  - split-and-redact line handling
-  - Docker/Kubernetes log target rejection for unsafe targets
-  - log-stream ticket single-use behavior
-  - log-stream ticket wrong-target behavior
-  - expired-ticket rejection
-  - invalid-target ticket issuance rejection
-  - cheat-log field redaction
-- Added `docs/infrastructure-log-endpoint-security.md` to capture the `ASEA-005` review state, guardrails, tests, and remaining work.
-- Updated `docs/appsec-endpoint-audit.md` so `ASEA-005` is validated as partial remediation.
-
-### Security and operator impact
-
-- Infrastructure and log endpoints remain admin-only.
-- Battlegroup exec remains restricted to the static allowlist: `start`, `stop`, `restart`, `update`, `backup`, and `restore`.
-- Kubernetes namespace command interpolation is now guarded by shared validation.
-- Log-stream tickets remain one-time, scoped, and 60-second TTL limited.
-- Wrong-target ticket use consumes and rejects the ticket.
-- Returned remote output is redacted before reaching the browser.
-- No new infrastructure command, direct game-state mutation, Player 360 mutation, inventory mutation, or self-service log access was added.
-- `ASEA-005` is validated as partial remediation; further handler-level SSH/database-stub tests, command timeout review, WebSocket origin review, live runtime/manual validation, and real-output redaction review remain open.
-
-### Validation
-
-Verified from the canonical local update path:
-
-```bash
-./update.sh
-```
-
-This validated the new infrastructure/log security tests and infrastructure/log endpoint hardening changes.
