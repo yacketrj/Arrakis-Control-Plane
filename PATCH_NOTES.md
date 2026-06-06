@@ -1,6 +1,53 @@
 # Dune Admin Release Notes
 
-## Current update: Changelog and ledger compaction
+## Current update: Blocked mutation audit coverage
+
+### Why this update was made
+
+The AppSec hardening track is continuing before new Live Admin / RMQ / Welcome Kit features. The previous audit slice verified successful high-risk/destructive mutation audit events. This slice adds negative-path coverage so blocked high-risk/destructive mutations are also auditable when admin-reason enforcement rejects them before the downstream handler runs.
+
+### What changed
+
+- Added `audit_log_negative_test.go`.
+- Added table-driven coverage for high-risk and destructive mutation routes blocked by missing admin reason.
+- Verified blocked mutations:
+  - do not reach the downstream handler
+  - return `400 Bad Request`
+  - still emit exactly one audit event
+  - record the expected method and path
+  - record mutation-safety action, risk, destructive flag, reason flag, and preview flag
+  - record failure result and `400` status
+  - preserve request ID
+  - preserve common target metadata such as `player_id`, `account_id`, and `actor_id`
+- Added oversized-body negative-path coverage for reason inspection.
+- Added `docs/changelog/unreleased/2026-06-blocked-mutation-audit-coverage.md` as the durable per-slice record.
+
+### Security and operator impact
+
+- No route behavior changed.
+- No mutation behavior changed.
+- No new endpoint was added.
+- Player 360 remains read-only.
+- This adds regression evidence that blocked high-risk/destructive mutations remain visible in the admin audit trail.
+
+### Validation
+
+Validation pending from the canonical local update path:
+
+```bash
+./update.sh
+```
+
+### Remaining AppSec work
+
+- route-specific target assertions beyond shared metadata
+- pre/post-change review verification where practical
+- SAST/DAST/dependency evidence
+- manual abuse-case validation
+
+---
+
+## Previous update: Changelog and ledger compaction
 
 ### Why this update was made
 
@@ -26,24 +73,6 @@ The same pattern could affect other mutable log/audit files if they are allowed 
 - Monthly or release archives go under `docs/changelog/archive/`.
 - Large audit trackers should become indexes; detailed findings should move to dedicated smaller files.
 
-### Other large log/audit files
-
-The same rule applies to:
-
-- `docs/appsec-endpoint-audit.md`
-- future AppSec finding files
-- release checklist records
-- risk-register updates
-- validation evidence logs
-- any Markdown file acting as a mutable ledger
-
-The preferred remediation is not to create another giant archive file. Instead:
-
-- keep a compact index
-- preserve full historical states through immutable commit references
-- add small per-topic/per-slice records
-- enforce line-count guardrails before validation/builds
-
 ### Security and operator impact
 
 - No route behavior changed.
@@ -51,27 +80,3 @@ The preferred remediation is not to create another giant archive file. Instead:
 - No new endpoint was added.
 - Player 360 remains read-only.
 - This reduces future edit risk for audit/security release records.
-
-### Validation
-
-Validation pending from the canonical local update path:
-
-```bash
-./update.sh
-```
-
-Ledger-specific validation can be run directly with:
-
-```bash
-bash scripts/check-ledger-size.sh
-```
-
-### Known limitation
-
-`update.sh` is also large enough that full-file connector reads can truncate. I added the ledger-size script, but did not wire it into `update.sh` in this slice to avoid a risky full-file replacement. The safe next step is to patch `update.sh` locally or through a patch-capable edit path to run:
-
-```bash
-step "Ledger size check" run bash scripts/check-ledger-size.sh
-```
-
-after `invoke_git_pull_if_safe` and before Go tests.
