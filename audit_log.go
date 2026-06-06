@@ -54,6 +54,32 @@ type mutationAuditMetadata struct {
 
 var adminAuditMu sync.Mutex
 
+var mutationAuditTargetKeys = []string{
+	"player_id",
+	"account_id",
+	"actor_id",
+	"controller_id",
+	"fls_id",
+	"item_id",
+	"item_template",
+	"item_template_id",
+	"template_id",
+	"quantity",
+	"amount",
+	"quality",
+	"faction_id",
+	"storage_id",
+	"container_id",
+	"vehicle_id",
+	"guild_id",
+	"rank",
+	"pod",
+	"service",
+	"cmd",
+	"command",
+	"command_path",
+}
+
 func (w *statusCaptureWriter) WriteHeader(status int) {
 	w.status = status
 	w.ResponseWriter.WriteHeader(status)
@@ -260,7 +286,7 @@ func extractMutationAuditMetadata(r *http.Request) mutationAuditMetadata {
 	if metadata.Reason == "" {
 		metadata.Reason = sanitizedAuditString(payloadString(payload, "reason"), 256)
 	}
-	for _, key := range []string{"player_id", "account_id", "actor_id", "controller_id", "item_id", "faction_id", "storage_id", "container_id", "pod", "service", "cmd"} {
+	for _, key := range mutationAuditTargetKeys {
 		if value, ok := auditScalar(payload[key]); ok {
 			metadata.Target[key] = value
 		}
