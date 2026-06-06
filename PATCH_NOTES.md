@@ -1,30 +1,48 @@
 # Dune Admin Release Notes
 
-## Current update: High-risk mutation audit-event coverage
+## Current update: Changelog and ledger compaction
 
 ### Why this update was made
 
-The AppSec endpoint audit identified endpoint-by-endpoint audit-event assertion coverage as an open follow-up under `ASEA-003`. Representative audit tests existed, but the high-risk/destructive mutation route set needed durable coverage proving that audit events carry the expected accountability fields.
+`CHANGELOG.md` had grown into a large mutable release ledger. This created recurring connector/edit risk: each update required replacing a large file, and truncated tool output made it unsafe to guarantee that unrelated changelog entries would not be dropped.
+
+The same pattern could affect other mutable log/audit files if they are allowed to grow indefinitely.
 
 ### What changed
 
-- Expanded `audit_log_test.go` with `TestAuditMiddlewareHighRiskAndDestructiveRouteCoverage`.
-- The new table-driven test enumerates high-risk and destructive mutation routes and verifies each route emits exactly one audit event.
-- The test asserts:
-  - request method
-  - request path
-  - mutation-safety action
-  - mutation-safety risk
-  - destructive flag
-  - requires-reason flag
-  - requires-preview flag
-  - HTTP status
-  - result outcome
-  - sanitized reason
-  - common target metadata
-  - request ID
-- Added `docs/high-risk-mutation-audit-coverage.md` to document the coverage model, covered routes, security impact, and remaining work.
-- Updated `docs/appsec-endpoint-audit.md` so `ASEA-003` audit-event assertion coverage is validated as partial remediation.
+- Added `docs/changelog/README.md` with the new changelog and ledger policy.
+- Added `docs/changelog/archive/2026-06.md` as an archive index for June 2026 work.
+- Added `docs/changelog/unreleased/2026-06-high-risk-mutation-audit-coverage.md` as the first detailed per-slice changelog record.
+- Added `scripts/check-ledger-size.sh` to detect oversized mutable Markdown ledgers.
+- Replaced the oversized root `CHANGELOG.md` with a compact index and current summary.
+- Preserved the last full pre-compaction changelog in Git history at commit:
+  - `05c6cc17d133a0815af0fb1be0fc5cc1e8d53d40`
+
+### Policy going forward
+
+- `CHANGELOG.md` stays compact and index-like.
+- `PATCH_NOTES.md` remains current-update only.
+- Detailed work-slice records go under `docs/changelog/unreleased/`.
+- Monthly or release archives go under `docs/changelog/archive/`.
+- Large audit trackers should become indexes; detailed findings should move to dedicated smaller files.
+
+### Other large log/audit files
+
+The same rule applies to:
+
+- `docs/appsec-endpoint-audit.md`
+- future AppSec finding files
+- release checklist records
+- risk-register updates
+- validation evidence logs
+- any Markdown file acting as a mutable ledger
+
+The preferred remediation is not to create another giant archive file. Instead:
+
+- keep a compact index
+- preserve full historical states through immutable commit references
+- add small per-topic/per-slice records
+- enforce line-count guardrails before validation/builds
 
 ### Security and operator impact
 
@@ -32,59 +50,28 @@ The AppSec endpoint audit identified endpoint-by-endpoint audit-event assertion 
 - No mutation behavior changed.
 - No new endpoint was added.
 - Player 360 remains read-only.
-- This adds regression evidence that high-risk/destructive mutation routes produce expected audit accountability fields.
-- `ASEA-003` is validated as partial remediation; route-specific target assertions and pre/post-change review verification remain open.
+- This reduces future edit risk for audit/security release records.
 
 ### Validation
 
-Verified from the canonical local update path:
+Validation pending from the canonical local update path:
 
 ```bash
 ./update.sh
 ```
 
-This validated the expanded audit-log coverage.
-
----
-
-## Previous update: Generated route auth-boundary coverage
-
-### Why this update was made
-
-The AppSec endpoint audit identified generated full-route auth-boundary coverage as an open follow-up under `ASEA-001`. Representative auth-boundary tests existed, but new routes could still be added to `routes.go` without an explicit AppSec exposure expectation.
-
-### What changed
-
-- Added `appsec_route_inventory_test.go`.
-- The new test parses `routes.go` using Go's AST parser and extracts every registered `mux.HandleFunc("METHOD /path", handler)` route.
-- Every registered route must now have an explicit auth-boundary expectation in `appsecExpectedRouteAuth`.
-- The test fails if:
-  - a registered route has no auth-boundary expectation
-  - an expectation references a route no longer registered in `routes.go`
-  - a public route does not bypass auth as expected
-  - a self-service route is not denied without auth, allowed with admin token, and allowed with a normal registered Discord session
-  - an admin route is not denied without auth, allowed with admin token, and denied to a normal registered Discord session
-  - the WebSocket log-stream upgrade path does not require a one-time ticket before admin-token fallback
-- Fixed the route-inventory test helper name from `containsString` to `appsecContainsString` to avoid colliding with the existing production helper in `db_functions.go`.
-- Added `docs/generated-route-auth-boundary-coverage.md` to document the route-inventory/auth-boundary coverage model.
-- Updated `docs/appsec-endpoint-audit.md` so `ASEA-001` generated full-route coverage is validated as partial remediation.
-
-### Security and operator impact
-
-- No route behavior changed.
-- No new route was added.
-- No mutation path was added.
-- Player 360 remains read-only.
-- Future route additions now fail local validation until their auth-boundary expectation is explicitly reviewed and added.
-
-### Validation
-
-Verified from the canonical local update path:
+Ledger-specific validation can be run directly with:
 
 ```bash
-./update.sh
+bash scripts/check-ledger-size.sh
 ```
 
-This validated the generated route inventory/auth-boundary coverage test after the test-helper rename fix.
+### Known limitation
 
----
+`update.sh` is also large enough that full-file connector reads can truncate. I added the ledger-size script, but did not wire it into `update.sh` in this slice to avoid a risky full-file replacement. The safe next step is to patch `update.sh` locally or through a patch-capable edit path to run:
+
+```bash
+step "Ledger size check" run bash scripts/check-ledger-size.sh
+```
+
+after `invoke_git_pull_if_safe` and before Go tests.
