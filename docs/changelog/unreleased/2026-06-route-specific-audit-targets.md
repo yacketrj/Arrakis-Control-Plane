@@ -2,7 +2,7 @@
 
 Date: 2026-06
 Area: AppSec
-Status: Pending validation
+Status: Validated partial remediation
 
 ## Summary
 
@@ -14,13 +14,20 @@ This builds on the previous high-risk/destructive audit-event and blocked-mutati
 
 - `2731185f33b3395af84536f502ecd24829ad5ba7` — expanded audit target metadata extraction
 - `c43c275281151752cfb82af230e1ed3c77dc602b` — added route-specific audit target assertions
+- validation recorded after clean canonical local build/update path
 
 ## Validation
 
-Pending from the canonical local update path:
+Validated from the canonical local update path:
 
 ```bash
 ./update.sh
+```
+
+Non-blocking build-performance warning observed:
+
+```text
+[PLUGIN_TIMINGS] Your build spent significant time in plugin `@tailwindcss/vite:generate:build`.
 ```
 
 ## Target metadata added or verified
