@@ -8,6 +8,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Added
 
+- Added high-risk/destructive mutation audit-event coverage in `audit_log_test.go` that enumerates mutation routes and verifies audit method, path, action, risk, destructive flag, reason/preview flags, status/result, sanitized reason, target metadata, and request ID.
+- Added `docs/high-risk-mutation-audit-coverage.md` with the `ASEA-003` audit-event coverage model, covered route set, security impact, validation expectations, and remaining work.
 - Added generated full-route auth-boundary coverage in `appsec_route_inventory_test.go` that parses `routes.go`, requires every registered route to have an explicit auth-boundary expectation, and verifies public, self-service, admin, and WebSocket-ticket enforcement through middleware.
 - Added `docs/generated-route-auth-boundary-coverage.md` with the generated route inventory/auth-boundary coverage model, auth classes, security impact, and validation expectations.
 - Added CORS/origin regression tests in `auth_test.go` for strict allowed-origin parsing, unsafe origin rejection, mixed safe/unsafe origin parsing, allowed/disallowed preflight behavior, and `Vary: Origin` behavior.
@@ -118,6 +120,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Changed
 
+- Updated `docs/appsec-endpoint-audit.md` so `ASEA-003` high-risk/destructive mutation audit-event coverage is validated after clean local validation.
+- Updated `PATCH_NOTES.md` with validated high-risk mutation audit-event coverage status.
 - Updated `docs/appsec-endpoint-audit.md` so `ASEA-001` generated full-route auth-boundary coverage is validated after clean local validation.
 - Updated `PATCH_NOTES.md` with validated generated route auth-boundary coverage status.
 - Updated `docs/appsec-endpoint-audit.md` so `ASEA-006` is validated as partial remediation after CORS/browser-token hardening and clean local validation.
@@ -250,8 +254,10 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Security
 
+- Added endpoint-by-endpoint audit-event assertion coverage for high-risk/destructive mutation routes, including action, risk, destructive flag, reason/preview flags, status/result, sanitized reason, common target metadata, and request ID.
+- Validated `ASEA-003` high-risk/destructive mutation audit-event coverage through clean local `./update.sh` validation; route-specific target assertions, negative-path audit assertions, and pre/post-change review verification remain open.
 - Added generated full-route auth-boundary coverage so every registered `routes.go` route must have an explicit public, self-service, admin, or WebSocket-ticket expectation before local validation can pass.
-- Validated `ASEA-001` generated full-route auth-boundary coverage through clean local `./update.sh` validation; endpoint-by-endpoint audit-event assertions, SAST/DAST/dependency evidence, and manual abuse-case validation remain open.
+- Validated `ASEA-001` generated full-route auth-boundary coverage through clean local `./update.sh` validation; SAST/DAST/dependency evidence and manual abuse-case validation remain open.
 - Hardened CORS allowed-origin parsing to reject wildcard, `null`, control-character, non-HTTP(S), userinfo, path, query, and fragment origins before exact-match allowlisting.
 - Validated `ASEA-006` as partial remediation through clean local `./update.sh` validation; memory-only or HttpOnly secure session-cookie auth, CSRF design, frontend storage tests, and manual reverse-proxy CORS validation remain open.
 - Hardened infrastructure/log endpoints with Battlegroup command normalization/allowlisting, shared runtime namespace validation, runtime target validation, log-stream ticket replay/wrong-target/expiry coverage, and output redaction.
@@ -259,7 +265,7 @@ This project follows a corporate change-management style informed by ITIL releas
 - Hardened database endpoints with bounded/control-character checked query parameters, numeric function OID validation, manual SQL trimming, and redaction for sampled/search/manual SQL output.
 - Validated `ASEA-004` as partial remediation through clean local `./update.sh` validation; SQL timeout review, expanded read-only bypass tests, live-data redaction review, and manual abuse-case validation remain open.
 - Tightened high-risk mutation classification for reconnect, database SQL, log stream ticket issuance, notify, and direct item-row edits.
-- Validated `ASEA-003` as partial remediation through clean local `./update.sh` validation; full endpoint-by-endpoint audit-event assertion coverage remains open.
+- Validated initial `ASEA-003` mutation-safety classification coverage through clean local `./update.sh` validation.
 - Allowed registered non-admin Discord sessions to access only `GET /api/v1/auth/discord/me`, `POST /api/v1/auth/discord/logout`, and `/api/v1/self/*`; all admin review, player, database, infrastructure, and mutation routes remain admin-only.
 - Validated `ASEA-002` as remediated through clean local `./update.sh` validation; the build emitted a non-blocking Tailwind/Rolldown plugin timing warning.
 - Added AppSec auth-boundary regression tests for public route allowlisting, self-service path classification, representative admin-only routes, and WebSocket-ticket denial.
@@ -318,6 +324,8 @@ This project follows a corporate change-management style informed by ITIL releas
 
 ### Validation
 
+- Validated high-risk/destructive mutation audit-event coverage from the canonical local update path:
+  - `./update.sh`
 - Validated generated route auth-boundary coverage from the canonical local update path:
   - `./update.sh`
 - Validated browser-token and CORS security hardening from the canonical local update path:
