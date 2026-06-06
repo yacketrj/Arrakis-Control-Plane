@@ -30,14 +30,14 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
-- Validation pending for blocked mutation audit coverage from the canonical local update path:
+- Validated blocked mutation audit coverage from the canonical local update path:
   - `./update.sh`
 - Ledger-specific validation can be run directly with:
   - `bash scripts/check-ledger-size.sh`
 
 ### Known issues
 
-- `scripts/check-ledger-size.sh` is added, but `update.sh` wiring and update-script modularization need validation through the canonical update path.
+- Update-script modularization has started and needs continued validation through the canonical update path before further refactor expansion.
 
 ## Detailed change records
 
