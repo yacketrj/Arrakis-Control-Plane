@@ -10,6 +10,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Added
 
+- Added blocked high-risk/destructive mutation audit coverage in `audit_log_negative_test.go`.
+- Added per-slice changelog record for blocked mutation audit coverage in `docs/changelog/unreleased/2026-06-blocked-mutation-audit-coverage.md`.
 - Added changelog and ledger policy in `docs/changelog/README.md`.
 - Added June 2026 archive index in `docs/changelog/archive/2026-06.md` with a pointer to the last full pre-compaction changelog commit.
 - Added per-slice changelog record for high-risk mutation audit-event coverage in `docs/changelog/unreleased/2026-06-high-risk-mutation-audit-coverage.md`.
@@ -22,19 +24,20 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Security
 
+- Added negative-path audit assertions for high-risk/destructive mutations blocked by missing admin reason or oversized reason-inspection body.
 - Reduced future edit risk for security/audit release records by preventing `CHANGELOG.md` from continuing to grow as a giant mutable ledger.
 - Added guardrails for other mutable ledger files including `PATCH_NOTES.md`, `docs/appsec-endpoint-audit.md`, and per-slice changelog records.
 
 ### Validation
 
-- Validation pending from the canonical local update path:
+- Validation pending for blocked mutation audit coverage from the canonical local update path:
   - `./update.sh`
 - Ledger-specific validation can be run directly with:
   - `bash scripts/check-ledger-size.sh`
 
 ### Known issues
 
-- `scripts/check-ledger-size.sh` is added, but `update.sh` wiring is intentionally deferred until `update.sh` can be patched safely without full-file truncation risk.
+- `scripts/check-ledger-size.sh` is added, but `update.sh` wiring and update-script modularization need validation through the canonical update path.
 
 ## Detailed change records
 
