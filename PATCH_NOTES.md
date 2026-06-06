@@ -41,10 +41,16 @@ The AppSec hardening track is continuing before new Live Admin / RMQ / Welcome K
 
 ### Validation
 
-Validation pending from the canonical local update path:
+Validated from the canonical local update path:
 
 ```bash
 ./update.sh
+```
+
+Non-blocking build-performance warning observed:
+
+```text
+[PLUGIN_TIMINGS] Your build spent significant time in plugin `@tailwindcss/vite:generate:build`.
 ```
 
 ### Remaining AppSec work
