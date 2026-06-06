@@ -34,8 +34,9 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
-- Validation pending for route-specific audit target assertions from the canonical local update path:
+- Validated route-specific audit target assertions from the canonical local update path:
   - `./update.sh`
+  - Non-blocking build-performance warning observed: `[PLUGIN_TIMINGS] Your build spent significant time in plugin @tailwindcss/vite:generate:build`.
 - Validated blocked mutation audit coverage from the canonical local update path:
   - `./update.sh`
 - Ledger-specific validation can be run directly with:
