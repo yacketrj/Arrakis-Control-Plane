@@ -24,7 +24,7 @@ The AppSec endpoint audit identified endpoint-by-endpoint audit-event assertion 
   - common target metadata
   - request ID
 - Added `docs/high-risk-mutation-audit-coverage.md` to document the coverage model, covered routes, security impact, and remaining work.
-- Updated `docs/appsec-endpoint-audit.md` so `ASEA-003` audit-event assertion coverage is partially remediated pending validation.
+- Updated `docs/appsec-endpoint-audit.md` so `ASEA-003` audit-event assertion coverage is validated as partial remediation.
 
 ### Security and operator impact
 
@@ -33,17 +33,17 @@ The AppSec endpoint audit identified endpoint-by-endpoint audit-event assertion 
 - No new endpoint was added.
 - Player 360 remains read-only.
 - This adds regression evidence that high-risk/destructive mutation routes produce expected audit accountability fields.
-- `ASEA-003` remains pending validation for this slice; route-specific target assertions and pre/post-change review verification remain open.
+- `ASEA-003` is validated as partial remediation; route-specific target assertions and pre/post-change review verification remain open.
 
 ### Validation
 
-Required from the canonical local update path:
+Verified from the canonical local update path:
 
 ```bash
 ./update.sh
 ```
 
-This should run the expanded audit-log coverage.
+This validated the expanded audit-log coverage.
 
 ---
 
@@ -88,47 +88,3 @@ Verified from the canonical local update path:
 This validated the generated route inventory/auth-boundary coverage test after the test-helper rename fix.
 
 ---
-
-## Previous update: Browser token and CORS security hardening
-
-### Why this update was made
-
-The AppSec endpoint audit item `ASEA-006` requires review of browser token handling and CORS behavior. The current Browser Access Key flow is already session-scoped and strict-token validated, but CORS allowed-origin parsing needed stronger protection against unsafe misconfiguration values.
-
-### What changed
-
-- Hardened `auth.go` CORS origin parsing:
-  - rejects wildcard `*`
-  - rejects `null`
-  - rejects control characters
-  - rejects non-HTTP(S) schemes such as `file://` and `javascript:`
-  - rejects origins with userinfo
-  - rejects origins with path, query, or fragment components
-  - continues exact-match origin allowlisting only
-- Added CORS/origin tests in `auth_test.go` covering:
-  - unsafe origin value rejection
-  - safe origin value acceptance
-  - mixed safe/unsafe allowed-origin parsing
-  - disallowed-origin preflight behavior
-  - allowed-origin preflight reflection and `Vary: Origin`
-- Added `docs/browser-token-cors-security.md` to capture the `ASEA-006` review state, current guardrails, tests, and remaining work.
-- Updated `docs/appsec-endpoint-audit.md` so `ASEA-006` is validated as partial remediation.
-
-### Security and operator impact
-
-- CORS remains exact-match only.
-- Disallowed origins are not reflected.
-- Unsafe `ALLOWED_ORIGINS` values are ignored instead of accepted.
-- Browser Access Key storage remains session-scoped in `sessionStorage`, with legacy `localStorage` cleanup still in place.
-- No new admin route, auth mode, mutation path, Player 360 mutation, inventory mutation, or self-service admin access was added.
-- `ASEA-006` is validated as partial remediation; future memory-only or HttpOnly secure session-cookie authentication design remains open.
-
-### Validation
-
-Verified from the canonical local update path:
-
-```bash
-./update.sh
-```
-
-This validated the updated CORS/origin tests and browser-token/CORS hardening changes.
