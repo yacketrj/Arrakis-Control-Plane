@@ -10,6 +10,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Added
 
+- Added route-specific audit target assertions in `audit_log_target_test.go`.
+- Added per-slice changelog record for route-specific audit targets in `docs/changelog/unreleased/2026-06-route-specific-audit-targets.md`.
 - Added blocked high-risk/destructive mutation audit coverage in `audit_log_negative_test.go`.
 - Added per-slice changelog record for blocked mutation audit coverage in `docs/changelog/unreleased/2026-06-blocked-mutation-audit-coverage.md`.
 - Added changelog and ledger policy in `docs/changelog/README.md`.
@@ -19,17 +21,21 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Expanded admin audit target metadata extraction for player identity, item template, quantity, quality, vehicle, guild, rank, command, and command-path fields.
 - Replaced oversized root `CHANGELOG.md` with a compact index and current summary.
 - Moved durable detail out of the root changelog pattern and into per-slice/archive changelog records.
 
 ### Security
 
+- Added route-specific audit target assertions for high-risk mutation attempts.
 - Added negative-path audit assertions for high-risk/destructive mutations blocked by missing admin reason or oversized reason-inspection body.
 - Reduced future edit risk for security/audit release records by preventing `CHANGELOG.md` from continuing to grow as a giant mutable ledger.
 - Added guardrails for other mutable ledger files including `PATCH_NOTES.md`, `docs/appsec-endpoint-audit.md`, and per-slice changelog records.
 
 ### Validation
 
+- Validation pending for route-specific audit target assertions from the canonical local update path:
+  - `./update.sh`
 - Validated blocked mutation audit coverage from the canonical local update path:
   - `./update.sh`
 - Ledger-specific validation can be run directly with:
