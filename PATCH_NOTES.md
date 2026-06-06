@@ -1,6 +1,61 @@
 # Dune Admin Release Notes
 
-## Current update: Blocked mutation audit coverage
+## Current update: Route-specific audit target assertions
+
+### Why this update was made
+
+The AppSec hardening track is continuing before new Live Admin / RMQ / Welcome Kit features. The previous slices proved that high-risk/destructive mutations emit audit events and that blocked mutations are still auditable. This slice tightens target accountability by ensuring audit events capture route-specific identifiers needed to investigate player, item, server-command, vehicle, and guild mutations.
+
+### What changed
+
+- Expanded audit target metadata extraction in `audit_log.go`.
+- Added `audit_log_target_test.go`.
+- Added coverage for expanded target fields:
+  - `player_id`
+  - `account_id`
+  - `actor_id`
+  - `controller_id`
+  - `fls_id`
+  - `item_id`
+  - `item_template`
+  - `item_template_id`
+  - `template_id`
+  - `quantity`
+  - `amount`
+  - `quality`
+  - `vehicle_id`
+  - `guild_id`
+  - `rank`
+  - `command`
+  - `command_path`
+- Added redaction coverage for expanded sensitive target fields.
+- Added `docs/changelog/unreleased/2026-06-route-specific-audit-targets.md` as the durable per-slice record.
+
+### Security and operator impact
+
+- No route behavior changed.
+- No mutation behavior changed.
+- No new endpoint was added.
+- Player 360 remains read-only.
+- This improves audit investigation quality for high-risk mutation attempts without exposing arbitrary raw command publishing.
+
+### Validation
+
+Validation pending from the canonical local update path:
+
+```bash
+./update.sh
+```
+
+### Remaining AppSec work
+
+- pre/post-change review verification where practical
+- SAST/DAST/dependency evidence
+- manual abuse-case validation
+
+---
+
+## Previous update: Blocked mutation audit coverage
 
 ### Why this update was made
 
@@ -37,46 +92,3 @@ Validated from the canonical local update path:
 ```bash
 ./update.sh
 ```
-
-### Remaining AppSec work
-
-- route-specific target assertions beyond shared metadata
-- pre/post-change review verification where practical
-- SAST/DAST/dependency evidence
-- manual abuse-case validation
-
----
-
-## Previous update: Changelog and ledger compaction
-
-### Why this update was made
-
-`CHANGELOG.md` had grown into a large mutable release ledger. This created recurring connector/edit risk: each update required replacing a large file, and truncated tool output made it unsafe to guarantee that unrelated changelog entries would not be dropped.
-
-The same pattern could affect other mutable log/audit files if they are allowed to grow indefinitely.
-
-### What changed
-
-- Added `docs/changelog/README.md` with the new changelog and ledger policy.
-- Added `docs/changelog/archive/2026-06.md` as an archive index for June 2026 work.
-- Added `docs/changelog/unreleased/2026-06-high-risk-mutation-audit-coverage.md` as the first detailed per-slice changelog record.
-- Added `scripts/check-ledger-size.sh` to detect oversized mutable Markdown ledgers.
-- Replaced the oversized root `CHANGELOG.md` with a compact index and current summary.
-- Preserved the last full pre-compaction changelog in Git history at commit:
-  - `05c6cc17d133a0815af0fb1be0fc5cc1e8d53d40`
-
-### Policy going forward
-
-- `CHANGELOG.md` stays compact and index-like.
-- `PATCH_NOTES.md` remains current-update only.
-- Detailed work-slice records go under `docs/changelog/unreleased/`.
-- Monthly or release archives go under `docs/changelog/archive/`.
-- Large audit trackers should become indexes; detailed findings should move to dedicated smaller files.
-
-### Security and operator impact
-
-- No route behavior changed.
-- No mutation behavior changed.
-- No new endpoint was added.
-- Player 360 remains read-only.
-- This reduces future edit risk for audit/security release records.
