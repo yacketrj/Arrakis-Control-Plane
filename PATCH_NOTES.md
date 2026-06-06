@@ -32,7 +32,7 @@ The AppSec hardening track is continuing before new Live Admin / RMQ / Welcome K
 
 ### Validation
 
-Validation pending from the canonical local update path:
+Validated from the canonical local update path:
 
 ```bash
 ./update.sh
