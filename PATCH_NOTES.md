@@ -1,35 +1,33 @@
 # Dune Admin Release Notes
 
-## Current update: Route-specific audit target assertions
+## Current update: Initial release candidate setup
 
 ### Why this update was made
 
-The AppSec hardening track is continuing before new Live Admin / RMQ / Welcome Kit features. The previous slices proved that high-risk/destructive mutations emit audit events and that blocked mutations are still auditable. This slice tightens target accountability by ensuring audit events capture route-specific identifiers needed to investigate player, item, server-command, vehicle, and guild mutations.
+The project is in a reasonable development cycle to prepare its first controlled release, but it should be treated as a pre-1.0 release candidate rather than a stable `1.0.0` release. The current security posture has meaningful hardening and validation evidence, while some release evidence and security scans still need to be recorded before a final `0.1.0` release.
+
+### Version decision
+
+- Initial release candidate: `0.1.0-rc.1`
+- Git tag target after validation: `v0.1.0-rc.1`
+- First accepted release target after release-candidate validation: `v0.1.0`
 
 ### What changed
 
-- Expanded audit target metadata extraction in `audit_log.go`.
-- Added `audit_log_target_test.go`.
-- Added coverage for expanded target fields:
-  - `player_id`
-  - `account_id`
-  - `actor_id`
-  - `controller_id`
-  - `fls_id`
-  - `item_id`
-  - `item_template`
-  - `item_template_id`
-  - `template_id`
-  - `quantity`
-  - `amount`
-  - `quality`
-  - `vehicle_id`
-  - `guild_id`
-  - `rank`
-  - `command`
-  - `command_path`
-- Added redaction coverage for expanded sensitive target fields.
-- Added `docs/changelog/unreleased/2026-06-route-specific-audit-targets.md` as the durable per-slice record.
+- Added `VERSION` with `0.1.0-rc.1`.
+- Added `docs/release-versioning.md` with the release numbering, tag, release-candidate, and pre-1.0 policy.
+- Added `docs/releases/v0.1.0-rc.1.md` as the first release checklist instance.
+- The release checklist records:
+  - release metadata
+  - scope and out-of-scope items
+  - risk and impact assessment
+  - build/test gates
+  - security validation gates
+  - manual security checks
+  - rollback plan
+  - secret rotation considerations
+  - known risks
+  - approval and post-release verification fields
 
 ### Security and operator impact
 
@@ -37,7 +35,30 @@ The AppSec hardening track is continuing before new Live Admin / RMQ / Welcome K
 - No mutation behavior changed.
 - No new endpoint was added.
 - Player 360 remains read-only.
-- This improves audit investigation quality for high-risk mutation attempts without exposing arbitrary raw command publishing.
+- Live Admin / RMQ / Discord full server management remains out of scope for this release candidate.
+- This creates release discipline before expanding high-risk Discord/server-management features.
+
+### Validation
+
+Validation pending from the canonical local update path:
+
+```bash
+./update.sh
+```
+
+The release candidate should not be tagged until validation evidence is recorded in:
+
+```text
+docs/releases/v0.1.0-rc.1.md
+```
+
+---
+
+## Previous update: Route-specific audit target assertions
+
+### Why this update was made
+
+The AppSec hardening track is continuing before new Live Admin / RMQ / Welcome Kit features. The previous slices proved that high-risk/destructive mutations emit audit events and that blocked mutations are still auditable. This slice tightened target accountability by ensuring audit events capture route-specific identifiers needed to investigate player, item, server-command, vehicle, and guild mutations.
 
 ### Validation
 
@@ -51,50 +72,4 @@ Non-blocking build-performance warning observed:
 
 ```text
 [PLUGIN_TIMINGS] Your build spent significant time in plugin `@tailwindcss/vite:generate:build`.
-```
-
-### Remaining AppSec work
-
-- pre/post-change review verification where practical
-- SAST/DAST/dependency evidence
-- manual abuse-case validation
-
----
-
-## Previous update: Blocked mutation audit coverage
-
-### Why this update was made
-
-The AppSec hardening track is continuing before new Live Admin / RMQ / Welcome Kit features. The previous audit slice verified successful high-risk/destructive mutation audit events. This slice adds negative-path coverage so blocked high-risk/destructive mutations are also auditable when admin-reason enforcement rejects them before the downstream handler runs.
-
-### What changed
-
-- Added `audit_log_negative_test.go`.
-- Added table-driven coverage for high-risk and destructive mutation routes blocked by missing admin reason.
-- Verified blocked mutations:
-  - do not reach the downstream handler
-  - return `400 Bad Request`
-  - still emit exactly one audit event
-  - record the expected method and path
-  - record mutation-safety action, risk, destructive flag, reason flag, and preview flag
-  - record failure result and `400` status
-  - preserve request ID
-  - preserve common target metadata such as `player_id`, `account_id`, and `actor_id`
-- Added oversized-body negative-path coverage for reason inspection.
-- Added `docs/changelog/unreleased/2026-06-blocked-mutation-audit-coverage.md` as the durable per-slice record.
-
-### Security and operator impact
-
-- No route behavior changed.
-- No mutation behavior changed.
-- No new endpoint was added.
-- Player 360 remains read-only.
-- This adds regression evidence that blocked high-risk/destructive mutations remain visible in the admin audit trail.
-
-### Validation
-
-Validated from the canonical local update path:
-
-```bash
-./update.sh
 ```
