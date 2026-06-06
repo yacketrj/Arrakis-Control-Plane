@@ -2,7 +2,7 @@
 
 Date: 2026-06
 Area: AppSec
-Status: Pending validation
+Status: Validated partial remediation
 
 ## Summary
 
@@ -13,10 +13,11 @@ This builds on the high-risk/destructive mutation audit-event coverage by assert
 ## Commits
 
 - `f4649ab0d1f0aeeda125690a2ab7d85d5582a34f` — added `audit_log_negative_test.go`
+- validation recorded after clean canonical local build/update path
 
 ## Validation
 
-Pending from the canonical local update path:
+Validated from the canonical local update path:
 
 ```bash
 ./update.sh
