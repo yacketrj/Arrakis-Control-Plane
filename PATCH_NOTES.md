@@ -1,32 +1,28 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: Roadmap documentation refresh and README path cleanup
+## Current update: Refactor gate and application identity cleanup
 
 ### Why this update was made
 
-The documentation review plan identified `docs/admin-feature-design-and-priorities.md` as a large mutable planning document that could become stale. The file still used older Dune Admin-era product naming, described Player 360 as the next implementation slice, and did not reflect the current Arrakis Control Panel release train.
+Update-script modularization is now explicitly required before final `v0.1.0` unless it is intentionally deferred in the release deviation log. The Go backend also needs a code-quality and modularization review before final `v0.1.0` so the project does not carry stale product strings, scattered constants, or avoidable structural debt into the first accepted release.
 
-The README also contained a local developer checkout path. Operator-facing documentation should not assume a specific drive letter, mount point, or personal working directory.
+During the first Go review pass, stale `dune-admin` identity strings were found in startup logging, public status, and setup repair guidance.
 
 ### What changed
 
-- Refreshed `docs/admin-feature-design-and-priorities.md` for Arrakis Control Panel.
-- Replaced stale Dune Admin-era planning language with the current `v0.1.x` secure-baseline release track.
-- Added the current release-train priorities:
-  - `v0.1.0` secure baseline
-  - `v0.2.0` Discord Admin Foundation
-  - `v0.3.0` Server Lifecycle Management
-  - `v0.4.0` Live Admin / RMQ Foundation
-  - `v0.5.0` Welcome Kits / Player Requests
-  - `v0.6.0` Guild Operations
-- Preserved safety principles, item delivery path distinctions, and validation requirements.
-- Clarified that full Discord server management, Live Admin RMQ, Welcome Kits, and arbitrary raw command publishing remain out of scope for `v0.1.0`.
-- Replaced the README's local checkout path with a generic repository-root path:
-
-```bash
-cd /path/to/Arrakis-Control-Plane
-./update.sh
-```
+- Added `app_identity.go` with shared application identity constants:
+  - `appDisplayName`
+  - `appServiceName`
+  - `appWindowsExecutable`
+- Updated `server.go` startup logging to use the shared service identity.
+- Updated `/api/v1/public/status` to return Arrakis Control Panel identity values.
+- Updated `main.go` setup repair guidance to use the shared Windows executable name.
+- Updated `docs/release-versioning.md` to make these final-`v0.1.0` gates explicit:
+  - update-script modularization decision
+  - PowerShell modularization or documented deferral
+  - Go refactoring/code-quality review
+  - handler/route/audit/mutation-safety review
+  - typed/allowlisted execution surface review
 
 ### Security and operator impact
 
@@ -34,26 +30,26 @@ cd /path/to/Arrakis-Control-Plane
 - No mutation behavior changed.
 - No new endpoint was added.
 - Player 360 remains read-only.
-- This improves roadmap accuracy and reduces stale-document risk before final `v0.1.0`.
-- README workflow guidance no longer depends on a developer-specific local path.
+- Public status now reports the current service/product identity instead of the legacy upstream-compatible name.
+- This reduces stale-label risk and centralizes product identity for future refactors.
 
 ### Validation
 
-Validated from the canonical local update path:
+Validation pending from the canonical local update path:
 
 ```bash
 ./update.sh
 ```
 
-### Remaining documentation work
+### Remaining refactor work
 
-- Complete the full documentation review in `docs/documentation-review-plan.md`.
-- Continue repo-wide verification for stale `DA Manager`, `Arrakis Control Plane`, and outdated workflow labels.
-- Review other long-lived docs for stale implemented-vs-planned claims.
+- Continue update-script modularization review.
+- Review PowerShell script modularization or document a final `v0.1.0` deferral.
+- Continue Go review for route grouping, handler boundaries, audit/mutation-safety helper boundaries, and typed execution surfaces.
 
 ---
 
-## Previous update: Linux systemd service migration
+## Previous update: Roadmap documentation refresh and README path cleanup
 
 ### Validation
 
