@@ -10,6 +10,9 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Added
 
+- Added `VERSION` with initial release candidate version `0.1.0-rc.1`.
+- Added release versioning policy in `docs/release-versioning.md`.
+- Added first release checklist instance in `docs/releases/v0.1.0-rc.1.md`.
 - Added route-specific audit target assertions in `audit_log_target_test.go`.
 - Added per-slice changelog record for route-specific audit targets in `docs/changelog/unreleased/2026-06-route-specific-audit-targets.md`.
 - Added blocked high-risk/destructive mutation audit coverage in `audit_log_negative_test.go`.
@@ -21,12 +24,14 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Established `v0.1.0-rc.1` as the first controlled release-candidate target.
 - Expanded admin audit target metadata extraction for player identity, item template, quantity, quality, vehicle, guild, rank, command, and command-path fields.
 - Replaced oversized root `CHANGELOG.md` with a compact index and current summary.
 - Moved durable detail out of the root changelog pattern and into per-slice/archive changelog records.
 
 ### Security
 
+- Kept Live Admin / RMQ / Discord full server management out of the initial release-candidate scope.
 - Added route-specific audit target assertions for high-risk mutation attempts.
 - Added negative-path audit assertions for high-risk/destructive mutations blocked by missing admin reason or oversized reason-inspection body.
 - Reduced future edit risk for security/audit release records by preventing `CHANGELOG.md` from continuing to grow as a giant mutable ledger.
@@ -34,6 +39,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
+- Validation pending for release-candidate setup from the canonical local update path:
+  - `./update.sh`
 - Validated route-specific audit target assertions from the canonical local update path:
   - `./update.sh`
   - Non-blocking build-performance warning observed: `[PLUGIN_TIMINGS] Your build spent significant time in plugin @tailwindcss/vite:generate:build`.
@@ -44,6 +51,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Known issues
 
+- `v0.1.0-rc.1` must not be tagged until `./update.sh` and release checklist evidence are recorded.
 - Update-script modularization has started and needs continued validation through the canonical update path before further refactor expansion.
 
 ## Detailed change records
