@@ -264,7 +264,7 @@ func main() {
 	if !alreadyConnected {
 		if errs := requiredConfigErrors(); len(errs) > 0 {
 			printConfigErrors(errs)
-			fmt.Fprintln(os.Stderr, "Run .\\dune-admin.exe -setup to repair configuration.")
+			fmt.Fprintf(os.Stderr, "Run .\\%s -setup to repair configuration.\n", appWindowsExecutable)
 			os.Exit(1)
 		}
 		// Connect synchronously. If this fails, the API starts in degraded mode so /api/v1/status and /api/v1/reconnect remain available.
