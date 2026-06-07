@@ -1,24 +1,26 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: Executable rename to Arrakis Control Panel
+## Current update: Linux systemd service migration
 
 ### Why this update was made
 
-The project label has been renamed to Arrakis Control Panel. The compiled executable should match that product name instead of continuing to build as the upstream-compatible `dune-admin` binary.
+The compiled backend executable has already been renamed to `arrakis-control-panel`. The Linux systemd installer still used legacy upstream-compatible `dune-admin` defaults for service name, install path, service user, installed binary path, and unit `ExecStart`. This slice aligns the Linux service installer with the Arrakis Control Panel product name.
 
 ### What changed
 
-- Updated Bash update defaults so the default backend binary name is `arrakis-control-panel`.
-- Updated `update.sh` so canonical builds emit:
-  - `arrakis-control-panel` on Linux/macOS
-  - `arrakis-control-panel.exe` on Windows
-- Updated `update.ps1` so PowerShell builds emit `arrakis-control-panel.exe`.
-- Updated `scripts/linux/build-linux.sh` so Linux helper builds emit `dist/linux/arrakis-control-panel`.
-- Updated `README.md` build-output documentation to match the new executable name.
+- Updated `scripts/linux/install-systemd.sh` defaults:
+  - service name: `arrakis-control-panel`
+  - install directory: `/opt/arrakis-control-panel`
+  - service user/group: `arrakis-control-panel`
+  - source binary: `dist/linux/arrakis-control-panel`
+  - installed binary: `/opt/arrakis-control-panel/arrakis-control-panel`
+  - unit description: `Arrakis Control Panel backend`
+  - `ExecStart`: `/opt/arrakis-control-panel/arrakis-control-panel`
+- Updated `README.md` systemd install commands and default service/path documentation.
 
 ### Compatibility note
 
-The Linux systemd installer may still retain legacy upstream-compatible service path/unit defaults until that service migration is completed and validated. This slice changes compiled build outputs, not installed service semantics.
+Existing systems that already installed the legacy `dune-admin` service should migrate intentionally. Stop the legacy service, copy/verify `.env`, then enable/start the new `arrakis-control-panel` service. Do not run both services against the same host/configuration unless intentionally testing.
 
 ### Security and operator impact
 
@@ -26,11 +28,12 @@ The Linux systemd installer may still retain legacy upstream-compatible service 
 - No mutation behavior changed.
 - No new endpoint was added.
 - Player 360 remains read-only.
-- Existing operators should confirm any local scripts that launch `dune-admin` directly and update them to `arrakis-control-panel` after pulling this change.
+- Linux service installs now use product-aligned names by default.
+- Existing operators must verify migration steps before replacing a working legacy service.
 
 ### Validation
 
-Validated from the canonical local update path:
+Validation pending from the canonical local update path:
 
 ```bash
 ./update.sh
@@ -38,13 +41,12 @@ Validated from the canonical local update path:
 
 ### Remaining rename work
 
-- Complete systemd installer/path migration if desired as a separate validated slice.
 - Continue repo-wide verification for stale `DA Manager`, `Arrakis Control Plane`, and outdated workflow labels.
 - Complete the full documentation review in `docs/documentation-review-plan.md`.
 
 ---
 
-## Previous update: README correction and documentation review plan
+## Previous update: Executable rename to Arrakis Control Panel
 
 ### Validation
 
