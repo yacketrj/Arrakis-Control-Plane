@@ -76,9 +76,9 @@ require_cmd git "Install Git."
 require_cmd go "Install Go and reopen the shell so PATH is refreshed."
 
 GOOS_VALUE="$(go env GOOS)"
-BINARY_NAME="dune-admin"
+BINARY_NAME="arrakis-control-panel"
 if [[ "$GOOS_VALUE" == "windows" ]]; then
-  BINARY_NAME="dune-admin.exe"
+  BINARY_NAME="arrakis-control-panel.exe"
 fi
 BUILD_OUTPUT_DIR="$(resolve_output_directory "$OUTPUT_DIR" "$GOOS_VALUE")"
 BACKEND_BINARY="$BUILD_OUTPUT_DIR/$BINARY_NAME"
