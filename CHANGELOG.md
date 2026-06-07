@@ -49,11 +49,11 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
-- Validation pending for executable rename from the canonical local update path:
+- Validated executable rename from the canonical local update path:
   - `./update.sh`
-- Validation pending for README correction and documentation-review-plan updates from the canonical local update path:
+- Validated README correction and documentation-review-plan updates from the canonical local update path:
   - `./update.sh`
-- Validation pending for Arrakis Control Panel rename and release-plan documentation from the canonical local update path:
+- Validated Arrakis Control Panel rename and release-plan documentation from the canonical local update path:
   - `./update.sh`
 - Validated release-candidate setup from the canonical local update path:
   - `./update.sh`
