@@ -74,12 +74,14 @@ Common options:
 ./update.sh --clean-web-dependencies
 ```
 
-On Windows, run the canonical path from Git Bash / MINGW64:
+Run the script from wherever you cloned the repository:
 
 ```bash
-cd /e/dune-admin-fork
+cd /path/to/Arrakis-Control-Plane
 ./update.sh
 ```
+
+On Windows, use Git Bash / MINGW64 or another shell that can execute Bash scripts. The drive letter and mount path depend on the local machine and should not be assumed.
 
 PowerShell support exists through `update.ps1`, but the current validated release workflow is `./update.sh`.
 
