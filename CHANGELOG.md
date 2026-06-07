@@ -27,6 +27,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Migrated Linux systemd installer defaults from legacy `dune-admin` names to `arrakis-control-panel` service, user/group, install path, binary path, unit description, and `ExecStart` values.
+- Updated `README.md` systemd install commands and service defaults for Arrakis Control Panel.
 - Renamed compiled backend executable output to `arrakis-control-panel` / `arrakis-control-panel.exe` in the Bash update workflow, PowerShell update workflow, and Linux build helper.
 - Updated `README.md` build-output documentation for the Arrakis Control Panel executable name.
 - Updated `README.md` to document Arrakis Control Panel naming, upstream attribution, strict token generation, canonical `./update.sh` validation/build workflow, release evidence locations, and release tagging workflow.
@@ -49,6 +51,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
+- Validation pending for Linux systemd service migration from the canonical local update path:
+  - `./update.sh`
 - Validated executable rename from the canonical local update path:
   - `./update.sh`
 - Validated README correction and documentation-review-plan updates from the canonical local update path:
@@ -70,7 +74,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 - Full documentation review is required before final `v0.1.0` or must be explicitly deferred in `docs/release-deviation-log.md`.
 - `docs/admin-feature-design-and-priorities.md` triggered a large Markdown notice and requires review for staleness, accuracy, and possible split/archive.
 - Repo-wide stale label verification for `DA Manager` and `Arrakis Control Plane` is still required before final `v0.1.0`.
-- Linux systemd installer/service path migration remains separate from the compiled executable rename and should be handled as its own validated slice.
+- Existing Linux installs using legacy `dune-admin` service/path defaults require intentional migration before switching to the new `arrakis-control-panel` service defaults.
 - `v0.1.0-rc.1` is approved to tag; post-release verification checks remain pending after tag/artifact install or launch.
 - Update-script modularization has started and needs continued validation through the canonical update path before further refactor expansion.
 
