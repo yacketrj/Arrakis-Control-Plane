@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT_DIR="${ROOT_DIR}/dist/linux"
-APP_NAME="dune-admin"
+APP_NAME="arrakis-control-panel"
 VERSION="${VERSION:-dev}"
 
 log() { printf '[linux-build] %s\n' "$*"; }
