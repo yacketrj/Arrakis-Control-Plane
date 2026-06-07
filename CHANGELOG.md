@@ -27,6 +27,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Refreshed `docs/admin-feature-design-and-priorities.md` for Arrakis Control Panel, the current release train, and validated product/service naming.
 - Migrated Linux systemd installer defaults from legacy `dune-admin` names to `arrakis-control-panel` service, user/group, install path, binary path, unit description, and `ExecStart` values.
 - Updated `README.md` systemd install commands and service defaults for Arrakis Control Panel.
 - Renamed compiled backend executable output to `arrakis-control-panel` / `arrakis-control-panel.exe` in the Bash update workflow, PowerShell update workflow, and Linux build helper.
@@ -42,6 +43,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Security
 
+- Clarified in the roadmap that full Discord server management, Live Admin RMQ, Welcome Kits, and arbitrary raw command publishing remain out of scope for `v0.1.0`.
 - Added a pre-`v0.1.0` documentation review gate for accuracy, authenticity, comprehensiveness, naming consistency, release evidence, and stale large mutable documents.
 - Kept Live Admin / RMQ / Discord full server management out of the initial release-candidate scope.
 - Added route-specific audit target assertions for high-risk mutation attempts.
@@ -51,6 +53,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
+- Validation pending for roadmap documentation refresh from the canonical local update path:
+  - `./update.sh`
 - Validated Linux systemd service migration from the canonical local update path:
   - `./update.sh`
 - Validated executable rename from the canonical local update path:
@@ -72,8 +76,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 ### Known issues
 
 - Full documentation review is required before final `v0.1.0` or must be explicitly deferred in `docs/release-deviation-log.md`.
-- `docs/admin-feature-design-and-priorities.md` triggered a large Markdown notice and requires review for staleness, accuracy, and possible split/archive.
-- Repo-wide stale label verification for `DA Manager` and `Arrakis Control Plane` is still required before final `v0.1.0`.
+- Continue reviewing other long-lived docs for stale implemented-vs-planned claims.
+- Repo-wide stale label verification for `DA Manager` and `Arrakis Control Plane` should continue before final `v0.1.0`.
 - Existing Linux installs using legacy `dune-admin` service/path defaults require intentional migration before switching to the new `arrakis-control-panel` service defaults.
 - `v0.1.0-rc.1` is approved to tag; post-release verification checks remain pending after tag/artifact install or launch.
 - Update-script modularization has started and needs continued validation through the canonical update path before further refactor expansion.
