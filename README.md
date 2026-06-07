@@ -205,11 +205,16 @@ dist/<goos>/
 Examples:
 
 ```text
-dist/windows/dune-admin.exe
-dist/linux/dune-admin
+dist/windows/arrakis-control-panel.exe
+dist/linux/arrakis-control-panel
 ```
 
-The executable file name currently remains `dune-admin` / `dune-admin.exe` for compatibility with the upstream project and existing scripts. The product label is Arrakis Control Panel.
+The root repository copy produced by `./update.sh` also uses the project-aligned executable name:
+
+```text
+arrakis-control-panel.exe
+arrakis-control-panel
+```
 
 ## Systemd backend service
 
@@ -224,7 +229,7 @@ sudo systemctl status dune-admin
 journalctl -u dune-admin -f
 ```
 
-The Linux service path and unit name may still use `dune-admin` for compatibility. Treat this as an implementation detail unless and until the service naming is formally migrated.
+The Linux systemd installer may still use the legacy `dune-admin` service path/unit name until the service migration is completed and validated. The compiled executable name is now `arrakis-control-panel`.
 
 ## Release workflow
 
