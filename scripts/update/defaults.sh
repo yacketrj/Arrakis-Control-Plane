@@ -26,7 +26,7 @@ WEB_ROOT=""
 BUILD_OUTPUT_DIR=""
 BACKEND_BINARY=""
 REPO_ROOT_BINARY=""
-BINARY_NAME="dune-admin"
+BINARY_NAME="arrakis-control-panel"
 GOOS_VALUE=""
 
 COLOR_RESET=$'\033[0m'
