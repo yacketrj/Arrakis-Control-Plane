@@ -223,13 +223,22 @@ For Linux service installs:
 ```bash
 ./scripts/linux/build-linux.sh
 sudo ./scripts/linux/install-systemd.sh
-sudo nano /opt/dune-admin/.env
-sudo systemctl start dune-admin
-sudo systemctl status dune-admin
-journalctl -u dune-admin -f
+sudo nano /opt/arrakis-control-panel/.env
+sudo systemctl start arrakis-control-panel
+sudo systemctl status arrakis-control-panel
+journalctl -u arrakis-control-panel -f
 ```
 
-The Linux systemd installer may still use the legacy `dune-admin` service path/unit name until the service migration is completed and validated. The compiled executable name is now `arrakis-control-panel`.
+The Linux systemd installer now defaults to:
+
+```text
+Service: arrakis-control-panel.service
+Install directory: /opt/arrakis-control-panel
+Service user/group: arrakis-control-panel
+Executable: /opt/arrakis-control-panel/arrakis-control-panel
+```
+
+Existing installs that used the legacy `dune-admin` service/path defaults should be migrated intentionally. Stop the old service before enabling the new one, and verify `.env` values before starting the migrated service.
 
 ## Release workflow
 
