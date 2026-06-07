@@ -218,8 +218,8 @@ try {
   $RepoRoot = (Resolve-Path $RepoRoot).Path
   $WebRoot = Join-Path $RepoRoot 'web'
   $BuildOutputDir = Resolve-OutputDirectory -Root $RepoRoot -RequestedOutputDir $OutputDir
-  $BackendBinary = Join-Path $BuildOutputDir 'dune-admin.exe'
-  $RepoRootBinary = Join-Path $RepoRoot 'dune-admin.exe'
+  $BackendBinary = Join-Path $BuildOutputDir 'arrakis-control-panel.exe'
+  $RepoRootBinary = Join-Path $RepoRoot 'arrakis-control-panel.exe'
 
   Set-Location $RepoRoot
   Write-Host "Repo folder:    $RepoRoot"
