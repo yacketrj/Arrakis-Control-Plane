@@ -30,7 +30,7 @@ The Linux systemd installer may still retain legacy upstream-compatible service 
 
 ### Validation
 
-Validation pending from the canonical local update path:
+Validated from the canonical local update path:
 
 ```bash
 ./update.sh
@@ -48,4 +48,8 @@ Validation pending from the canonical local update path:
 
 ### Validation
 
-Clean build reported before this executable rename slice. Revalidation is required after the executable rename.
+Validated from the canonical local update path:
+
+```bash
+./update.sh
+```
