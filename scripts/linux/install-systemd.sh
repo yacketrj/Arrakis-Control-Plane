@@ -2,10 +2,11 @@
 set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-SERVICE_NAME="${SERVICE_NAME:-dune-admin}"
-INSTALL_DIR="${INSTALL_DIR:-/opt/dune-admin}"
-SERVICE_USER="${SERVICE_USER:-dune-admin}"
-BINARY_PATH="${ROOT_DIR}/dist/linux/dune-admin"
+SERVICE_NAME="${SERVICE_NAME:-arrakis-control-panel}"
+INSTALL_DIR="${INSTALL_DIR:-/opt/arrakis-control-panel}"
+SERVICE_USER="${SERVICE_USER:-arrakis-control-panel}"
+BINARY_NAME="arrakis-control-panel"
+BINARY_PATH="${ROOT_DIR}/dist/linux/${BINARY_NAME}"
 
 log() { printf '[linux-systemd] %s\n' "$*"; }
 fail() { printf '[linux-systemd] %s\n' "$*" >&2; exit 1; }
@@ -34,7 +35,7 @@ main() {
 
   log "Installing files into ${INSTALL_DIR}"
   mkdir -p "${INSTALL_DIR}"
-  install -m 0755 "${BINARY_PATH}" "${INSTALL_DIR}/dune-admin"
+  install -m 0755 "${BINARY_PATH}" "${INSTALL_DIR}/${BINARY_NAME}"
   install -m 0644 "${ROOT_DIR}/.env.example" "${INSTALL_DIR}/.env.example"
 
   if [[ ! -f "${INSTALL_DIR}/.env" ]]; then
@@ -47,7 +48,7 @@ main() {
   log "Writing /etc/systemd/system/${SERVICE_NAME}.service"
   cat > "/etc/systemd/system/${SERVICE_NAME}.service" <<SERVICE
 [Unit]
-Description=Dune Admin backend
+Description=Arrakis Control Panel backend
 After=network-online.target
 Wants=network-online.target
 
@@ -57,7 +58,7 @@ User=${SERVICE_USER}
 Group=${SERVICE_USER}
 WorkingDirectory=${INSTALL_DIR}
 EnvironmentFile=${INSTALL_DIR}/.env
-ExecStart=${INSTALL_DIR}/dune-admin
+ExecStart=${INSTALL_DIR}/${BINARY_NAME}
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true
