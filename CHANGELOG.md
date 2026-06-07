@@ -27,6 +27,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Removed developer-specific local checkout path from `README.md` and replaced it with repository-root-relative guidance.
 - Refreshed `docs/admin-feature-design-and-priorities.md` for Arrakis Control Panel, the current release train, and validated product/service naming.
 - Migrated Linux systemd installer defaults from legacy `dune-admin` names to `arrakis-control-panel` service, user/group, install path, binary path, unit description, and `ExecStart` values.
 - Updated `README.md` systemd install commands and service defaults for Arrakis Control Panel.
@@ -53,7 +54,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
-- Validation pending for roadmap documentation refresh from the canonical local update path:
+- Validated roadmap documentation refresh and README local-path cleanup from the canonical local update path:
   - `./update.sh`
 - Validated Linux systemd service migration from the canonical local update path:
   - `./update.sh`
