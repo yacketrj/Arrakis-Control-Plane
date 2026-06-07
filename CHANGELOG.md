@@ -51,7 +51,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
-- Validation pending for Linux systemd service migration from the canonical local update path:
+- Validated Linux systemd service migration from the canonical local update path:
   - `./update.sh`
 - Validated executable rename from the canonical local update path:
   - `./update.sh`
