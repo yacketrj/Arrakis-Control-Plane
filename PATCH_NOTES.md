@@ -1,42 +1,24 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: README correction and documentation review plan
+## Current update: Executable rename to Arrakis Control Panel
 
 ### Why this update was made
 
-The canonical update path emitted a non-blocking ledger-size warning for `docs/admin-feature-design-and-priorities.md`. That warning raised a valid concern: large planning documents can become stale, inaccurate, or out of sync without failing validation.
-
-The README was also stale. It did not describe the current `./update.sh` workflow accurately and still contained old product/workflow assumptions.
+The project label has been renamed to Arrakis Control Panel. The compiled executable should match that product name instead of continuing to build as the upstream-compatible `dune-admin` binary.
 
 ### What changed
 
-- Updated `README.md` for Arrakis Control Panel naming and current workflow.
-- Documented `./update.sh` as the canonical validation/build path.
-- Corrected strict admin-token generation guidance to use a 43-character base64url token generated from 32 random bytes.
-- Clarified that manual Go/npm/Linux helper commands are fallback/debug/platform-specific paths, not the canonical release workflow.
-- Added release evidence locations and release workflow guidance to the README.
-- Added upstream attribution in the README.
-- Added `docs/documentation-review-plan.md`.
+- Updated Bash update defaults so the default backend binary name is `arrakis-control-panel`.
+- Updated `update.sh` so canonical builds emit:
+  - `arrakis-control-panel` on Linux/macOS
+  - `arrakis-control-panel.exe` on Windows
+- Updated `update.ps1` so PowerShell builds emit `arrakis-control-panel.exe`.
+- Updated `scripts/linux/build-linux.sh` so Linux helper builds emit `dist/linux/arrakis-control-panel`.
+- Updated `README.md` build-output documentation to match the new executable name.
 
-### Documentation review scope
+### Compatibility note
 
-The new documentation review plan covers:
-
-- accuracy against current code, scripts, routes, config, and release workflow
-- authenticity of ownership, attribution, release maturity, and compliance claims
-- comprehensiveness of operator, security, release, and troubleshooting workflows
-- consistency of product naming, version labels, commands, paths, and release scope
-- maintainability of large mutable planning/audit documents
-
-### Initial concern
-
-`docs/admin-feature-design-and-priorities.md` is currently large enough to trigger:
-
-```text
-Large Markdown notice: docs/admin-feature-design-and-priorities.md has 405 lines. Consider splitting if it is a mutable ledger.
-```
-
-The warning is non-blocking, but this file now requires review before final `v0.1.0` acceptance.
+The Linux systemd installer may still retain legacy upstream-compatible service path/unit defaults until that service migration is completed and validated. This slice changes compiled build outputs, not installed service semantics.
 
 ### Security and operator impact
 
@@ -44,7 +26,7 @@ The warning is non-blocking, but this file now requires review before final `v0.
 - No mutation behavior changed.
 - No new endpoint was added.
 - Player 360 remains read-only.
-- Live Admin / RMQ / Discord full server management remains out of scope for this release candidate.
+- Existing operators should confirm any local scripts that launch `dune-admin` directly and update them to `arrakis-control-panel` after pulling this change.
 
 ### Validation
 
@@ -54,20 +36,16 @@ Validation pending from the canonical local update path:
 ./update.sh
 ```
 
-### Remaining documentation work
+### Remaining rename work
 
-- Complete the full documentation review in `docs/documentation-review-plan.md`.
-- Review and either split, archive, or correct `docs/admin-feature-design-and-priorities.md`.
+- Complete systemd installer/path migration if desired as a separate validated slice.
 - Continue repo-wide verification for stale `DA Manager`, `Arrakis Control Plane`, and outdated workflow labels.
+- Complete the full documentation review in `docs/documentation-review-plan.md`.
 
 ---
 
-## Previous update: Product rename, release-plan goals, and deviation tracking
+## Previous update: README correction and documentation review plan
 
 ### Validation
 
-Validation pending from the canonical local update path:
-
-```bash
-./update.sh
-```
+Clean build reported before this executable rename slice. Revalidation is required after the executable rename.
