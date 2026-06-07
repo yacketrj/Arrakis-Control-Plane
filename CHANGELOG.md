@@ -10,8 +10,10 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Added
 
+- Added release deviation log in `docs/release-deviation-log.md`.
+- Added release-train goals, label-sync rules, deviation policy, and industry-standard gap assessment to `docs/release-versioning.md`.
+- Added upstream attribution requirement for Icehunter's `dune-admin` project by Ryan Wilson.
 - Added `VERSION` with initial release candidate version `0.1.0-rc.1`.
-- Added release versioning policy in `docs/release-versioning.md`.
 - Added first release checklist instance in `docs/releases/v0.1.0-rc.1.md`.
 - Added route-specific audit target assertions in `audit_log_target_test.go`.
 - Added per-slice changelog record for route-specific audit targets in `docs/changelog/unreleased/2026-06-route-specific-audit-targets.md`.
@@ -24,6 +26,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Renamed the application/product label from DA Manager to Arrakis Control Panel in active release-governance documentation.
+- Updated `docs/releases/v0.1.0-rc.1.md` with Arrakis Control Panel naming, upstream attribution, and current industry-standard release gaps.
 - Established `v0.1.0-rc.1` as the first controlled release-candidate target.
 - Updated `docs/releases/v0.1.0-rc.1.md` with clean build validation and approval to tag.
 - Expanded admin audit target metadata extraction for player identity, item template, quantity, quality, vehicle, guild, rank, command, and command-path fields.
@@ -40,6 +44,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
+- Validation pending for Arrakis Control Panel rename and release-plan documentation from the canonical local update path:
+  - `./update.sh`
 - Validated release-candidate setup from the canonical local update path:
   - `./update.sh`
 - Validated route-specific audit target assertions from the canonical local update path:
@@ -52,6 +58,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Known issues
 
+- Repo-wide stale label verification for `DA Manager` and `Arrakis Control Plane` is still required before final `v0.1.0`.
 - `v0.1.0-rc.1` is approved to tag; post-release verification checks remain pending after tag/artifact install or launch.
 - Update-script modularization has started and needs continued validation through the canonical update path before further refactor expansion.
 
@@ -60,6 +67,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 - `docs/changelog/README.md`
 - `docs/changelog/unreleased/`
 - `docs/changelog/archive/`
+- `docs/release-deviation-log.md`
 
 ## Last full pre-compaction changelog
 
