@@ -1,34 +1,77 @@
-# Dune Admin Release Notes
+# Arrakis Control Panel Release Notes
 
-## Current update: Initial release candidate setup
+## Current update: Product rename, release-plan goals, and deviation tracking
 
 ### Why this update was made
 
-The project is in a reasonable development cycle to prepare its first controlled release, but it should be treated as a pre-1.0 release candidate rather than a stable `1.0.0` release. The current security posture has meaningful hardening and validation evidence, while some release evidence and security scans still need to be recorded before a final `0.1.0` release.
+The application has been renamed to **Arrakis Control Panel**. It is not named DA Manager. Release documentation, planning language, and operator-facing labels must use the new product name going forward.
 
-### Version decision
+This update also documents the release plan, release goals, release-label sync rules, industry-standard alignment, current gaps, and deviation logging expectations.
 
-- Initial release candidate: `0.1.0-rc.1`
-- Git tag target: `v0.1.0-rc.1`
-- First accepted release target after release-candidate validation: `v0.1.0`
+### Product identity
+
+- Product name: `Arrakis Control Panel`
+- Repository: `yacketrj/Arrakis-Control-Plane`
+- Prior internal/project label: `DA Manager` — deprecated and should be removed from current documentation and code labels.
+
+### Upstream attribution
+
+Arrakis Control Panel is a fork of Icehunter's `dune-admin` project by Ryan Wilson:
+
+```text
+https://github.com/Icehunter/dune-admin
+```
+
+Every release should preserve clear upstream attribution and state that Arrakis Control Panel builds on Icehunter's original `dune-admin` work.
+
+Future RMQ/live-admin work should also preserve the upstream acknowledgement that the original `dune-admin` README gives to `@adainrivers` and the `dune-dedicated-server-manager` project for RabbitMQ server-command research.
 
 ### What changed
 
-- Added `VERSION` with `0.1.0-rc.1`.
-- Added `docs/release-versioning.md` with the release numbering, tag, release-candidate, and pre-1.0 policy.
-- Added `docs/releases/v0.1.0-rc.1.md` as the first release checklist instance.
-- The release checklist records:
-  - release metadata
-  - scope and out-of-scope items
-  - risk and impact assessment
-  - build/test gates
-  - security validation gates
-  - manual security checks
-  - rollback plan
-  - secret rotation considerations
-  - known risks
-  - approval and post-release verification fields
-- Updated the release checklist with clean `./update.sh` validation and approval to tag `v0.1.0-rc.1`.
+- Updated `docs/release-versioning.md` to use Arrakis Control Panel as the canonical product name.
+- Added release-train goals for `v0.1.0` through `v0.6.0`.
+- Added release-label sync rules for `VERSION`, Git tags, GitHub Release titles, release checklist files, `CHANGELOG.md`, `PATCH_NOTES.md`, and per-slice changelog records.
+- Added release deviation policy and criteria.
+- Added `docs/release-deviation-log.md`.
+- Updated `docs/releases/v0.1.0-rc.1.md` to use Arrakis Control Panel, include upstream attribution, and document current industry-standard release gaps.
+
+### Industry-standard alignment
+
+The current process is aligned with common release-management expectations in these areas:
+
+- semantic-versioning-style labels
+- immutable Git tags for release points
+- release-candidate flow before final release
+- release checklist with validation, rollback, approval, and risk sections
+- compact changelog plus durable per-slice records
+- explicit known-risk acceptance for RC scope
+- upstream attribution preservation
+
+### Current gaps
+
+The current release process is still lacking:
+
+- signed release artifacts
+- artifact checksums
+- SBOM generation
+- consistently attached SAST, DAST, secret-scan, and vulnerability-scan evidence
+- automated GitHub Release artifact attachment
+- fully completed Bash and PowerShell update-script modularization
+- automated post-release verification evidence
+
+### Deviation tracking
+
+Any deviation from the release plan must be cataloged in:
+
+```text
+docs/release-deviation-log.md
+```
+
+The initial deviation log records:
+
+- product rename from DA Manager to Arrakis Control Panel before final `v0.1.0`
+- security scan evidence deferred for `v0.1.0-rc.1`
+- update-script modularization accepted as incomplete for RC scope
 
 ### Security and operator impact
 
@@ -37,34 +80,24 @@ The project is in a reasonable development cycle to prepare its first controlled
 - No new endpoint was added.
 - Player 360 remains read-only.
 - Live Admin / RMQ / Discord full server management remains out of scope for this release candidate.
-- This creates release discipline before expanding high-risk Discord/server-management features.
 
 ### Validation
 
-Validated from the canonical local update path:
+Validation pending from the canonical local update path:
 
 ```bash
 ./update.sh
 ```
 
-The release checklist now marks `v0.1.0-rc.1` as approved to tag:
+### Remaining rename work
 
-```text
-docs/releases/v0.1.0-rc.1.md
-```
-
-### Next release action
-
-Create and push the annotated tag from the validated local checkout:
-
-```bash
-git tag -a v0.1.0-rc.1 -m "DA Manager v0.1.0-rc.1"
-git push origin v0.1.0-rc.1
-```
+- Continue repo-wide verification for stale `DA Manager` and `Arrakis Control Plane` labels.
+- Update remaining documentation/code labels to `Arrakis Control Panel`.
+- Keep the release deviation log synchronized if release scope changes.
 
 ---
 
-## Previous update: Route-specific audit target assertions
+## Previous update: Initial release candidate setup
 
 ### Validation
 
@@ -72,10 +105,4 @@ Validated from the canonical local update path:
 
 ```bash
 ./update.sh
-```
-
-Non-blocking build-performance warning observed:
-
-```text
-[PLUGIN_TIMINGS] Your build spent significant time in plugin `@tailwindcss/vite:generate:build`.
 ```
