@@ -29,6 +29,8 @@ Future RMQ/live-admin work should also preserve the upstream acknowledgement tha
 - Maintain compact release records and per-slice durable changelog records.
 - Preserve upstream attribution.
 - Treat Discord-driven server management and RMQ/live-admin controls as high-risk features requiring dedicated release trains.
+- Complete or explicitly defer update-script modularization before final `v0.1.0`.
+- Complete or explicitly defer Go code refactoring/code-quality review before final `v0.1.0`.
 
 ### Release-train themes
 
@@ -120,6 +122,7 @@ A deviation includes:
 - changing the backend exposure model
 - adding Discord, RMQ, database, or infrastructure mutation capability without a dedicated security review
 - product naming changes that affect documentation, code labels, release evidence, or GitHub release text
+- deferring update-script modularization or Go code-quality review past final `v0.1.0`
 
 Deviation entries must include:
 
@@ -134,6 +137,21 @@ Deviation entries must include:
 - follow-up target
 
 Use `docs/release-deviation-log.md` for the durable deviation log.
+
+## Refactor and code-quality gate
+
+Final `v0.1.0` requires a reviewed decision on:
+
+- Bash update-script modularization under `scripts/update/`
+- PowerShell update-script modularization or an explicit documented deferral
+- Go code refactoring and modularization review
+- stale product/service identity strings
+- handler and route registration organization
+- audit/mutation-safety helper boundaries
+- duplicated request/response helper patterns
+- typed/allowlisted execution surfaces for SQL, shell, RMQ, and DB mutation workflows
+
+Refactor work must be done in small, validated slices. Broad package restructuring should be avoided until tests are strong enough to support it.
 
 ## Industry-standard alignment
 
@@ -154,6 +172,7 @@ Current gaps before a stronger final/stable release:
 - SAST, DAST, secret scanning, and vulnerability scan evidence is not consistently attached
 - artifact checksums are not yet generated and published
 - update-script modularization is not fully completed across Bash and PowerShell
+- Go code refactoring/code-quality review is not yet complete
 - post-release verification evidence is still manual
 - GitHub Release artifact attachment is not automated
 
@@ -171,6 +190,7 @@ A release candidate requires:
 - Rollback plan documented.
 - Upstream attribution included or referenced.
 - Deviation log updated when scope or process differs from the plan.
+- Refactor/code-quality review status recorded for final `v0.1.0`.
 
 ## First release recommendation
 
