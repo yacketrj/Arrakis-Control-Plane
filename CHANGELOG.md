@@ -10,6 +10,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Added
 
+- Added deep documentation review plan in `docs/documentation-review-plan.md`.
 - Added release deviation log in `docs/release-deviation-log.md`.
 - Added release-train goals, label-sync rules, deviation policy, and industry-standard gap assessment to `docs/release-versioning.md`.
 - Added upstream attribution requirement for Icehunter's `dune-admin` project by Ryan Wilson.
@@ -26,6 +27,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Updated `README.md` to document Arrakis Control Panel naming, upstream attribution, strict token generation, canonical `./update.sh` validation/build workflow, release evidence locations, and release tagging workflow.
 - Renamed the application/product label from DA Manager to Arrakis Control Panel in active release-governance documentation.
 - Updated `docs/releases/v0.1.0-rc.1.md` with Arrakis Control Panel naming, upstream attribution, and current industry-standard release gaps.
 - Established `v0.1.0-rc.1` as the first controlled release-candidate target.
@@ -36,6 +38,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Security
 
+- Added a pre-`v0.1.0` documentation review gate for accuracy, authenticity, comprehensiveness, naming consistency, release evidence, and stale large mutable documents.
 - Kept Live Admin / RMQ / Discord full server management out of the initial release-candidate scope.
 - Added route-specific audit target assertions for high-risk mutation attempts.
 - Added negative-path audit assertions for high-risk/destructive mutations blocked by missing admin reason or oversized reason-inspection body.
@@ -44,6 +47,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
+- Validation pending for README correction and documentation-review-plan updates from the canonical local update path:
+  - `./update.sh`
 - Validation pending for Arrakis Control Panel rename and release-plan documentation from the canonical local update path:
   - `./update.sh`
 - Validated release-candidate setup from the canonical local update path:
@@ -58,12 +63,15 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Known issues
 
+- Full documentation review is required before final `v0.1.0` or must be explicitly deferred in `docs/release-deviation-log.md`.
+- `docs/admin-feature-design-and-priorities.md` triggered a large Markdown notice and requires review for staleness, accuracy, and possible split/archive.
 - Repo-wide stale label verification for `DA Manager` and `Arrakis Control Plane` is still required before final `v0.1.0`.
 - `v0.1.0-rc.1` is approved to tag; post-release verification checks remain pending after tag/artifact install or launch.
 - Update-script modularization has started and needs continued validation through the canonical update path before further refactor expansion.
 
 ## Detailed change records
 
+- `docs/documentation-review-plan.md`
 - `docs/changelog/README.md`
 - `docs/changelog/unreleased/`
 - `docs/changelog/archive/`
