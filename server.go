@@ -28,7 +28,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 func logStartupSummary(addr string) {
-	log.Printf("dune-admin listening on %s", addr)
+	log.Printf("%s listening on %s", appServiceName, addr)
 	log.Printf("runtime: %s", normalizeRuntime(serverRuntime))
 	log.Printf("ssh: %s@%s", sshUser, sshHost)
 
@@ -87,7 +87,8 @@ func decode(r *http.Request, v any) error {
 
 func handlePublicStatus(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, map[string]any{
-		"service": "dune-admin",
+		"service": appServiceName,
+		"name":    appDisplayName,
 		"status":  "online",
 	})
 }
