@@ -33,7 +33,7 @@ Existing systems that already installed the legacy `dune-admin` service should m
 
 ### Validation
 
-Validation pending from the canonical local update path:
+Validated from the canonical local update path:
 
 ```bash
 ./update.sh
