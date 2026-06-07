@@ -1,77 +1,42 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: Product rename, release-plan goals, and deviation tracking
+## Current update: README correction and documentation review plan
 
 ### Why this update was made
 
-The application has been renamed to **Arrakis Control Panel**. It is not named DA Manager. Release documentation, planning language, and operator-facing labels must use the new product name going forward.
+The canonical update path emitted a non-blocking ledger-size warning for `docs/admin-feature-design-and-priorities.md`. That warning raised a valid concern: large planning documents can become stale, inaccurate, or out of sync without failing validation.
 
-This update also documents the release plan, release goals, release-label sync rules, industry-standard alignment, current gaps, and deviation logging expectations.
-
-### Product identity
-
-- Product name: `Arrakis Control Panel`
-- Repository: `yacketrj/Arrakis-Control-Plane`
-- Prior internal/project label: `DA Manager` — deprecated and should be removed from current documentation and code labels.
-
-### Upstream attribution
-
-Arrakis Control Panel is a fork of Icehunter's `dune-admin` project by Ryan Wilson:
-
-```text
-https://github.com/Icehunter/dune-admin
-```
-
-Every release should preserve clear upstream attribution and state that Arrakis Control Panel builds on Icehunter's original `dune-admin` work.
-
-Future RMQ/live-admin work should also preserve the upstream acknowledgement that the original `dune-admin` README gives to `@adainrivers` and the `dune-dedicated-server-manager` project for RabbitMQ server-command research.
+The README was also stale. It did not describe the current `./update.sh` workflow accurately and still contained old product/workflow assumptions.
 
 ### What changed
 
-- Updated `docs/release-versioning.md` to use Arrakis Control Panel as the canonical product name.
-- Added release-train goals for `v0.1.0` through `v0.6.0`.
-- Added release-label sync rules for `VERSION`, Git tags, GitHub Release titles, release checklist files, `CHANGELOG.md`, `PATCH_NOTES.md`, and per-slice changelog records.
-- Added release deviation policy and criteria.
-- Added `docs/release-deviation-log.md`.
-- Updated `docs/releases/v0.1.0-rc.1.md` to use Arrakis Control Panel, include upstream attribution, and document current industry-standard release gaps.
+- Updated `README.md` for Arrakis Control Panel naming and current workflow.
+- Documented `./update.sh` as the canonical validation/build path.
+- Corrected strict admin-token generation guidance to use a 43-character base64url token generated from 32 random bytes.
+- Clarified that manual Go/npm/Linux helper commands are fallback/debug/platform-specific paths, not the canonical release workflow.
+- Added release evidence locations and release workflow guidance to the README.
+- Added upstream attribution in the README.
+- Added `docs/documentation-review-plan.md`.
 
-### Industry-standard alignment
+### Documentation review scope
 
-The current process is aligned with common release-management expectations in these areas:
+The new documentation review plan covers:
 
-- semantic-versioning-style labels
-- immutable Git tags for release points
-- release-candidate flow before final release
-- release checklist with validation, rollback, approval, and risk sections
-- compact changelog plus durable per-slice records
-- explicit known-risk acceptance for RC scope
-- upstream attribution preservation
+- accuracy against current code, scripts, routes, config, and release workflow
+- authenticity of ownership, attribution, release maturity, and compliance claims
+- comprehensiveness of operator, security, release, and troubleshooting workflows
+- consistency of product naming, version labels, commands, paths, and release scope
+- maintainability of large mutable planning/audit documents
 
-### Current gaps
+### Initial concern
 
-The current release process is still lacking:
-
-- signed release artifacts
-- artifact checksums
-- SBOM generation
-- consistently attached SAST, DAST, secret-scan, and vulnerability-scan evidence
-- automated GitHub Release artifact attachment
-- fully completed Bash and PowerShell update-script modularization
-- automated post-release verification evidence
-
-### Deviation tracking
-
-Any deviation from the release plan must be cataloged in:
+`docs/admin-feature-design-and-priorities.md` is currently large enough to trigger:
 
 ```text
-docs/release-deviation-log.md
+Large Markdown notice: docs/admin-feature-design-and-priorities.md has 405 lines. Consider splitting if it is a mutable ledger.
 ```
 
-The initial deviation log records:
-
-- product rename from DA Manager to Arrakis Control Panel before final `v0.1.0`
-- security scan evidence deferred for `v0.1.0-rc.1`
-- update-script modularization accepted as incomplete for RC scope
+The warning is non-blocking, but this file now requires review before final `v0.1.0` acceptance.
 
 ### Security and operator impact
 
@@ -89,19 +54,19 @@ Validation pending from the canonical local update path:
 ./update.sh
 ```
 
-### Remaining rename work
+### Remaining documentation work
 
-- Continue repo-wide verification for stale `DA Manager` and `Arrakis Control Plane` labels.
-- Update remaining documentation/code labels to `Arrakis Control Panel`.
-- Keep the release deviation log synchronized if release scope changes.
+- Complete the full documentation review in `docs/documentation-review-plan.md`.
+- Review and either split, archive, or correct `docs/admin-feature-design-and-priorities.md`.
+- Continue repo-wide verification for stale `DA Manager`, `Arrakis Control Plane`, and outdated workflow labels.
 
 ---
 
-## Previous update: Initial release candidate setup
+## Previous update: Product rename, release-plan goals, and deviation tracking
 
 ### Validation
 
-Validated from the canonical local update path:
+Validation pending from the canonical local update path:
 
 ```bash
 ./update.sh
