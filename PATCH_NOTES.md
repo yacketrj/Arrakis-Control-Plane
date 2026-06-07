@@ -9,7 +9,7 @@ The project is in a reasonable development cycle to prepare its first controlled
 ### Version decision
 
 - Initial release candidate: `0.1.0-rc.1`
-- Git tag target after validation: `v0.1.0-rc.1`
+- Git tag target: `v0.1.0-rc.1`
 - First accepted release target after release-candidate validation: `v0.1.0`
 
 ### What changed
@@ -28,6 +28,7 @@ The project is in a reasonable development cycle to prepare its first controlled
   - secret rotation considerations
   - known risks
   - approval and post-release verification fields
+- Updated the release checklist with clean `./update.sh` validation and approval to tag `v0.1.0-rc.1`.
 
 ### Security and operator impact
 
@@ -40,25 +41,30 @@ The project is in a reasonable development cycle to prepare its first controlled
 
 ### Validation
 
-Validation pending from the canonical local update path:
+Validated from the canonical local update path:
 
 ```bash
 ./update.sh
 ```
 
-The release candidate should not be tagged until validation evidence is recorded in:
+The release checklist now marks `v0.1.0-rc.1` as approved to tag:
 
 ```text
 docs/releases/v0.1.0-rc.1.md
 ```
 
+### Next release action
+
+Create and push the annotated tag from the validated local checkout:
+
+```bash
+git tag -a v0.1.0-rc.1 -m "DA Manager v0.1.0-rc.1"
+git push origin v0.1.0-rc.1
+```
+
 ---
 
 ## Previous update: Route-specific audit target assertions
-
-### Why this update was made
-
-The AppSec hardening track is continuing before new Live Admin / RMQ / Welcome Kit features. The previous slices proved that high-risk/destructive mutations emit audit events and that blocked mutations are still auditable. This slice tightened target accountability by ensuring audit events capture route-specific identifiers needed to investigate player, item, server-command, vehicle, and guild mutations.
 
 ### Validation
 
