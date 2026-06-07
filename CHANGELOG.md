@@ -27,6 +27,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Renamed compiled backend executable output to `arrakis-control-panel` / `arrakis-control-panel.exe` in the Bash update workflow, PowerShell update workflow, and Linux build helper.
+- Updated `README.md` build-output documentation for the Arrakis Control Panel executable name.
 - Updated `README.md` to document Arrakis Control Panel naming, upstream attribution, strict token generation, canonical `./update.sh` validation/build workflow, release evidence locations, and release tagging workflow.
 - Renamed the application/product label from DA Manager to Arrakis Control Panel in active release-governance documentation.
 - Updated `docs/releases/v0.1.0-rc.1.md` with Arrakis Control Panel naming, upstream attribution, and current industry-standard release gaps.
@@ -47,6 +49,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
+- Validation pending for executable rename from the canonical local update path:
+  - `./update.sh`
 - Validation pending for README correction and documentation-review-plan updates from the canonical local update path:
   - `./update.sh`
 - Validation pending for Arrakis Control Panel rename and release-plan documentation from the canonical local update path:
@@ -66,6 +70,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 - Full documentation review is required before final `v0.1.0` or must be explicitly deferred in `docs/release-deviation-log.md`.
 - `docs/admin-feature-design-and-priorities.md` triggered a large Markdown notice and requires review for staleness, accuracy, and possible split/archive.
 - Repo-wide stale label verification for `DA Manager` and `Arrakis Control Plane` is still required before final `v0.1.0`.
+- Linux systemd installer/service path migration remains separate from the compiled executable rename and should be handled as its own validated slice.
 - `v0.1.0-rc.1` is approved to tag; post-release verification checks remain pending after tag/artifact install or launch.
 - Update-script modularization has started and needs continued validation through the canonical update path before further refactor expansion.
 
