@@ -2,19 +2,19 @@
 
 ## Purpose
 
-DA Manager / Arrakis Control Plane uses Semantic Versioning-style release numbers with pre-1.0 stability rules.
+Arrakis Control Panel uses Semantic Versioning-style release numbers with pre-1.0 stability rules.
 
 The project is currently in pre-1.0 hardening. Releases are intended to produce repeatable artifacts, validation evidence, rollback instructions, release notes, and explicit scope control before expanding new high-risk features such as Discord-driven server management or Live Admin RMQ controls.
 
 ## Upstream attribution requirement
 
-This project is a fork of Icehunter's `dune-admin` project by Ryan Wilson:
+Arrakis Control Panel is a fork of Icehunter's `dune-admin` project by Ryan Wilson:
 
 ```text
 https://github.com/Icehunter/dune-admin
 ```
 
-Every release must preserve clear upstream attribution in release notes or release evidence. The attribution should state that DA Manager / Arrakis Control Plane builds on Icehunter's original `dune-admin` work.
+Every release must preserve clear upstream attribution in release notes or release evidence. The attribution should state that Arrakis Control Panel builds on Icehunter's original `dune-admin` work.
 
 Future RMQ/live-admin work should also preserve the upstream acknowledgement that the original `dune-admin` README gives to `@adainrivers` and the `dune-dedicated-server-manager` project for RabbitMQ server-command research.
 
@@ -119,6 +119,7 @@ A deviation includes:
 - releasing without planned artifacts or evidence
 - changing the backend exposure model
 - adding Discord, RMQ, database, or infrastructure mutation capability without a dedicated security review
+- product naming changes that affect documentation, code labels, release evidence, or GitHub release text
 
 Deviation entries must include:
 
@@ -133,6 +134,28 @@ Deviation entries must include:
 - follow-up target
 
 Use `docs/release-deviation-log.md` for the durable deviation log.
+
+## Industry-standard alignment
+
+The current process is aligned with common release-management practices in these areas:
+
+- semantic versioning-style labels
+- immutable Git tags for release points
+- release-candidate flow before final release
+- release checklist with risk, validation, rollback, and approval sections
+- compact changelog plus durable per-slice records
+- explicit known-risk acceptance for RC scope
+- upstream attribution preservation
+
+Current gaps before a stronger final/stable release:
+
+- signed release artifacts are not yet required
+- SBOM generation is deferred
+- SAST, DAST, secret scanning, and vulnerability scan evidence is not consistently attached
+- artifact checksums are not yet generated and published
+- update-script modularization is not fully completed across Bash and PowerShell
+- post-release verification evidence is still manual
+- GitHub Release artifact attachment is not automated
 
 ## Release gates
 
