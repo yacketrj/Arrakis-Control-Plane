@@ -2,9 +2,44 @@
 
 ## Purpose
 
-DA Manager uses Semantic Versioning-style release numbers with pre-1.0 stability rules.
+DA Manager / Arrakis Control Plane uses Semantic Versioning-style release numbers with pre-1.0 stability rules.
 
-The project is currently in pre-1.0 hardening. Releases are intended to produce repeatable artifacts, validation evidence, rollback instructions, and release notes before expanding new high-risk features such as Discord-driven server management or Live Admin RMQ controls.
+The project is currently in pre-1.0 hardening. Releases are intended to produce repeatable artifacts, validation evidence, rollback instructions, release notes, and explicit scope control before expanding new high-risk features such as Discord-driven server management or Live Admin RMQ controls.
+
+## Upstream attribution requirement
+
+This project is a fork of Icehunter's `dune-admin` project by Ryan Wilson:
+
+```text
+https://github.com/Icehunter/dune-admin
+```
+
+Every release must preserve clear upstream attribution in release notes or release evidence. The attribution should state that DA Manager / Arrakis Control Plane builds on Icehunter's original `dune-admin` work.
+
+Future RMQ/live-admin work should also preserve the upstream acknowledgement that the original `dune-admin` README gives to `@adainrivers` and the `dune-dedicated-server-manager` project for RabbitMQ server-command research.
+
+## Release goals
+
+### Primary goals before `v1.0.0`
+
+- Keep the backend localhost-bound by default unless explicitly configured otherwise.
+- Keep Player 360 read-only until identity mapping, self-service controls, and mutation safety are fully validated.
+- Require reason/preview/audit coverage for high-risk and destructive mutations.
+- Maintain generated route auth-boundary coverage.
+- Maintain compact release records and per-slice durable changelog records.
+- Preserve upstream attribution.
+- Treat Discord-driven server management and RMQ/live-admin controls as high-risk features requiring dedicated release trains.
+
+### Release-train themes
+
+| Target | Theme | Goal |
+|---|---|---|
+| `v0.1.0` | Secure baseline | Accept the current hardened admin foundation after RC verification. |
+| `v0.2.0` | Discord Admin Foundation | Add safe Discord RBAC, command registry, previews, and audit without raw command execution. |
+| `v0.3.0` | Server Lifecycle Management | Expose safe allowlisted Docker/K8s/local lifecycle operations through UI/Discord. |
+| `v0.4.0` | Live Admin / RMQ Foundation | Add controlled RMQ envelope/command execution for online-safe operations only. |
+| `v0.5.0` | Welcome Kits / Player Requests | Add audited kits, eligibility, ledger, and Discord approval workflows. |
+| `v0.6.0` | Guild Operations | Add audited guild create/delete, membership, and rank workflows. |
 
 ## Version format
 
@@ -56,6 +91,49 @@ For the current project size:
 - Do not add new feature scope after the release candidate tag unless the release is intentionally deferred.
 - Only security, build, validation, release-note, and documentation fixes should land between `v0.1.0-rc.N` and `v0.1.0`.
 
+## Label and scope sync rules
+
+For every release train, keep these labels synchronized:
+
+- `VERSION`
+- Git tag name
+- GitHub Release title
+- `docs/releases/<version>.md`
+- `CHANGELOG.md`
+- `PATCH_NOTES.md`
+- active per-slice changelog records under `docs/changelog/unreleased/`
+
+A release is out of sync if any of these refer to different versions, different scope, or different validation status.
+
+## Deviation policy
+
+Any deviation from the planned release train must be cataloged before continuing work.
+
+A deviation includes:
+
+- adding a feature that is outside the current release theme
+- accepting a skipped security gate
+- changing release scope after an RC tag
+- moving a high-risk feature earlier than planned
+- changing version numbering or tag policy
+- releasing without planned artifacts or evidence
+- changing the backend exposure model
+- adding Discord, RMQ, database, or infrastructure mutation capability without a dedicated security review
+
+Deviation entries must include:
+
+- date
+- release or planned release
+- deviation type
+- decision
+- rationale
+- risk impact
+- mitigation
+- owner
+- follow-up target
+
+Use `docs/release-deviation-log.md` for the durable deviation log.
+
 ## Release gates
 
 A release candidate requires:
@@ -68,6 +146,8 @@ A release candidate requires:
 - Security validation status recorded.
 - Known issues and residual risks documented.
 - Rollback plan documented.
+- Upstream attribution included or referenced.
+- Deviation log updated when scope or process differs from the plan.
 
 ## First release recommendation
 
