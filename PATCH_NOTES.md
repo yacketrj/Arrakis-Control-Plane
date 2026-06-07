@@ -1,10 +1,12 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: Roadmap documentation refresh
+## Current update: Roadmap documentation refresh and README path cleanup
 
 ### Why this update was made
 
 The documentation review plan identified `docs/admin-feature-design-and-priorities.md` as a large mutable planning document that could become stale. The file still used older Dune Admin-era product naming, described Player 360 as the next implementation slice, and did not reflect the current Arrakis Control Panel release train.
+
+The README also contained a local developer checkout path. Operator-facing documentation should not assume a specific drive letter, mount point, or personal working directory.
 
 ### What changed
 
@@ -19,6 +21,12 @@ The documentation review plan identified `docs/admin-feature-design-and-prioriti
   - `v0.6.0` Guild Operations
 - Preserved safety principles, item delivery path distinctions, and validation requirements.
 - Clarified that full Discord server management, Live Admin RMQ, Welcome Kits, and arbitrary raw command publishing remain out of scope for `v0.1.0`.
+- Replaced the README's local checkout path with a generic repository-root path:
+
+```bash
+cd /path/to/Arrakis-Control-Plane
+./update.sh
+```
 
 ### Security and operator impact
 
@@ -27,10 +35,11 @@ The documentation review plan identified `docs/admin-feature-design-and-prioriti
 - No new endpoint was added.
 - Player 360 remains read-only.
 - This improves roadmap accuracy and reduces stale-document risk before final `v0.1.0`.
+- README workflow guidance no longer depends on a developer-specific local path.
 
 ### Validation
 
-Validation pending from the canonical local update path:
+Validated from the canonical local update path:
 
 ```bash
 ./update.sh
