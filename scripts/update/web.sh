@@ -26,6 +26,8 @@ run_web_validation_and_build() {
     echo "Skipping npm install because --skip-web-install was supplied."
   fi
 
+  ensure_web_package_binaries
+
   if [[ "$SKIP_WEB_AUDIT" -eq 0 ]]; then
     step "NPM audit" run npm audit --audit-level=high
   else
