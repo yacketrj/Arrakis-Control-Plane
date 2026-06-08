@@ -59,7 +59,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
-- Validation pending for route registration grouping from the canonical local update path:
+- Validated route registration grouping from the canonical local update path:
   - `./update.sh`
 - Validated refactor gate and Go app identity cleanup from the canonical local update path:
   - `./update.sh`
