@@ -10,6 +10,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Added
 
+- Added Bash and PowerShell frontend package toolchain checks for local `tsc`, `eslint`, and `vite` package binaries.
 - Added colored PowerShell update status output with `RUN`, `PASS`, `FAIL`, and `WARN` states.
 - Added `scripts/update/powershell-common.ps1` for shared PowerShell update helper functions.
 - Added shared Go application identity constants in `app_identity.go`.
@@ -31,6 +32,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Updated missing frontend package binaries to trigger npm install/repair before typecheck/lint/build instead of failing later with missing `tsc`, `eslint`, or `vite` commands.
+- Updated PowerShell PATH refresh to de-duplicate PATH entries before assigning `$env:Path`, preventing runaway environment block growth.
 - Updated `update.ps1` to dot-source common PowerShell update helpers from `scripts/update/powershell-common.ps1`.
 - Grouped Go route registration by API domain while preserving the existing `registerRoutes` entry point and route mappings.
 - Updated Go startup logging, public status identity, and setup repair guidance to use current Arrakis Control Panel identity values.
@@ -62,7 +65,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
-- Validation pending for PowerShell common helper modularization and colored status output:
+- Validation pending for update toolchain checks, PowerShell PATH de-duplication, and colored status output:
   - `.\update.ps1 -SkipAutoPush`
   - `./update.sh`
 - Validated route registration grouping from the canonical local update path:
