@@ -1,41 +1,41 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: Refactor gate and application identity cleanup
+## Current update: Route registration grouping
 
 ### Why this update was made
 
-Update-script modularization is now explicitly required before final `v0.1.0` unless it is intentionally deferred in the release deviation log. The Go backend also needs a code-quality and modularization review before final `v0.1.0` so the project does not carry stale product strings, scattered constants, or avoidable structural debt into the first accepted release.
-
-During the first Go review pass, stale `dune-admin` identity strings were found in startup logging, public status, and setup repair guidance.
+`routes.go` registered all API routes in one long function. That made route review harder and increased the chance of accidental drift as new domains are added. This refactor groups routes by domain without changing any route method, path, handler, or middleware behavior.
 
 ### What changed
 
-- Added `app_identity.go` with shared application identity constants:
-  - `appDisplayName`
-  - `appServiceName`
-  - `appWindowsExecutable`
-- Updated `server.go` startup logging to use the shared service identity.
-- Updated `/api/v1/public/status` to return Arrakis Control Panel identity values.
-- Updated `main.go` setup repair guidance to use the shared Windows executable name.
-- Updated `docs/release-versioning.md` to make these final-`v0.1.0` gates explicit:
-  - update-script modularization decision
-  - PowerShell modularization or documented deferral
-  - Go refactoring/code-quality review
-  - handler/route/audit/mutation-safety review
-  - typed/allowlisted execution surface review
+- Split `registerRoutes` into domain-specific helpers:
+  - `registerPublicRoutes`
+  - `registerDiscordAuthRoutes`
+  - `registerSelfServiceRoutes`
+  - `registerCoreAdminRoutes`
+  - `registerBattlegroupRoutes`
+  - `registerPlayerRoutes`
+  - `registerInventoryCoordinationRoutes`
+  - `registerDatabaseRoutes`
+  - `registerLogRoutes`
+  - `registerNotificationRoutes`
+  - `registerStorageRoutes`
+  - `registerBlueprintRoutes`
+- Preserved the existing `registerRoutes(mux *http.ServeMux)` entry point.
+- Preserved all existing route mappings.
 
 ### Security and operator impact
 
-- No route behavior changed.
+- No route behavior intentionally changed.
 - No mutation behavior changed.
 - No new endpoint was added.
+- No endpoint was removed.
+- Middleware chain remains unchanged.
 - Player 360 remains read-only.
-- Public status now reports the current service/product identity instead of the legacy upstream-compatible name.
-- This reduces stale-label risk and centralizes product identity for future refactors.
 
 ### Validation
 
-Validated from the canonical local update path:
+Validation pending from the canonical local update path:
 
 ```bash
 ./update.sh
@@ -45,11 +45,11 @@ Validated from the canonical local update path:
 
 - Continue update-script modularization review.
 - Review PowerShell script modularization or document a final `v0.1.0` deferral.
-- Continue Go review for route grouping, handler boundaries, audit/mutation-safety helper boundaries, and typed execution surfaces.
+- Continue Go review for handler boundaries, audit/mutation-safety helper boundaries, and typed execution surfaces.
 
 ---
 
-## Previous update: Roadmap documentation refresh and README path cleanup
+## Previous update: Refactor gate and application identity cleanup
 
 ### Validation
 
