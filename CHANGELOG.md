@@ -10,6 +10,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Added
 
+- Added `scripts/update/powershell-common.ps1` for shared PowerShell update helper functions.
 - Added shared Go application identity constants in `app_identity.go`.
 - Added final-`v0.1.0` release gates for update-script modularization and Go code-quality/refactor review in `docs/release-versioning.md`.
 - Added deep documentation review plan in `docs/documentation-review-plan.md`.
@@ -29,6 +30,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Updated `update.ps1` to dot-source common PowerShell update helpers from `scripts/update/powershell-common.ps1`.
 - Grouped Go route registration by API domain while preserving the existing `registerRoutes` entry point and route mappings.
 - Updated Go startup logging, public status identity, and setup repair guidance to use current Arrakis Control Panel identity values.
 - Removed developer-specific local checkout path from `README.md` and replaced it with repository-root-relative guidance.
@@ -59,6 +61,9 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
+- Validation pending for PowerShell common helper modularization:
+  - `.\update.ps1 -SkipAutoPush`
+  - `./update.sh`
 - Validated route registration grouping from the canonical local update path:
   - `./update.sh`
 - Validated refactor gate and Go app identity cleanup from the canonical local update path:
