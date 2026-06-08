@@ -10,6 +10,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Added
 
+- Added colored PowerShell update status output with `RUN`, `PASS`, `FAIL`, and `WARN` states.
 - Added `scripts/update/powershell-common.ps1` for shared PowerShell update helper functions.
 - Added shared Go application identity constants in `app_identity.go`.
 - Added final-`v0.1.0` release gates for update-script modularization and Go code-quality/refactor review in `docs/release-versioning.md`.
@@ -61,7 +62,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
-- Validation pending for PowerShell common helper modularization:
+- Validation pending for PowerShell common helper modularization and colored status output:
   - `.\update.ps1 -SkipAutoPush`
   - `./update.sh`
 - Validated route registration grouping from the canonical local update path:
