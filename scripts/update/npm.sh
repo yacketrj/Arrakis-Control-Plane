@@ -59,6 +59,47 @@ invoke_npm_install_with_repair() {
   step "$install_label after dependency repair" run npm "${install_args[@]}"
 }
 
+web_package_binary_exists() {
+  local name="$1"
+  [[ -f "node_modules/.bin/$name" || -f "node_modules/.bin/$name.cmd" || -f "node_modules/.bin/$name.ps1" ]]
+}
+
+ensure_web_package_binaries() {
+  local missing=()
+  local required=(tsc eslint vite)
+  local tool
+
+  for tool in "${required[@]}"; do
+    if ! web_package_binary_exists "$tool"; then
+      missing+=("$tool")
+    fi
+  done
+
+  if [[ "${#missing[@]}" -eq 0 ]]; then
+    echo "Web package toolchain present: ${required[*]}"
+    return 0
+  fi
+
+  echo "Missing web package toolchain: ${missing[*]}"
+  echo "Running npm install to restore local package binaries."
+  invoke_npm_install_with_repair 0
+
+  missing=()
+  for tool in "${required[@]}"; do
+    if ! web_package_binary_exists "$tool"; then
+      missing+=("$tool")
+    fi
+  done
+
+  if [[ "${#missing[@]}" -gt 0 ]]; then
+    echo "Missing web package toolchain after npm install: ${missing[*]}" >&2
+    echo "Verify web/package.json devDependencies and package-lock.json, then rerun ./update.sh." >&2
+    exit 1
+  fi
+
+  echo "Web package toolchain restored: ${required[*]}"
+}
+
 show_npm_lock_help() {
   cat >&2 <<'EOF'
 
