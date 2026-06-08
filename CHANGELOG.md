@@ -58,7 +58,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
-- Validation pending for refactor gate and Go app identity cleanup from the canonical local update path:
+- Validated refactor gate and Go app identity cleanup from the canonical local update path:
   - `./update.sh`
 - Validated roadmap documentation refresh and README local-path cleanup from the canonical local update path:
   - `./update.sh`
