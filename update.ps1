@@ -135,6 +135,37 @@ function Invoke-NpmInstallWithRepair {
   Invoke-Step "$installLabel after dependency repair" { Invoke-Native 'npm' $installArgs }
 }
 
+function Test-WebPackageBinary {
+  param([Parameter(Mandatory = $true)][string]$Name)
+  $binDir = Join-Path $WebRoot 'node_modules\.bin'
+  return (
+    (Test-Path (Join-Path $binDir $Name)) -or
+    (Test-Path (Join-Path $binDir "$Name.cmd")) -or
+    (Test-Path (Join-Path $binDir "$Name.ps1"))
+  )
+}
+
+function Assert-WebPackageToolchain {
+  $required = @('tsc', 'eslint', 'vite')
+  $missing = @($required | Where-Object { -not (Test-WebPackageBinary -Name $_) })
+
+  if ($missing.Count -eq 0) {
+    Write-StepStatus -Status 'PASS' -Message "Web package toolchain present: $($required -join ', ')"
+    return
+  }
+
+  Write-StepStatus -Status 'WARN' -Message "Missing web package toolchain: $($missing -join ', ')"
+  Write-StepStatus -Status 'RUN' -Message 'Running npm install to restore local package binaries.'
+  Invoke-NpmInstallWithRepair
+
+  $missing = @($required | Where-Object { -not (Test-WebPackageBinary -Name $_) })
+  if ($missing.Count -gt 0) {
+    throw "Missing web package toolchain after npm install: $($missing -join ', '). Verify web/package.json devDependencies and package-lock.json, then rerun update.ps1."
+  }
+
+  Write-StepStatus -Status 'PASS' -Message "Web package toolchain restored: $($required -join ', ')"
+}
+
 function Show-NpmLockHelp {
   Write-Host ""
   Write-Host 'NPM dependency update failed after automatic recovery attempts.' -ForegroundColor Red
@@ -200,6 +231,7 @@ try {
       Invoke-Step 'NPM version' { Invoke-Native 'npm' @('--version') }
       if (-not $SkipWebInstall) { Invoke-NpmInstallWithRepair -Clean:$CleanWebDependencies }
       else { Write-Host 'Skipping npm install because -SkipWebInstall was supplied.' -ForegroundColor Yellow }
+      Assert-WebPackageToolchain
       if (-not $SkipWebAudit) { Invoke-Step 'NPM audit' { Invoke-Native 'npm' @('audit', '--audit-level=high') } }
       else { Write-Host 'Skipping npm audit because -SkipWebAudit was supplied.' -ForegroundColor Yellow }
       if (-not $SkipWebTypecheck) { Invoke-Step 'Web typecheck' { Invoke-Native 'npm' @('run', 'typecheck') } }
@@ -221,7 +253,7 @@ catch {
   Write-Host 'Update failed.' -ForegroundColor Red
   Write-Host $_.Exception.Message -ForegroundColor Red
   $message = $_.Exception.Message
-  if ($message -match 'npm install|npm ci|EPERM|EBUSY|ENOTEMPTY|unlink|rmdir|node_modules') { Show-NpmLockHelp }
+  if ($message -match 'npm install|npm ci|EPERM|EBUSY|ENOTEMPTY|unlink|rmdir|node_modules|tsc|eslint|vite') { Show-NpmLockHelp }
 }
 finally {
   if ((Test-Path variable:RepoRoot) -and (Test-Path $RepoRoot)) { Set-Location $RepoRoot }
