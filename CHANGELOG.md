@@ -29,6 +29,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Grouped Go route registration by API domain while preserving the existing `registerRoutes` entry point and route mappings.
 - Updated Go startup logging, public status identity, and setup repair guidance to use current Arrakis Control Panel identity values.
 - Removed developer-specific local checkout path from `README.md` and replaced it with repository-root-relative guidance.
 - Refreshed `docs/admin-feature-design-and-priorities.md` for Arrakis Control Panel, the current release train, and validated product/service naming.
@@ -58,6 +59,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
+- Validation pending for route registration grouping from the canonical local update path:
+  - `./update.sh`
 - Validated refactor gate and Go app identity cleanup from the canonical local update path:
   - `./update.sh`
 - Validated roadmap documentation refresh and README local-path cleanup from the canonical local update path:
