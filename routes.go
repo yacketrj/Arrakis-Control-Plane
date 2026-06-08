@@ -3,7 +3,25 @@ package main
 import "net/http"
 
 func registerRoutes(mux *http.ServeMux) {
+	registerPublicRoutes(mux)
+	registerDiscordAuthRoutes(mux)
+	registerSelfServiceRoutes(mux)
+	registerCoreAdminRoutes(mux)
+	registerBattlegroupRoutes(mux)
+	registerPlayerRoutes(mux)
+	registerInventoryCoordinationRoutes(mux)
+	registerDatabaseRoutes(mux)
+	registerLogRoutes(mux)
+	registerNotificationRoutes(mux)
+	registerStorageRoutes(mux)
+	registerBlueprintRoutes(mux)
+}
+
+func registerPublicRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/public/status", handlePublicStatus)
+}
+
+func registerDiscordAuthRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/auth/discord/login", handleDiscordLogin)
 	mux.HandleFunc("GET /api/v1/auth/discord/callback", handleDiscordCallback)
 	mux.HandleFunc("GET /api/v1/auth/discord/me", handleDiscordMe)
@@ -12,20 +30,30 @@ func registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/auth/discord/player-links", handleListDiscordPlayerLinks)
 	mux.HandleFunc("POST /api/v1/auth/discord/player-links", handleUpsertDiscordPlayerLink)
 	mux.HandleFunc("DELETE /api/v1/auth/discord/player-links/{discord_id}", handleDeleteDiscordPlayerLink)
+}
+
+func registerSelfServiceRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/self/player-link", handleSelfPlayerLink)
 	mux.HandleFunc("GET /api/v1/self/player-card", handleSelfPlayerCard)
+}
+
+func registerCoreAdminRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/status", handleStatus)
 	mux.HandleFunc("POST /api/v1/reconnect", handleReconnect)
 	mux.HandleFunc("GET /api/v1/connectivity/diagnostics", handleConnectivityDiagnostics)
 	mux.HandleFunc("GET /api/v1/diagnostics/export", handleDiagnosticExport)
 	mux.HandleFunc("GET /api/v1/audit/events", handleAdminAuditEvents)
 	mux.HandleFunc("GET /api/v1/mutation-safety/classify", handleMutationSafetyClassify)
+}
 
+func registerBattlegroupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/battlegroup/status", handleBGStatus)
 	mux.HandleFunc("GET /api/v1/battlegroup/health", handleBGHealth)
 	mux.HandleFunc("POST /api/v1/battlegroup/exec", handleBGExec)
 	mux.HandleFunc("GET /api/v1/battlegroup/pods", handleBGPods)
+}
 
+func registerPlayerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/players", handleGetPlayers)
 	mux.HandleFunc("GET /api/v1/players/online", handleGetOnlineState)
 	mux.HandleFunc("GET /api/v1/players/currency", handleGetCurrency)
@@ -63,14 +91,18 @@ func registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/players/teleport", handleTeleportPlayer)
 	mux.HandleFunc("GET /api/v1/players/{id}/events", handleGetPlayerEvents)
 	mux.HandleFunc("GET /api/v1/players/{id}/dungeons", handleGetPlayerDungeons)
+}
 
+func registerInventoryCoordinationRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/inventory/requests", handleListInventoryRequests)
 	mux.HandleFunc("POST /api/v1/inventory/requests", handleCreateInventoryRequest)
 	mux.HandleFunc("PATCH /api/v1/inventory/requests/{id}", handleUpdateInventoryRequest)
 	mux.HandleFunc("GET /api/v1/inventory/orders", handleListInventoryOrders)
 	mux.HandleFunc("POST /api/v1/inventory/orders", handleCreateInventoryOrder)
 	mux.HandleFunc("PATCH /api/v1/inventory/orders/{id}", handleUpdateInventoryOrder)
+}
 
+func registerDatabaseRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/database/tables", handleDBTables)
 	mux.HandleFunc("GET /api/v1/database/describe", handleDBDescribe)
 	mux.HandleFunc("GET /api/v1/database/sample", handleDBSample)
@@ -78,18 +110,26 @@ func registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/database/functions", handleDBFunctions)
 	mux.HandleFunc("GET /api/v1/database/functions/inspect", handleDBFunctionInspect)
 	mux.HandleFunc("POST /api/v1/database/sql", handleDBSQL)
+}
 
+func registerLogRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/logs/pods", handleLogPods)
 	mux.HandleFunc("POST /api/v1/logs/stream-ticket", handleIssueLogStreamTicket)
 	mux.HandleFunc("GET /api/v1/logs/stream", handleLogStream)
 	mux.HandleFunc("GET /api/v1/logs/cheats", handleGetCheatLog)
+}
 
+func registerNotificationRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/notify", handleNotify)
+}
 
+func registerStorageRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/storage", handleListStorage)
 	mux.HandleFunc("GET /api/v1/storage/{id}/items", handleGetStorageItems)
 	mux.HandleFunc("POST /api/v1/storage/{id}/give-item", handleGiveItemToStorage)
+}
 
+func registerBlueprintRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/blueprints", handleListBlueprints)
 	mux.HandleFunc("GET /api/v1/blueprints/{id}/export", handleExportBlueprint)
 	mux.HandleFunc("POST /api/v1/blueprints/import", handleImportBlueprint)
