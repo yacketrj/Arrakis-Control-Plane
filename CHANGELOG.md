@@ -10,6 +10,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Added
 
+- Added shared Go application identity constants in `app_identity.go`.
+- Added final-`v0.1.0` release gates for update-script modularization and Go code-quality/refactor review in `docs/release-versioning.md`.
 - Added deep documentation review plan in `docs/documentation-review-plan.md`.
 - Added release deviation log in `docs/release-deviation-log.md`.
 - Added release-train goals, label-sync rules, deviation policy, and industry-standard gap assessment to `docs/release-versioning.md`.
@@ -27,6 +29,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Updated Go startup logging, public status identity, and setup repair guidance to use current Arrakis Control Panel identity values.
 - Removed developer-specific local checkout path from `README.md` and replaced it with repository-root-relative guidance.
 - Refreshed `docs/admin-feature-design-and-priorities.md` for Arrakis Control Panel, the current release train, and validated product/service naming.
 - Migrated Linux systemd installer defaults from legacy `dune-admin` names to `arrakis-control-panel` service, user/group, install path, binary path, unit description, and `ExecStart` values.
@@ -44,6 +47,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Security
 
+- Required update-script modularization and Go code-quality/refactor review before final `v0.1.0`, unless explicitly deferred in the release deviation log.
 - Clarified in the roadmap that full Discord server management, Live Admin RMQ, Welcome Kits, and arbitrary raw command publishing remain out of scope for `v0.1.0`.
 - Added a pre-`v0.1.0` documentation review gate for accuracy, authenticity, comprehensiveness, naming consistency, release evidence, and stale large mutable documents.
 - Kept Live Admin / RMQ / Discord full server management out of the initial release-candidate scope.
@@ -54,6 +58,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
+- Validation pending for refactor gate and Go app identity cleanup from the canonical local update path:
+  - `./update.sh`
 - Validated roadmap documentation refresh and README local-path cleanup from the canonical local update path:
   - `./update.sh`
 - Validated Linux systemd service migration from the canonical local update path:
@@ -77,11 +83,12 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 ### Known issues
 
 - Full documentation review is required before final `v0.1.0` or must be explicitly deferred in `docs/release-deviation-log.md`.
+- Update-script modularization remains required before final `v0.1.0` or must be explicitly deferred in `docs/release-deviation-log.md`.
+- Go code-quality/refactor review remains required before final `v0.1.0` or must be explicitly deferred in `docs/release-deviation-log.md`.
 - Continue reviewing other long-lived docs for stale implemented-vs-planned claims.
 - Repo-wide stale label verification for `DA Manager` and `Arrakis Control Plane` should continue before final `v0.1.0`.
 - Existing Linux installs using legacy `dune-admin` service/path defaults require intentional migration before switching to the new `arrakis-control-panel` service defaults.
 - `v0.1.0-rc.1` is approved to tag; post-release verification checks remain pending after tag/artifact install or launch.
-- Update-script modularization has started and needs continued validation through the canonical update path before further refactor expansion.
 
 ## Detailed change records
 
