@@ -1,41 +1,46 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: Route registration grouping
+## Current update: PowerShell common helper modularization
 
 ### Why this update was made
 
-`routes.go` registered all API routes in one long function. That made route review harder and increased the chance of accidental drift as new domains are added. This refactor groups routes by domain without changing any route method, path, handler, or middleware behavior.
+PowerShell update support remains part of the pre-`v0.1.0` refactor/modularization gate. `update.ps1` was still mostly monolithic, even though the Bash update path had already been partially modularized under `scripts/update/`.
+
+This slice starts PowerShell modularization by extracting common helper functions while preserving `update.ps1` as the entry point and keeping the validation/build order unchanged.
 
 ### What changed
 
-- Split `registerRoutes` into domain-specific helpers:
-  - `registerPublicRoutes`
-  - `registerDiscordAuthRoutes`
-  - `registerSelfServiceRoutes`
-  - `registerCoreAdminRoutes`
-  - `registerBattlegroupRoutes`
-  - `registerPlayerRoutes`
-  - `registerInventoryCoordinationRoutes`
-  - `registerDatabaseRoutes`
-  - `registerLogRoutes`
-  - `registerNotificationRoutes`
-  - `registerStorageRoutes`
-  - `registerBlueprintRoutes`
-- Preserved the existing `registerRoutes(mux *http.ServeMux)` entry point.
-- Preserved all existing route mappings.
+- Added `scripts/update/powershell-common.ps1`.
+- Moved common helper functions out of `update.ps1`:
+  - `Write-Section`
+  - `Invoke-Step`
+  - `Invoke-Native`
+  - `Update-ProcessPath`
+  - `Install-PrerequisiteForCommand`
+  - `Assert-CommandAvailable`
+  - `Resolve-OutputDirectory`
+- Updated `update.ps1` to dot-source `scripts/update/powershell-common.ps1`.
+- Preserved existing Git, Go, npm, build, auto-commit, and auto-push flow.
 
 ### Security and operator impact
 
-- No route behavior intentionally changed.
+- No route behavior changed.
 - No mutation behavior changed.
 - No new endpoint was added.
-- No endpoint was removed.
-- Middleware chain remains unchanged.
-- Player 360 remains read-only.
+- Bash `./update.sh` remains the canonical validated release workflow.
+- PowerShell update support is more modular, but this slice still requires validation on Windows PowerShell.
 
 ### Validation
 
-Validated from the canonical local update path:
+Validation pending.
+
+Recommended validation:
+
+```powershell
+.\update.ps1 -SkipAutoPush
+```
+
+Canonical Bash validation should also still pass:
 
 ```bash
 ./update.sh
@@ -43,13 +48,12 @@ Validated from the canonical local update path:
 
 ### Remaining refactor work
 
-- Continue update-script modularization review.
-- Review PowerShell script modularization or document a final `v0.1.0` deferral.
+- Continue PowerShell modularization for Git and npm helper groups.
 - Continue Go review for handler boundaries, audit/mutation-safety helper boundaries, and typed execution surfaces.
 
 ---
 
-## Previous update: Refactor gate and application identity cleanup
+## Previous update: Route registration grouping
 
 ### Validation
 
