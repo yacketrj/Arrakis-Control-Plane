@@ -1,18 +1,41 @@
+function Write-StepStatus {
+  param(
+    [Parameter(Mandatory = $true)][ValidateSet('RUN', 'PASS', 'FAIL', 'WARN')][string]$Status,
+    [Parameter(Mandatory = $true)][string]$Message
+  )
+
+  $color = switch ($Status) {
+    'RUN' { 'Cyan' }
+    'PASS' { 'Green' }
+    'FAIL' { 'Red' }
+    'WARN' { 'Yellow' }
+  }
+
+  Write-Host ("{0}: {1}" -f $Status, $Message) -ForegroundColor $color
+}
+
 function Write-Section {
   param([Parameter(Mandatory = $true)][string]$Name)
   Write-Host ""
-  Write-Host "=== $Name ===" -ForegroundColor Cyan
+  Write-StepStatus -Status 'RUN' -Message $Name
 }
 
 function Invoke-Step {
   param([Parameter(Mandatory = $true)][string]$Name, [Parameter(Mandatory = $true)][scriptblock]$Command)
   Write-Section $Name
-  & $Command
+  try {
+    & $Command
+    Write-StepStatus -Status 'PASS' -Message $Name
+  }
+  catch {
+    Write-StepStatus -Status 'FAIL' -Message $Name
+    throw
+  }
 }
 
 function Invoke-Native {
   param([Parameter(Mandatory = $true)][string]$FilePath, [string[]]$Arguments = @())
-  Write-Host (">>> {0} {1}" -f $FilePath, ($Arguments -join ' ')) -ForegroundColor DarkGray
+  Write-StepStatus -Status 'RUN' -Message ("{0} {1}" -f $FilePath, ($Arguments -join ' '))
   & $FilePath @Arguments
   $nativeExitCode = $LASTEXITCODE
   if ($null -ne $nativeExitCode -and $nativeExitCode -ne 0) { throw "$FilePath $($Arguments -join ' ') failed with exit code $nativeExitCode" }
@@ -55,7 +78,7 @@ function Assert-CommandAvailable {
   Update-ProcessPath
   if (Get-Command $Name -ErrorAction SilentlyContinue) { return }
 
-  Write-Host "$Name was not found on PATH. Attempting prerequisite auto-install." -ForegroundColor Yellow
+  Write-StepStatus -Status 'WARN' -Message "$Name was not found on PATH. Attempting prerequisite auto-install."
   Install-PrerequisiteForCommand -Name $Name
   if (Get-Command $Name -ErrorAction SilentlyContinue) { return }
 
