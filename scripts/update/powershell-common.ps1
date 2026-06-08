@@ -51,7 +51,23 @@ function Update-ProcessPath {
     "$env:ProgramFiles\nodejs",
     "$env:LOCALAPPDATA\Microsoft\WindowsApps"
   )
-  $env:Path = (@($env:Path, $machinePath, $userPath) + $common | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join ';'
+
+  $unique = @{}
+  $deduped = New-Object System.Collections.Generic.List[string]
+  foreach ($pathValue in @($env:Path, $machinePath, $userPath) + $common) {
+    if ([string]::IsNullOrWhiteSpace($pathValue)) { continue }
+    foreach ($entry in ($pathValue -split ';')) {
+      $trimmed = $entry.Trim()
+      if ([string]::IsNullOrWhiteSpace($trimmed)) { continue }
+      $key = $trimmed.ToLowerInvariant()
+      if (-not $unique.ContainsKey($key)) {
+        $unique[$key] = $true
+        [void]$deduped.Add($trimmed)
+      }
+    }
+  }
+
+  $env:Path = ($deduped -join ';')
 }
 
 function Install-PrerequisiteForCommand {
