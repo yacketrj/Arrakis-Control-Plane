@@ -35,7 +35,7 @@ During the first Go review pass, stale `dune-admin` identity strings were found 
 
 ### Validation
 
-Validation pending from the canonical local update path:
+Validated from the canonical local update path:
 
 ```bash
 ./update.sh
