@@ -46,20 +46,16 @@ A validation failure also showed that frontend package tools such as `tsc` can b
 - No mutation behavior changed.
 - No new endpoint was added.
 - Bash `./update.sh` remains the canonical validated release workflow.
-- PowerShell update support is more modular and easier to read, but this slice still requires validation on Windows PowerShell.
+- PowerShell update support is more modular and easier to read.
 - Missing local frontend tools should now be repaired before failing with `tsc is not recognized`.
 
 ### Validation
 
-Validation pending.
-
-Recommended validation:
+Validated from both update paths:
 
 ```powershell
 .\update.ps1 -SkipAutoPush
 ```
-
-Canonical Bash validation should also still pass:
 
 ```bash
 ./update.sh
