@@ -67,7 +67,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
-- Validation pending for PowerShell Git helper modularization:
+- Validated PowerShell Git helper modularization from both update paths:
   - `.\update.ps1 -SkipAutoPush`
   - `./update.sh`
 - Validated update toolchain checks, PowerShell PATH de-duplication, and colored status output from both update paths:
