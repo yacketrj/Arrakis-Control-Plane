@@ -65,7 +65,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
-- Validation pending for update toolchain checks, PowerShell PATH de-duplication, and colored status output:
+- Validated update toolchain checks, PowerShell PATH de-duplication, and colored status output from both update paths:
   - `.\update.ps1 -SkipAutoPush`
   - `./update.sh`
 - Validated route registration grouping from the canonical local update path:
