@@ -30,15 +30,11 @@ This slice moves Git status, pull, auto-commit, and auto-push helpers into a ded
 
 ### Validation
 
-Validation pending.
-
-Recommended validation:
+Validated from both update paths:
 
 ```powershell
 .\update.ps1 -SkipAutoPush
 ```
-
-Canonical Bash validation should also still pass:
 
 ```bash
 ./update.sh
