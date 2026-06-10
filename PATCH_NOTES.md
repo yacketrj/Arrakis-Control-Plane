@@ -1,41 +1,34 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: PowerShell npm/web helper modularization
+## Current update: Roadmap discoverability update
 
 ### Why this update was made
 
-PowerShell update support remains part of the pre-`v0.1.0` refactor/modularization gate. Common helpers and Git helpers have already been extracted. The npm/web repair and frontend toolchain helper functions still needed to be split out of `update.ps1`.
-
-This slice moves npm install/repair, Node process summary, frontend package binary checks, and npm lock guidance into a dedicated PowerShell module while preserving `update.ps1` as the entry point and keeping the validation/build order unchanged.
+The feature roadmap exists at `docs/roadmap.md`, but it was not obvious from the README. The previous roadmap filename was also too indirect, which made the feature list hard to locate during release planning.
 
 ### What changed
 
-- Added `scripts/update/powershell-npm.ps1`.
-- Moved npm/web helper functions out of `update.ps1`:
-  - `Get-NodeProcessSummary`
-  - `Remove-NodeModulesForRepair`
-  - `Invoke-NpmInstallWithRepair`
-  - `Test-WebPackageBinary`
-  - `Assert-WebPackageToolchain`
-  - `Show-NpmLockHelp`
-- Updated `update.ps1` to dot-source `scripts/update/powershell-npm.ps1`.
-- Preserved existing npm install, npm repair, frontend package toolchain, audit, typecheck, lint, and build behavior.
+- Confirmed `docs/roadmap.md` is the canonical roadmap and feature-priority file.
+- Confirmed the old ambiguous path `docs/admin-feature-design-and-priorities.md` is no longer present.
+- Added a direct roadmap pointer to `README.md` under the current release section:
+
+```text
+docs/roadmap.md
+```
 
 ### Security and operator impact
 
 - No route behavior changed.
 - No mutation behavior changed.
 - No new endpoint was added.
-- Bash `./update.sh` remains the canonical validated release workflow.
-- PowerShell update support is more modular and easier to review.
+- No update-script behavior changed.
+- Documentation is easier to navigate for release planning and feature tracking.
 
 ### Validation
 
-Validated from both update paths:
+Validation pending.
 
-```powershell
-.\update.ps1 -SkipAutoPush
-```
+Recommended validation:
 
 ```bash
 ./update.sh
@@ -48,7 +41,7 @@ Validated from both update paths:
 
 ---
 
-## Previous update: PowerShell Git helper modularization
+## Previous update: PowerShell npm/web helper modularization
 
 ### Validation
 
