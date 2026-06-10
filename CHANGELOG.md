@@ -10,6 +10,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Added
 
+- Added a direct `docs/roadmap.md` pointer to `README.md`.
 - Added `scripts/update/powershell-npm.ps1` for PowerShell npm/web update helper functions.
 - Added `scripts/update/powershell-git.ps1` for PowerShell Git update helper functions.
 - Added Bash and PowerShell frontend package toolchain checks for local `tsc`, `eslint`, and `vite` package binaries.
@@ -34,6 +35,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Canonical roadmap and feature priorities are now discoverable from the README through `docs/roadmap.md`.
+- Confirmed the old ambiguous roadmap path `docs/admin-feature-design-and-priorities.md` is no longer present.
 - Updated `update.ps1` to dot-source npm/web helpers from `scripts/update/powershell-npm.ps1`.
 - Updated `update.ps1` to dot-source Git helpers from `scripts/update/powershell-git.ps1`.
 - Updated missing frontend package binaries to trigger npm install/repair before typecheck/lint/build instead of failing later with missing `tsc`, `eslint`, or `vite` commands.
@@ -69,6 +72,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
+- Validation pending for roadmap discoverability update:
+  - `./update.sh`
 - Validation pending for PowerShell npm/web helper modularization:
   - `.\update.ps1 -SkipAutoPush`
   - `./update.sh`
@@ -114,6 +119,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ## Detailed change records
 
+- `docs/roadmap.md`
 - `docs/documentation-review-plan.md`
 - `docs/changelog/README.md`
 - `docs/changelog/unreleased/`
