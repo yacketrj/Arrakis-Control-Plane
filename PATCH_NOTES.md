@@ -1,24 +1,25 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: PowerShell Git helper modularization
+## Current update: PowerShell npm/web helper modularization
 
 ### Why this update was made
 
-PowerShell update support remains part of the pre-`v0.1.0` refactor/modularization gate. The common helper module has already been extracted, but Git helper functions still needed to be split out of `update.ps1`.
+PowerShell update support remains part of the pre-`v0.1.0` refactor/modularization gate. Common helpers and Git helpers have already been extracted. The npm/web repair and frontend toolchain helper functions still needed to be split out of `update.ps1`.
 
-This slice moves Git status, pull, auto-commit, and auto-push helpers into a dedicated PowerShell module while preserving `update.ps1` as the entry point and keeping the validation/build order unchanged.
+This slice moves npm install/repair, Node process summary, frontend package binary checks, and npm lock guidance into a dedicated PowerShell module while preserving `update.ps1` as the entry point and keeping the validation/build order unchanged.
 
 ### What changed
 
-- Added `scripts/update/powershell-git.ps1`.
-- Moved Git helper functions out of `update.ps1`:
-  - `Get-GitStatusLines`
-  - `Write-GitStatusPreview`
-  - `Invoke-GitPullIfSafe`
-  - `Invoke-AutoCommitIfNeeded`
-  - `Invoke-AutoPushIfNeeded`
-- Updated `update.ps1` to dot-source `scripts/update/powershell-git.ps1`.
-- Preserved existing Git pull, dirty-worktree handling, auto-commit, and auto-push behavior.
+- Added `scripts/update/powershell-npm.ps1`.
+- Moved npm/web helper functions out of `update.ps1`:
+  - `Get-NodeProcessSummary`
+  - `Remove-NodeModulesForRepair`
+  - `Invoke-NpmInstallWithRepair`
+  - `Test-WebPackageBinary`
+  - `Assert-WebPackageToolchain`
+  - `Show-NpmLockHelp`
+- Updated `update.ps1` to dot-source `scripts/update/powershell-npm.ps1`.
+- Preserved existing npm install, npm repair, frontend package toolchain, audit, typecheck, lint, and build behavior.
 
 ### Security and operator impact
 
@@ -30,11 +31,15 @@ This slice moves Git status, pull, auto-commit, and auto-push helpers into a ded
 
 ### Validation
 
-Validated from both update paths:
+Validation pending.
+
+Recommended validation:
 
 ```powershell
 .\update.ps1 -SkipAutoPush
 ```
+
+Canonical Bash validation should also still pass:
 
 ```bash
 ./update.sh
@@ -42,12 +47,12 @@ Validated from both update paths:
 
 ### Remaining refactor work
 
-- Continue PowerShell modularization for npm helper group.
 - Continue Go review for handler boundaries, audit/mutation-safety helper boundaries, and typed execution surfaces.
+- Consider splitting remaining PowerShell main flow only if it improves readability without obscuring execution order.
 
 ---
 
-## Previous update: Update toolchain checks, PowerShell color output, and PATH fix
+## Previous update: PowerShell Git helper modularization
 
 ### Validation
 
