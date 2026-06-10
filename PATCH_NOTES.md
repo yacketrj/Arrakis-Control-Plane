@@ -26,9 +26,7 @@ docs/roadmap.md
 
 ### Validation
 
-Validation pending.
-
-Recommended validation:
+Validated from the canonical local update path:
 
 ```bash
 ./update.sh
