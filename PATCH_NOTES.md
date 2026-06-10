@@ -31,15 +31,11 @@ This slice moves npm install/repair, Node process summary, frontend package bina
 
 ### Validation
 
-Validation pending.
-
-Recommended validation:
+Validated from both update paths:
 
 ```powershell
 .\update.ps1 -SkipAutoPush
 ```
-
-Canonical Bash validation should also still pass:
 
 ```bash
 ./update.sh
