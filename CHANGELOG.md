@@ -10,6 +10,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Added
 
+- Added `audit_risk.go` for pure audit action and mutation-risk classification helpers.
 - Added a direct `docs/roadmap.md` pointer to `README.md`.
 - Added `scripts/update/powershell-npm.ps1` for PowerShell npm/web update helper functions.
 - Added `scripts/update/powershell-git.ps1` for PowerShell Git update helper functions.
@@ -35,6 +36,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Moved `auditActionName`, `mutationRiskForRequest`, and high-risk mutation markers out of `audit_log.go` into `audit_risk.go`.
 - Canonical roadmap and feature priorities are now discoverable from the README through `docs/roadmap.md`.
 - Confirmed the old ambiguous roadmap path `docs/admin-feature-design-and-priorities.md` is no longer present.
 - Updated `update.ps1` to dot-source npm/web helpers from `scripts/update/powershell-npm.ps1`.
@@ -72,6 +74,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
+- Validation pending for audit risk helper refactor:
+  - `./update.sh`
 - Validated roadmap discoverability update from the canonical local update path:
   - `./update.sh`
 - Validated PowerShell npm/web helper modularization from both update paths:
