@@ -1,32 +1,36 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: Roadmap discoverability update
+## Current update: Audit risk helper refactor
 
 ### Why this update was made
 
-The feature roadmap exists at `docs/roadmap.md`, but it was not obvious from the README. The previous roadmap filename was also too indirect, which made the feature list hard to locate during release planning.
+The Go code-quality/refactor gate requires reviewing handler boundaries, audit/mutation-safety helper boundaries, and typed/allowlisted execution surfaces before final `v0.1.0`. The first low-risk Go refactor target was `audit_log.go`, which mixed audit middleware, persistence, metadata extraction, status/result helpers, and action/risk classification.
+
+This slice extracts pure action/risk classification into its own file without changing route behavior, mutation behavior, audit persistence, or handler registration.
 
 ### What changed
 
-- Confirmed `docs/roadmap.md` is the canonical roadmap and feature-priority file.
-- Confirmed the old ambiguous path `docs/admin-feature-design-and-priorities.md` is no longer present.
-- Added a direct roadmap pointer to `README.md` under the current release section:
-
-```text
-docs/roadmap.md
-```
+- Added `audit_risk.go`.
+- Moved pure audit/mutation classification helpers out of `audit_log.go`:
+  - `auditActionName`
+  - `mutationRiskForRequest`
+  - `highRiskMutationPathMarkers`
+- Left audit middleware, audit persistence, audit metadata extraction, and audit event handling in `audit_log.go`.
+- Preserved the existing `mutationSafetyForPath` and audit middleware call sites.
 
 ### Security and operator impact
 
 - No route behavior changed.
 - No mutation behavior changed.
 - No new endpoint was added.
-- No update-script behavior changed.
-- Documentation is easier to navigate for release planning and feature tracking.
+- Audit risk classification rules are intended to remain identical.
+- This makes future review of high-risk/destructive operation classification easier.
 
 ### Validation
 
-Validated from the canonical local update path:
+Validation pending.
+
+Recommended validation:
 
 ```bash
 ./update.sh
@@ -34,20 +38,17 @@ Validated from the canonical local update path:
 
 ### Remaining refactor work
 
-- Continue Go review for handler boundaries, audit/mutation-safety helper boundaries, and typed execution surfaces.
-- Consider splitting remaining PowerShell main flow only if it improves readability without obscuring execution order.
+- Continue Go review for audit metadata extraction boundaries.
+- Continue Go review for mutation-safety helper boundaries.
+- Continue Go review for handler boundaries and typed/allowlisted execution surfaces.
 
 ---
 
-## Previous update: PowerShell npm/web helper modularization
+## Previous update: Roadmap discoverability update
 
 ### Validation
 
-Validated from both update paths:
-
-```powershell
-.\update.ps1 -SkipAutoPush
-```
+Validated from the canonical local update path:
 
 ```bash
 ./update.sh
