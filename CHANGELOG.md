@@ -72,9 +72,9 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
-- Validation pending for roadmap discoverability update:
+- Validated roadmap discoverability update from the canonical local update path:
   - `./update.sh`
-- Validation pending for PowerShell npm/web helper modularization:
+- Validated PowerShell npm/web helper modularization from both update paths:
   - `.\update.ps1 -SkipAutoPush`
   - `./update.sh`
 - Validated PowerShell Git helper modularization from both update paths:
