@@ -14,9 +14,18 @@ resolve_output_directory() {
   fi
 }
 
+list_backend_go_packages() {
+  go list ./... | grep -v '/web/node_modules/' | grep -v '/web/dist/'
+}
+
 run_go_tests() {
   if [[ "$SKIP_GO_TESTS" -eq 0 ]]; then
-    step "Go tests" run go test -v ./...
+    mapfile -t packages < <(list_backend_go_packages)
+    if [[ "${#packages[@]}" -eq 0 ]]; then
+      echo "No backend Go packages found to test." >&2
+      exit 1
+    fi
+    step "Go tests" run go test -v "${packages[@]}"
   else
     echo "Skipping Go tests because --skip-go-tests was supplied."
   fi
