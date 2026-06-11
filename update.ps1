@@ -44,6 +44,18 @@ $UpdateSucceeded = $false
 $ExitCode = 0
 $AutoCommitSha = ''
 
+function Get-BackendGoPackages {
+  $packages = @(& go list ./...)
+  if ($LASTEXITCODE -ne 0) { throw 'Unable to list Go packages.' }
+  return @($packages | Where-Object { $_ -notmatch '/web/node_modules/' -and $_ -notmatch '/web/dist/' })
+}
+
+function Invoke-BackendGoTests {
+  $packages = @(Get-BackendGoPackages)
+  if ($packages.Count -eq 0) { throw 'No backend Go packages found to test.' }
+  Invoke-Native 'go' (@('test', '-v') + $packages)
+}
+
 try {
   Update-ProcessPath
   $RepoRoot = (Resolve-Path $RepoRoot).Path
@@ -64,7 +76,7 @@ try {
 
   Invoke-GitPullIfSafe
 
-  if (-not $SkipGoTests) { Invoke-Step 'Go tests' { Invoke-Native 'go' @('test', '-v', './...') } }
+  if (-not $SkipGoTests) { Invoke-Step 'Go tests' { Invoke-BackendGoTests } }
   else { Write-Host 'Skipping Go tests because -SkipGoTests was supplied.' -ForegroundColor Yellow }
 
   Invoke-Step 'Go backend build' {
