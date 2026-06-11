@@ -28,9 +28,7 @@ This slice extracts pure action/risk classification into its own file without ch
 
 ### Validation
 
-Validation pending.
-
-Recommended validation:
+Validated from the canonical local update path:
 
 ```bash
 ./update.sh
