@@ -74,7 +74,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
-- Validation pending for audit risk helper refactor:
+- Validated audit risk helper refactor from the canonical local update path:
   - `./update.sh`
 - Validated roadmap discoverability update from the canonical local update path:
   - `./update.sh`
