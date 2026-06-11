@@ -37,6 +37,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Updated Bash and PowerShell Go test validation to enumerate backend packages through `go list ./...` and exclude frontend dependency/build paths.
 - Moved audit metadata extraction, audit scalar conversion, audit string sanitization, remote-address extraction, and admin-token hashing out of `audit_log.go` into `audit_metadata.go`.
 - Moved `auditActionName`, `mutationRiskForRequest`, and high-risk mutation markers out of `audit_log.go` into `audit_risk.go`.
 - Canonical roadmap and feature priorities are now discoverable from the README through `docs/roadmap.md`.
@@ -65,6 +66,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Security
 
+- Backend Go test validation now excludes third-party frontend dependency trees such as `web/node_modules`.
 - Required update-script modularization and Go code-quality/refactor review before final `v0.1.0`, unless explicitly deferred in the release deviation log.
 - Clarified in the roadmap that full Discord server management, Live Admin RMQ, Welcome Kits, and arbitrary raw command publishing remain out of scope for `v0.1.0`.
 - Added a pre-`v0.1.0` documentation review gate for accuracy, authenticity, comprehensiveness, naming consistency, release evidence, and stale large mutable documents.
@@ -76,6 +78,9 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
+- Validation pending for Go test package filter fix:
+  - `./update.sh`
+  - `.\update.ps1 -SkipAutoPush`
 - Validation pending for audit metadata helper refactor:
   - `./update.sh`
 - Validated audit risk helper refactor from the canonical local update path:
