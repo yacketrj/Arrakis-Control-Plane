@@ -37,6 +37,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Hardened allowed-origin validation to reject wildcard host components such as `http://*`.
+- Corrected the allowed-origin test to use the active `isAllowedOriginValue` helper.
 - Renamed active Go module identity from `dune-admin` to `arrakis-control-plane`.
 - Renamed active Makefile build outputs and deploy target to `arrakis-control-panel` naming.
 - Renamed diagnostic export service identity to `arrakis-control-panel`.
@@ -73,6 +75,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 ### Security
 
 - Backend Go test validation now excludes third-party frontend dependency trees such as `web/node_modules`.
+- Allowed-origin validation now rejects wildcard host values.
 - Required update-script modularization and Go code-quality/refactor review before final `v0.1.0`, unless explicitly deferred in the release deviation log.
 - Clarified in the roadmap that full Discord server management, Live Admin RMQ, Welcome Kits, and arbitrary raw command publishing remain out of scope for `v0.1.0`.
 - Added a pre-`v0.1.0` documentation review gate for accuracy, authenticity, comprehensiveness, naming consistency, release evidence, and stale large mutable documents.
@@ -84,14 +87,10 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
-- Validation pending for active identity migration:
+- Validated active identity migration, Go test package filter fix, audit metadata helper refactor, and allowed-origin wildcard hardening from the canonical local update path:
   - `./update.sh`
+- PowerShell validation remains pending for active identity migration and Go test package filtering unless separately run:
   - `.\update.ps1 -SkipAutoPush`
-- Validation pending for Go test package filter fix:
-  - `./update.sh`
-  - `.\update.ps1 -SkipAutoPush`
-- Validation pending for audit metadata helper refactor:
-  - `./update.sh`
 - Validated audit risk helper refactor from the canonical local update path:
   - `./update.sh`
 - Validated roadmap discoverability update from the canonical local update path:
