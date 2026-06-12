@@ -124,7 +124,7 @@ func TestAllowedOriginValueRejectsUnsafeOrigins(t *testing.T) {
 		"javascript:alert(1)",
 	}
 	for _, origin := range invalid {
-		if err := validateAllowedOriginValue(origin); err == nil {
+		if isAllowedOriginValue(origin) {
 			t.Fatalf("expected unsafe origin %q to be rejected", origin)
 		}
 	}
