@@ -37,6 +37,12 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Renamed active Go module identity from `dune-admin` to `arrakis-control-plane`.
+- Renamed active Makefile build outputs and deploy target to `arrakis-control-panel` naming.
+- Renamed diagnostic export service identity to `arrakis-control-panel`.
+- Renamed setup banner, build/run hint, and generated `.env` comment to Arrakis Control Panel naming.
+- Renamed auth test allowed-origin fixture and package-lock root name to Arrakis Control Panel naming.
+- Renamed security remediation tracker active identity and binary-provenance target to Arrakis Control Panel naming.
 - Updated Bash and PowerShell Go test validation to enumerate backend packages through `go list ./...` and exclude frontend dependency/build paths.
 - Moved audit metadata extraction, audit scalar conversion, audit string sanitization, remote-address extraction, and admin-token hashing out of `audit_log.go` into `audit_metadata.go`.
 - Moved `auditActionName`, `mutationRiskForRequest`, and high-risk mutation markers out of `audit_log.go` into `audit_risk.go`.
@@ -78,6 +84,9 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
+- Validation pending for active identity migration:
+  - `./update.sh`
+  - `.\update.ps1 -SkipAutoPush`
 - Validation pending for Go test package filter fix:
   - `./update.sh`
   - `.\update.ps1 -SkipAutoPush`
@@ -128,6 +137,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 - Continue reviewing other long-lived docs for stale implemented-vs-planned claims.
 - Repo-wide stale label verification for `DA Manager` and `Arrakis Control Plane` should continue before final `v0.1.0`.
 - Existing Linux installs using legacy `dune-admin` service/path defaults require intentional migration before switching to the new `arrakis-control-panel` service defaults.
+- `SECURITY.md` still has active identity examples that need a smaller/manual cleanup because the connector blocked a full-file replacement.
 - `v0.1.0-rc.1` is approved to tag; post-release verification checks remain pending after tag/artifact install or launch.
 
 ## Detailed change records
