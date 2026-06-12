@@ -178,6 +178,9 @@ func isAllowedOriginValue(origin string) bool {
 	if parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
 		return false
 	}
+	if strings.Contains(parsed.Host, "*") {
+		return false
+	}
 	path := strings.Trim(parsed.EscapedPath(), "/")
 	return path == ""
 }
@@ -219,13 +222,13 @@ func normalizeListenAddr(addr string) string {
 func isValidK8sName(v string) bool { return k8sNamePattern.MatchString(v) }
 
 func isReadOnlySQL(sql string) bool {
-	q := strings.TrimSpace(sql)
-	if q == "" || strings.Contains(q, ";") {
+	trimmed := strings.TrimSpace(sql)
+	if trimmed == "" {
 		return false
 	}
-	if sqlDangerPattern.MatchString(q) {
-		return false
+	lower := strings.ToLower(trimmed)
+	if strings.HasPrefix(lower, "with") || strings.HasPrefix(lower, "select") || strings.HasPrefix(lower, "show") || strings.HasPrefix(lower, "explain") {
+		return !sqlDangerPattern.MatchString(lower)
 	}
-	l := strings.ToLower(q)
-	return strings.HasPrefix(l, "select") || strings.HasPrefix(l, "with") || strings.HasPrefix(l, "show") || strings.HasPrefix(l, "explain")
+	return false
 }
