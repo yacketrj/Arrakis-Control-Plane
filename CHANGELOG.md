@@ -25,6 +25,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Restored `audit_metadata.go` after validation showed `audit_log.go` expected extracted metadata helpers that were absent from `main`.
 - Updated `SECURITY.md` active product wording, allowed-origin example, and browser token-storage description for current Arrakis Control Panel identity.
 - Renamed active Go module identity from `dune-admin` to `arrakis-control-plane`.
 - Renamed active build outputs, deploy target, setup output, package metadata, diagnostics, and remediation tracker references to Arrakis Control Panel naming.
@@ -43,7 +44,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
-- Validation pending for `SECURITY.md` active identity cleanup:
+- Validated `SECURITY.md` active identity cleanup and restored `audit_metadata.go` from both update paths:
   - `./update.sh`
   - `.\update.ps1 -SkipAutoPush`
 - Validated active identity migration, Go test package filter fix, audit metadata helper refactor, and allowed-origin wildcard hardening from both update paths:
