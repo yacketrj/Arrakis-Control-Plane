@@ -36,7 +36,7 @@ func handleDiagnosticExport(w http.ResponseWriter, r *http.Request) {
 func buildDiagnosticExportPayload() diagnosticExportPayload {
 	payload := diagnosticExportPayload{
 		GeneratedAt:    time.Now().UTC().Format(time.RFC3339Nano),
-		Service:        "dune-admin",
+		Service:        "arrakis-control-panel",
 		Version:        RedactPIIText(version),
 		GoOS:           goruntime.GOOS,
 		GoArch:         goruntime.GOARCH,
