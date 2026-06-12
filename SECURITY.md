@@ -1,6 +1,6 @@
 # Security guidance
 
-Dune Admin controls a live game server, reaches a VM over SSH, and can mutate the game database. Treat the backend as a privileged admin service.
+Arrakis Control Panel controls a live game server, reaches a VM over SSH, and can mutate the game database. Treat the backend as a privileged admin service.
 
 ## Required runtime settings
 
@@ -9,7 +9,7 @@ Set these values in `.env` before starting the backend:
 ```env
 ADMIN_TOKEN=<long random token>
 LISTEN_ADDR=127.0.0.1:8080
-ALLOWED_ORIGINS=http://localhost:5173,https://dune-admin.layout.tools
+ALLOWED_ORIGINS=http://localhost:5173,https://arrakis-control-panel.layout.tools
 ```
 
 Generate a token with:
@@ -18,7 +18,7 @@ Generate a token with:
 openssl rand -base64 32
 ```
 
-Open the frontend settings gear and paste the same `ADMIN_TOKEN` into the Admin Token field. The token is stored in browser `localStorage` and sent to the backend as the `X-Admin-Token` header.
+Open the frontend settings gear and paste the same `ADMIN_TOKEN` into the Admin Token field. The token is currently stored in browser `sessionStorage` as an interim hardening measure and sent to the backend as the `X-Admin-Token` header.
 
 ## Exposure rules
 
