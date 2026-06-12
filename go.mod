@@ -1,4 +1,4 @@
-module dune-admin
+module arrakis-control-plane
 
 go 1.26.3
 
