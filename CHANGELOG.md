@@ -25,6 +25,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Updated `SECURITY.md` active product wording, allowed-origin example, and browser token-storage description for current Arrakis Control Panel identity.
 - Renamed active Go module identity from `dune-admin` to `arrakis-control-plane`.
 - Renamed active build outputs, deploy target, setup output, package metadata, diagnostics, and remediation tracker references to Arrakis Control Panel naming.
 - Hardened allowed-origin validation to reject wildcard host components such as `http://*`.
@@ -34,6 +35,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Security
 
+- Security guidance now uses active Arrakis Control Panel identity and current browser token-storage wording.
 - Backend Go test validation excludes third-party frontend dependency trees such as `web/node_modules`.
 - Allowed-origin validation rejects wildcard host values.
 - High/destructive mutation audit and blocked-mutation audit coverage remain tracked.
@@ -41,6 +43,9 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
+- Validation pending for `SECURITY.md` active identity cleanup:
+  - `./update.sh`
+  - `.\update.ps1 -SkipAutoPush`
 - Validated active identity migration, Go test package filter fix, audit metadata helper refactor, and allowed-origin wildcard hardening from both update paths:
   - `./update.sh`
   - `.\update.ps1 -SkipAutoPush`
@@ -64,7 +69,6 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 - Full documentation review is required before final `v0.1.0` or must be explicitly deferred in `docs/release-deviation-log.md`.
 - Update-script modularization remains required before final `v0.1.0` or must be explicitly deferred in `docs/release-deviation-log.md`.
 - Go code-quality/refactor review remains required before final `v0.1.0` or must be explicitly deferred in `docs/release-deviation-log.md`.
-- `SECURITY.md` still has active identity examples that need a smaller/manual cleanup because the connector blocked a full-file replacement.
 - `v0.1.0-rc.1` is approved to tag; post-release verification checks remain pending after tag/artifact install or launch.
 
 ## Detailed change records
