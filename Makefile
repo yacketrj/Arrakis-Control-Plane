@@ -3,10 +3,10 @@
 build: go
 
 go:
-	go build -o dune-admin .
+	go build -o arrakis-control-panel .
 
 linux:
-	GOOS=linux GOARCH=amd64 go build -o dune-admin-linux .
+	GOOS=linux GOARCH=amd64 go build -o arrakis-control-panel-linux .
 
 dev-server:
 	go run .
@@ -18,4 +18,4 @@ web:
 	cd web && npm ci && npm run build
 
 deploy-web:
-	cd web && npm ci && npm run build && wrangler pages deploy dist --project-name dune-admin
+	cd web && npm ci && npm run build && wrangler pages deploy dist --project-name arrakis-control-panel
