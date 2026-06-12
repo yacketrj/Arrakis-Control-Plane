@@ -1,27 +1,35 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: Go test package filter fix
+## Current update: Active identity migration
 
 ### Why this update was made
 
-Validation failed because `go test ./...` traversed frontend dependency directories and discovered a third-party Go package under `web/node_modules/flatted/golang/pkg/flatted`. Frontend dependency trees should not be included in backend Go validation.
+Several active build, runtime, test, and setup references still used the legacy `dune-admin` name. Upstream attribution to Icehunter's original `dune-admin` project should remain, but active project identity should use Arrakis Control Panel naming.
+
+### Naming decision
+
+- Product/UI name: `Arrakis Control Panel`
+- Binary/service/deploy name: `arrakis-control-panel`
+- Go module path: `arrakis-control-plane`
+
+This preserves the project/repository concept of a control plane while keeping the operator-facing application name aligned with the current README and systemd service naming.
 
 ### What changed
 
-- Updated Bash backend validation to enumerate Go packages through `go list ./...` and filter out frontend dependency/build paths:
-  - `/web/node_modules/`
-  - `/web/dist/`
-- Updated PowerShell backend validation to apply the same package filtering before running `go test`.
-- Preserved Go backend build behavior.
-- Preserved frontend npm audit, typecheck, lint, and build behavior.
+- Renamed the Go module from `dune-admin` to `arrakis-control-plane`.
+- Renamed Makefile build outputs:
+  - `arrakis-control-panel`
+  - `arrakis-control-panel-linux`
+- Renamed the Cloudflare Pages project target in the Makefile to `arrakis-control-panel`.
+- Updated diagnostic export service identity to `arrakis-control-panel`.
+- Updated auth test allowed-origin fixture to `https://arrakis-control-panel.layout.tools`.
+- Updated package-lock root name to `arrakis-control-panel`.
+- Updated setup banner, build/run hint, and generated `.env` comment to Arrakis Control Panel naming.
+- Updated the security remediation tracker from legacy `dune-admin-fork` / `dune-admin.exe` references to Arrakis Control Panel / `arrakis-control-panel.exe`.
 
-### Security and operator impact
+### Intentionally retained legacy references
 
-- No route behavior changed.
-- No mutation behavior changed.
-- No new endpoint was added.
-- Backend Go validation now excludes third-party frontend dependency trees.
-- This prevents unrelated vendored/frontend dependency packages from failing backend test gates.
+The remaining `dune-admin` references should be limited to upstream attribution or historical release notes, especially references to Icehunter's original `dune-admin` project by Ryan Wilson.
 
 ### Validation
 
@@ -39,25 +47,20 @@ PowerShell validation should also be rerun:
 .\update.ps1 -SkipAutoPush
 ```
 
-### Previous validation issue
+### Remaining cleanup work
 
-The failure looked like:
+- Re-run grep after pulling this change:
 
-```text
-FAIL    dune-admin [build failed]
-?       dune-admin/web/node_modules/flatted/golang/pkg/flatted [no test files]
-FAIL
+```bash
+grep -R "dune-admin" . --exclude-dir=.git --exclude-dir=dist --exclude-dir=web/node_modules
 ```
 
-### Remaining refactor work
-
-- Re-run validation for the audit metadata helper refactor after this test package filter fix.
-- Continue Go review for mutation-safety helper boundaries.
-- Continue Go review for handler boundaries and typed/allowlisted execution surfaces.
+- Review any remaining hits and classify them as either upstream attribution/history or active identity that still needs migration.
+- `SECURITY.md` still needs a small active-identity cleanup; the connector blocked a full-file replacement, so that file may require a smaller local edit.
 
 ---
 
-## Previous update: Audit metadata helper refactor
+## Previous update: Go test package filter fix
 
 ### Validation
 
@@ -67,4 +70,10 @@ Recommended validation:
 
 ```bash
 ./update.sh
+```
+
+PowerShell validation should also be rerun:
+
+```powershell
+.\update.ps1 -SkipAutoPush
 ```
