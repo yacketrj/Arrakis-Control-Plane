@@ -178,11 +178,18 @@ func isAllowedOriginValue(origin string) bool {
 	if parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
 		return false
 	}
-	if strings.Contains(parsed.Host, "*") {
+	if allowedOriginHostHasWildcard(parsed) {
 		return false
 	}
 	path := strings.Trim(parsed.EscapedPath(), "/")
 	return path == ""
+}
+
+func allowedOriginHostHasWildcard(parsed *url.URL) bool {
+	if parsed == nil {
+		return false
+	}
+	return strings.Contains(parsed.Host, "*") || strings.Contains(parsed.Hostname(), "*")
 }
 
 func originAllowed(origin string) bool {
