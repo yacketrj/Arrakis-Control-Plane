@@ -46,13 +46,11 @@ The remaining `dune-admin` references should be limited to upstream attribution 
 
 ### Validation
 
-Validated from the canonical local update path:
+Validated from both update paths:
 
 ```bash
 ./update.sh
 ```
-
-PowerShell validation remains pending unless separately run:
 
 ```powershell
 .\update.ps1 -SkipAutoPush
@@ -75,13 +73,11 @@ grep -R "dune-admin" . --exclude-dir=.git --exclude-dir=dist --exclude-dir=web/n
 
 ### Validation
 
-Validated from the canonical local update path:
+Validated from both update paths:
 
 ```bash
 ./update.sh
 ```
-
-PowerShell validation remains pending unless separately run:
 
 ```powershell
 .\update.ps1 -SkipAutoPush
