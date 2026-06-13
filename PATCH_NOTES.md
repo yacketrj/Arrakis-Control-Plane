@@ -30,15 +30,11 @@ The final documentation-review gate needs a durable status record before final `
 
 ### Validation
 
-Validation pending.
-
-Recommended validation:
+Validated from both update paths:
 
 ```bash
 ./update.sh
 ```
-
-If running both local environments again, also run:
 
 ```powershell
 .\update.ps1 -SkipAutoPush
