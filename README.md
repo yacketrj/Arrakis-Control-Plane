@@ -89,7 +89,11 @@ cd /path/to/Arrakis-Control-Plane
 
 On Windows, use Git Bash / MINGW64 or another shell that can execute Bash scripts. The drive letter and mount path depend on the local machine and should not be assumed.
 
-PowerShell support exists through `update.ps1`, but the current validated release workflow is `./update.sh`.
+PowerShell support exists through `update.ps1` and is validated for the current hardening slice:
+
+```powershell
+.\update.ps1 -SkipAutoPush
+```
 
 ## Development quick start
 
@@ -99,19 +103,12 @@ Create configuration:
 cp .env.example .env
 ```
 
-Generate a strict backend admin token:
+Set required runtime values in `.env`; see `SECURITY.md` for strict admin-token guidance.
 
-```bash
-python - <<'PY'
-import secrets
-print(secrets.token_urlsafe(32))
-PY
-```
-
-Set at minimum:
+Minimum local configuration fields:
 
 ```env
-ADMIN_TOKEN=<43-character base64url token from 32 random bytes>
+ADMIN_TOKEN=<strict 43-character base64url token>
 LISTEN_ADDR=127.0.0.1:8080
 ALLOWED_ORIGINS=http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:4173,http://localhost:4173
 SSH_HOST=<dune-host>:22
