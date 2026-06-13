@@ -6,6 +6,16 @@ This plan defines a deep documentation review for Arrakis Control Panel before f
 
 The trigger for this review was a ledger-size warning for `docs/admin-feature-design-and-priorities.md`. The warning did not fail validation, but it indicates that large planning documents may become stale, duplicative, or inconsistent with the actual code and release workflow.
 
+## Current status record
+
+The current review status is tracked in:
+
+```text
+docs/documentation-review-status.md
+```
+
+That file records the current label scan, primary-document review notes, corrections completed, validation evidence, and remaining final-release gates.
+
 ## Review objectives
 
 The documentation review must verify:
@@ -137,6 +147,12 @@ The review should produce:
 - a list of documents to split or archive
 - release-impact classification for each finding
 - validation notes after corrections
+
+The current deliverable is:
+
+```text
+docs/documentation-review-status.md
+```
 
 ## Release gate
 
