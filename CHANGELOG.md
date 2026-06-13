@@ -14,9 +14,11 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 - Go validation package filtering to avoid frontend dependency trees.
 - Audit helper modularization for risk and request metadata boundaries.
 - Allowed-origin validation hardening.
+- Documentation review gate status tracking.
 
 ### Added
 
+- `docs/documentation-review-status.md` for the current documentation-review findings, validation evidence, and remaining gate status.
 - `audit_metadata.go` for audit request metadata extraction and sanitization helpers.
 - `audit_risk.go` for audit action and mutation-risk classification helpers.
 - `docs/roadmap.md` as the canonical roadmap pointer from README.
@@ -25,6 +27,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Linked `docs/documentation-review-status.md` from `docs/documentation-review-plan.md`.
 - Restored `audit_metadata.go` after validation showed `audit_log.go` expected extracted metadata helpers that were absent from `main`.
 - Updated `SECURITY.md` active product wording, allowed-origin example, and browser token-storage description for current Arrakis Control Panel identity.
 - Renamed active Go module identity from `dune-admin` to `arrakis-control-plane`.
@@ -44,6 +47,9 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
+- Validation pending for documentation-review status tracking:
+  - `./update.sh`
+  - `.\update.ps1 -SkipAutoPush`
 - Validated `SECURITY.md` active identity cleanup and restored `audit_metadata.go` from both update paths:
   - `./update.sh`
   - `.\update.ps1 -SkipAutoPush`
@@ -74,6 +80,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ## Detailed change records
 
+- `docs/documentation-review-status.md`
 - `docs/releases/v0.1.0-rc.1.md`
 - `docs/roadmap.md`
 - `docs/documentation-review-plan.md`
