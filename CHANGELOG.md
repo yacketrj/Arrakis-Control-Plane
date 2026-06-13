@@ -47,7 +47,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
-- Validation pending for documentation-review status tracking:
+- Validated documentation-review status tracking from both update paths:
   - `./update.sh`
   - `.\update.ps1 -SkipAutoPush`
 - Validated `SECURITY.md` active identity cleanup and restored `audit_metadata.go` from both update paths:
