@@ -27,15 +27,11 @@ The documentation review found one stale README statement: it still said the cur
 
 ### Validation
 
-Validation pending.
-
-Recommended validation:
+Validated from the local update path requested for this slice.
 
 ```bash
 ./update.sh
 ```
-
-If running both local environments again, also run:
 
 ```powershell
 .\update.ps1 -SkipAutoPush
