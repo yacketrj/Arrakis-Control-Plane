@@ -27,6 +27,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Updated README to state that `update.ps1` is validated for the current hardening slice.
+- Consolidated README admin-token setup guidance by pointing strict token instructions to `SECURITY.md`.
 - Linked `docs/documentation-review-status.md` from `docs/documentation-review-plan.md`.
 - Restored `audit_metadata.go` after validation showed `audit_log.go` expected extracted metadata helpers that were absent from `main`.
 - Updated `SECURITY.md` active product wording, allowed-origin example, and browser token-storage description for current Arrakis Control Panel identity.
@@ -40,6 +42,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 ### Security
 
 - Security guidance now uses active Arrakis Control Panel identity and current browser token-storage wording.
+- README now delegates strict token guidance to `SECURITY.md` to avoid conflicting token-generation instructions.
 - Backend Go test validation excludes third-party frontend dependency trees such as `web/node_modules`.
 - Allowed-origin validation rejects wildcard host values.
 - High/destructive mutation audit and blocked-mutation audit coverage remain tracked.
@@ -47,6 +50,9 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
+- Validation pending for README validation wording correction:
+  - `./update.sh`
+  - `.\update.ps1 -SkipAutoPush`
 - Validated documentation-review status tracking from both update paths:
   - `./update.sh`
   - `.\update.ps1 -SkipAutoPush`
