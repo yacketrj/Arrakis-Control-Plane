@@ -1,40 +1,41 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: Documentation review status record
+## Current update: README validation wording correction
 
 ### Why this update was made
 
-The final documentation-review gate needs a durable status record before final `v0.1.0` readiness can be claimed or deferred. The active identity cleanup was validated, but the broader documentation review still needed a single status pointer and current findings record.
+The documentation review found one stale README statement: it still said the current validated release workflow was only `./update.sh`, even after PowerShell validation was completed for the current hardening slice.
 
 ### What changed
 
-- Added `docs/documentation-review-status.md`.
-- Linked the status file from `docs/documentation-review-plan.md`.
-- Recorded the current primary-document review status, label scan, completed corrections, validation evidence, and remaining final-release gates.
+- Updated README PowerShell wording to state that `update.ps1` is validated for the current hardening slice.
+- Added the validated PowerShell command:
 
-### Review findings
+```powershell
+.\update.ps1 -SkipAutoPush
+```
 
-- GitHub repository search on `main` returned no active hits for:
-  - `DA Manager`
-  - `Arrakis Control Plane`
-  - `dune-admin`
-- Primary release/security docs are aligned on Arrakis Control Panel identity after the latest cleanup.
-- Remaining final-release readiness should not be claimed until the open final gates are completed or explicitly deferred.
+- Removed the duplicate inline admin-token generation example from README.
+- Pointed admin-token setup guidance to `SECURITY.md` so strict token guidance has a single source of truth.
 
 ### Security and operator impact
 
 - No route behavior changed.
 - No mutation behavior changed.
 - No new endpoint was added.
-- This is documentation-only release governance work.
+- README now more accurately reflects the current validation status and security documentation boundaries.
 
 ### Validation
 
-Validated from both update paths:
+Validation pending.
+
+Recommended validation:
 
 ```bash
 ./update.sh
 ```
+
+If running both local environments again, also run:
 
 ```powershell
 .\update.ps1 -SkipAutoPush
@@ -49,7 +50,7 @@ Validated from both update paths:
 
 ---
 
-## Previous update: Security guidance cleanup and audit metadata restore
+## Previous update: Documentation review status record
 
 ### Validation
 
