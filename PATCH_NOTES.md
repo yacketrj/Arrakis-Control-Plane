@@ -23,9 +23,7 @@ The final release gate still includes update-script modularization. PowerShell b
 
 ### Validation
 
-Validation pending.
-
-Recommended validation:
+Validated from both update paths:
 
 ```bash
 ./update.sh
