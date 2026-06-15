@@ -23,9 +23,7 @@ The final release checklist still needed a clear decision on whether update-scri
 
 ### Validation
 
-Validation pending for the status-record slice.
-
-Recommended validation:
+Validated from both update paths:
 
 ```bash
 ./update.sh
