@@ -1,33 +1,31 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: README validation wording correction
+## Current update: PowerShell backend helper extraction
 
 ### Why this update was made
 
-The documentation review found one stale README statement: it still said the current validated release workflow was only `./update.sh`, even after PowerShell validation was completed for the current hardening slice.
+The final release gate still includes update-script modularization. Bash update logic is already split across helper modules, but PowerShell backend test/build/copy logic was still embedded in `update.ps1`.
 
 ### What changed
 
-- Updated README PowerShell wording to state that `update.ps1` is validated for the current hardening slice.
-- Added the validated PowerShell command:
-
-```powershell
-.\update.ps1 -SkipAutoPush
-```
-
-- Removed the duplicate inline admin-token generation example from README.
-- Pointed admin-token setup guidance to `SECURITY.md` so strict token guidance has a single source of truth.
+- Added `scripts/update/powershell-backend.ps1`.
+- Moved PowerShell backend Go package discovery and test execution into the backend helper module.
+- Moved PowerShell backend build execution into the backend helper module.
+- Moved PowerShell backend binary and asset copy logic into the backend helper module.
+- Updated `update.ps1` to source the backend helper module and call the extracted functions.
 
 ### Security and operator impact
 
 - No route behavior changed.
 - No mutation behavior changed.
 - No new endpoint was added.
-- README now more accurately reflects the current validation status and security documentation boundaries.
+- PowerShell update behavior should remain equivalent while reducing `update.ps1` monolith size.
 
 ### Validation
 
-Validated from the local update path requested for this slice.
+Validation pending.
+
+Recommended validation:
 
 ```bash
 ./update.sh
@@ -39,14 +37,14 @@ Validated from the local update path requested for this slice.
 
 ### Remaining final-`v0.1.0` gates
 
-- Full documentation review beyond the primary release/security docs already checked, or explicit deferral.
-- Remaining update-script modularization or explicit deferral.
+- Remaining PowerShell web-validation modularization or explicit deferral.
 - Remaining Go code-quality/refactor review or explicit deferral.
+- Full documentation review beyond primary release/security docs, or explicit deferral.
 - Post-release verification after tag/artifact install or launch.
 
 ---
 
-## Previous update: Documentation review status record
+## Previous update: README validation wording correction
 
 ### Validation
 
