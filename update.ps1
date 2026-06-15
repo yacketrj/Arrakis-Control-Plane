@@ -39,6 +39,10 @@ $BackendHelpers = Join-Path $PSScriptRoot 'scripts\update\powershell-backend.ps1
 if (-not (Test-Path $BackendHelpers)) { throw "PowerShell update backend helper not found: $BackendHelpers" }
 . $BackendHelpers
 
+$WebHelpers = Join-Path $PSScriptRoot 'scripts\update\powershell-web.ps1'
+if (-not (Test-Path $WebHelpers)) { throw "PowerShell update web helper not found: $WebHelpers" }
+. $WebHelpers
+
 if ([string]::IsNullOrWhiteSpace($RepoRoot)) { $RepoRoot = $PSScriptRoot }
 if ([string]::IsNullOrWhiteSpace($Version)) { $Version = if ($env:VERSION) { $env:VERSION } else { 'dev' } }
 if ([string]::IsNullOrWhiteSpace($CommitMessage)) { $CommitMessage = if ($env:COMMIT_MESSAGE) { $env:COMMIT_MESSAGE } else { 'Automated successful update' } }
@@ -74,28 +78,16 @@ try {
   Invoke-BackendBuild -BuildOutputDir $BuildOutputDir -BackendBinary $BackendBinary -Version $Version
   Copy-BackendBinaryAndAssets -RepoRoot $RepoRoot -BuildOutputDir $BuildOutputDir -BackendBinary $BackendBinary -RepoRootBinary $RepoRootBinary -SkipRootBinaryCopy:$SkipRootBinaryCopy
 
-  if (Test-Path $WebRoot) {
-    Set-Location $WebRoot
-    Write-Host "Web folder:     $(Get-Location)"
-    if (Test-Path 'package.json') {
-      Assert-CommandAvailable -Name 'node' -InstallHint 'Install Node.js 22+.'
-      Assert-CommandAvailable -Name 'npm' -InstallHint 'Install npm or repair the Node.js installation.'
-      Invoke-Step 'Node version' { Invoke-Native 'node' @('--version') }
-      Invoke-Step 'NPM version' { Invoke-Native 'npm' @('--version') }
-      if (-not $SkipWebInstall) { Invoke-NpmInstallWithRepair -Clean:$CleanWebDependencies }
-      else { Write-Host 'Skipping npm install because -SkipWebInstall was supplied.' -ForegroundColor Yellow }
-      Assert-WebPackageToolchain
-      if (-not $SkipWebAudit) { Invoke-Step 'NPM audit' { Invoke-Native 'npm' @('audit', '--audit-level=high') } }
-      else { Write-Host 'Skipping npm audit because -SkipWebAudit was supplied.' -ForegroundColor Yellow }
-      if (-not $SkipWebTypecheck) { Invoke-Step 'Web typecheck' { Invoke-Native 'npm' @('run', 'typecheck') } }
-      else { Write-Host 'Skipping web typecheck because -SkipWebTypecheck was supplied.' -ForegroundColor Yellow }
-      if (-not $SkipWebLint) { Invoke-Step 'Web lint' { Invoke-Native 'npm' @('run', 'lint') } }
-      else { Write-Host 'Skipping web lint because -SkipWebLint was supplied.' -ForegroundColor Yellow }
-      if (-not $SkipWebBuild) { Invoke-Step 'Web build' { Invoke-Native 'npm' @('run', 'build') } }
-      else { Write-Host 'Skipping web build because -SkipWebBuild was supplied.' -ForegroundColor Yellow }
-    } else { Write-Host 'package.json not found; skipping web build' -ForegroundColor Yellow }
-  } else { Write-Host "Web folder not found; skipping web build: $WebRoot" -ForegroundColor Yellow }
+  Invoke-WebValidationAndBuild `
+    -WebRoot $WebRoot `
+    -CleanWebDependencies:$CleanWebDependencies `
+    -SkipWebInstall:$SkipWebInstall `
+    -SkipWebAudit:$SkipWebAudit `
+    -SkipWebTypecheck:$SkipWebTypecheck `
+    -SkipWebLint:$SkipWebLint `
+    -SkipWebBuild:$SkipWebBuild
 
+  Set-Location $RepoRoot
   Invoke-Step 'Git auto-commit successful changes' { Invoke-AutoCommitIfNeeded }
   Invoke-Step 'Git auto-push committed changes' { Invoke-AutoPushIfNeeded }
   $UpdateSucceeded = $true
