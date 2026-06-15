@@ -1,18 +1,18 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: PowerShell backend helper extraction
+## Current update: PowerShell web helper extraction
 
 ### Why this update was made
 
-The final release gate still includes update-script modularization. Bash update logic is already split across helper modules, but PowerShell backend test/build/copy logic was still embedded in `update.ps1`.
+The final release gate still includes update-script modularization. PowerShell backend logic has been extracted, but web dependency validation, audit, typecheck, lint, and build execution were still embedded in `update.ps1`.
 
 ### What changed
 
-- Added `scripts/update/powershell-backend.ps1`.
-- Moved PowerShell backend Go package discovery and test execution into the backend helper module.
-- Moved PowerShell backend build execution into the backend helper module.
-- Moved PowerShell backend binary and asset copy logic into the backend helper module.
-- Updated `update.ps1` to source the backend helper module and call the extracted functions.
+- Added `scripts/update/powershell-web.ps1`.
+- Moved PowerShell web folder detection and package-file checks into the web helper module.
+- Moved Node/npm prerequisite checks and version probes into the web helper module.
+- Moved npm install/repair, toolchain validation, audit, typecheck, lint, and build execution into the web helper module.
+- Updated `update.ps1` to source the web helper module and call `Invoke-WebValidationAndBuild`.
 
 ### Security and operator impact
 
@@ -23,7 +23,9 @@ The final release gate still includes update-script modularization. Bash update 
 
 ### Validation
 
-Validated from both update paths:
+Validation pending.
+
+Recommended validation:
 
 ```bash
 ./update.sh
@@ -35,14 +37,14 @@ Validated from both update paths:
 
 ### Remaining final-`v0.1.0` gates
 
-- Remaining PowerShell web-validation modularization or explicit deferral.
+- Confirm whether update-script modularization is now sufficient for final `v0.1.0` or document any remaining deferral.
 - Remaining Go code-quality/refactor review or explicit deferral.
 - Full documentation review beyond primary release/security docs, or explicit deferral.
 - Post-release verification after tag/artifact install or launch.
 
 ---
 
-## Previous update: README validation wording correction
+## Previous update: PowerShell backend helper extraction
 
 ### Validation
 
