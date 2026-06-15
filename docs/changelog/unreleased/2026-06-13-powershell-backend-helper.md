@@ -21,7 +21,7 @@ Extracted PowerShell backend update logic from `update.ps1` into `scripts/update
 
 ## Validation
 
-Pending local validation:
+Validated locally:
 
 ```bash
 ./update.sh
