@@ -21,7 +21,7 @@ Extracted PowerShell web validation and build logic from `update.ps1` into `scri
 
 ## Validation
 
-Pending local validation:
+Validated locally:
 
 ```bash
 ./update.sh
