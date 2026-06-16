@@ -11,8 +11,9 @@ It is intentionally limited to release-readiness status. It does not add Live Ad
 | Gate | Status | Decision |
 |---|---|---|
 | Update-script modularization | Closed | Accepted as complete for final `v0.1.0` readiness. |
-| Go code-quality/refactor review | Deferred | Explicitly deferred in `docs/release-deviation-log.md`; no broad code refactor should block final `v0.1.0` if local validation is clean. |
+| Go code-quality/refactor review | Deferred | Explicitly deferred in `docs/release-deviation-log.md`; no broad code refactor should block final `v0.1.0` while local validation remains clean. |
 | Full documentation review beyond primary release/security docs | Deferred | Explicitly deferred in `docs/release-deviation-log.md`; primary release/security docs remain the trusted final-release set. |
+| Local validation for gate-disposition update | Closed | Operator reported the local validation run completed cleanly on 2026-06-15. |
 | Post-release verification after tag/artifact install or launch | Pending | Cannot be closed until the tag/artifact is installed or launched and runtime checks are recorded. |
 
 ## Closed gate: update-script modularization
@@ -39,9 +40,9 @@ Decision:
 Explicitly defer broad Go code-quality/refactor review to v0.1.1 or the next hardening slice.
 ```
 
-Required mitigation before tagging final `v0.1.0`:
+Mitigation before tagging final `v0.1.0`:
 
-- run the canonical local validation path
+- canonical local validation must remain clean
 - avoid adding new endpoints or mutation behavior
 - preserve existing audit, auth-boundary, and blocked-mutation coverage
 - record any validation failure before release
@@ -56,11 +57,27 @@ Decision:
 Explicitly defer broad documentation review beyond primary release/security docs to v0.1.1 or the next documentation-hardening slice.
 ```
 
-Required mitigation before tagging final `v0.1.0`:
+Mitigation before tagging final `v0.1.0`:
 
 - keep release, security, roadmap, changelog, patch notes, and deviation-log docs internally consistent
 - preserve upstream attribution where `dune-admin` is historical context
 - avoid stale DA Manager wording in active operator guidance
+
+## Closed gate: local validation for gate-disposition update
+
+The documentation-only gate-disposition update was prepared through the GitHub connector. The release owner then reported a clean local validation result on 2026-06-15.
+
+Recorded operator-reported validation:
+
+```bash
+./update.sh
+```
+
+If validating from Windows, the PowerShell path remains:
+
+```powershell
+.\update.ps1 -SkipAutoPush
+```
 
 ## Pending gate: post-release verification
 
@@ -74,21 +91,5 @@ Do not mark this complete until these checks are recorded:
 - audit events are written
 - logs stream using one-time tickets
 - no new high/critical findings are introduced by release packaging or runtime launch
-
-## Validation status for this gate-disposition update
-
-This document is a documentation-only gate-disposition update prepared through the GitHub connector.
-
-Local validation still must be run before final tagging:
-
-```bash
-./update.sh
-```
-
-On Windows, also run:
-
-```powershell
-.\update.ps1 -SkipAutoPush
-```
 
 Final `v0.1.0` must not be claimed as fully post-release verified until the runtime checks above have evidence.
