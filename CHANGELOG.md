@@ -60,7 +60,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 - Documentation-only gate-disposition update was prepared through the GitHub connector; local validation remains required before final tagging:
   - `./update.sh`
-  - `./update.ps1 -SkipAutoPush` on Windows
+  - `.\update.ps1 -SkipAutoPush` on Windows
 - Validation pending for README validation wording correction:
   - `./update.sh`
   - `.\update.ps1 -SkipAutoPush`
