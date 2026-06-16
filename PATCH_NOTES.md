@@ -83,7 +83,7 @@ Validated from both update paths:
 .\update.ps1 -SkipAutoPush
 ```
 
-### Remaining final-`v0.1.0` gates
+### Remaining final-`v0.1.0` gates at that time
 
 - Remaining Go code-quality/refactor review or explicit deferral.
 - Full documentation review beyond primary release/security docs, or explicit deferral.
