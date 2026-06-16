@@ -1,6 +1,56 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: Update-script modularization closure
+## Current update: Final v0.1.0 gate disposition
+
+### Why this update was made
+
+The final release-readiness checklist still had three open gates after update-script modularization was closed:
+
+- Go code-quality/refactor review or explicit deferral
+- full documentation review beyond primary release/security docs, or explicit deferral
+- post-release verification after tag/artifact install or launch
+
+### What changed
+
+- Added `docs/final-v0.1.0-gate-status.md`.
+- Updated `docs/documentation-review-status.md` so it no longer lists update-script modularization as open.
+- Added explicit release-deviation entries for:
+  - broad Go code-quality/refactor review deferral
+  - broad documentation review deferral beyond primary release/security docs
+- Kept post-release verification pending because it requires actual tag/artifact install or launch evidence.
+
+### Security and operator impact
+
+- No route behavior changed.
+- No mutation behavior changed.
+- No endpoint was added.
+- No Live Admin / RMQ execution was added.
+- No Player 360 mutation behavior was added.
+- No Welcome Kits behavior was added.
+- Release status is clearer for final `v0.1.0` decision-making.
+
+### Validation
+
+This was a documentation-only gate-disposition update prepared through the GitHub connector. Local validation still must be run before final tagging:
+
+```bash
+./update.sh
+```
+
+On Windows, also run:
+
+```powershell
+.\update.ps1 -SkipAutoPush
+```
+
+### Remaining final-`v0.1.0` gates
+
+- Local validation for this documentation-only gate-disposition update.
+- Post-release verification after tag/artifact install or launch.
+
+---
+
+## Previous update: Update-script modularization closure
 
 ### Why this update was made
 
