@@ -19,7 +19,7 @@ Extracted environment helper logic from `main.go` into `config_env.go` as part o
 
 ## Validation
 
-Pending local validation:
+Validated locally:
 
 ```bash
 ./update.sh
