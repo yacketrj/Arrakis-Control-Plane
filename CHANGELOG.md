@@ -30,6 +30,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Recorded operator-reported clean local validation for the final `v0.1.0` gate-disposition update.
 - Updated `docs/documentation-review-status.md` to reflect that update-script modularization is closed for final `v0.1.0` readiness.
 - Updated `PATCH_NOTES.md` to record the final gate-disposition update and remaining validation/runtime evidence needs.
 - Updated README to state that `update.ps1` is validated for the current hardening slice.
@@ -58,11 +59,9 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
-- Documentation-only gate-disposition update was prepared through the GitHub connector; local validation remains required before final tagging:
+- Operator-reported clean local validation for the final gate-disposition update:
   - `./update.sh`
-  - `.\update.ps1 -SkipAutoPush` on Windows
-- Validation pending for README validation wording correction:
-  - `./update.sh`
+- PowerShell validation path remains available on Windows:
   - `.\update.ps1 -SkipAutoPush`
 - Validated documentation-review status tracking from both update paths:
   - `./update.sh`
@@ -90,7 +89,6 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Known issues
 
-- Local validation is required before final `v0.1.0` tagging because the latest gate-disposition update was made through the GitHub connector.
 - Broad Go code-quality/refactor review is deferred to `v0.1.1` or the next hardening slice.
 - Broad documentation review beyond primary release/security docs is deferred to `v0.1.1` or the next documentation-hardening slice.
 - `v0.1.0-rc.1` is approved to tag; post-release verification checks remain pending after tag/artifact install or launch.
