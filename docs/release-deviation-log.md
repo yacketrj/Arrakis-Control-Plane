@@ -85,4 +85,4 @@ Each entry must include:
 | Risk impact | Medium. Update-script drift or partial refactor could affect repeatable builds if not completed. |
 | Mitigation | Keep this documented as a known issue and continue validation through `./update.sh`; complete Bash and PowerShell modularization before broader release confidence is claimed. |
 | Owner | Ron Yacketta |
-| Follow-up target | Before final `v0.1.0` or `v0.1.1`, depending on RC findings. |
+| Follow-up target | Historical RC entry; final `v0.1.0` closure is recorded in `docs/update-script-modularization-status.md`. |
