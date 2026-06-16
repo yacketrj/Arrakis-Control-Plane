@@ -1,6 +1,48 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: Final v0.1.0 gate disposition
+## Current update: Clean local validation recorded for final v0.1.0 gate disposition
+
+### Why this update was made
+
+The release owner reported that local validation completed cleanly after the documentation-only final gate-disposition update.
+
+### What changed
+
+- Updated `docs/final-v0.1.0-gate-status.md` to close the local-validation gate for the gate-disposition update.
+- Recorded the validation as operator-reported clean local validation on 2026-06-15.
+- Kept post-release verification pending because it requires actual tag/artifact install or launch evidence.
+
+### Security and operator impact
+
+- No route behavior changed.
+- No mutation behavior changed.
+- No endpoint was added.
+- No Live Admin / RMQ execution was added.
+- No Player 360 mutation behavior was added.
+- No Welcome Kits behavior was added.
+- Release status is clearer for final `v0.1.0` decision-making.
+
+### Validation
+
+Operator-reported clean local validation:
+
+```bash
+./update.sh
+```
+
+PowerShell validation path remains available on Windows:
+
+```powershell
+.\update.ps1 -SkipAutoPush
+```
+
+### Remaining final-`v0.1.0` gates
+
+- Post-release verification after tag/artifact install or launch.
+
+---
+
+## Previous update: Final v0.1.0 gate disposition
 
 ### Why this update was made
 
@@ -43,7 +85,7 @@ On Windows, also run:
 .\update.ps1 -SkipAutoPush
 ```
 
-### Remaining final-`v0.1.0` gates
+### Remaining final-`v0.1.0` gates at that time
 
 - Local validation for this documentation-only gate-disposition update.
 - Post-release verification after tag/artifact install or launch.
