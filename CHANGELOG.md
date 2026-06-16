@@ -10,6 +10,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Current focus
 
+- Final `v0.1.0` gate disposition and release-readiness cleanup.
 - Active project identity migration to Arrakis Control Panel / `arrakis-control-panel` / `arrakis-control-plane`.
 - Go validation package filtering to avoid frontend dependency trees.
 - Audit helper modularization for risk and request metadata boundaries.
@@ -18,6 +19,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Added
 
+- `docs/final-v0.1.0-gate-status.md` for the final release-readiness gate disposition.
+- Explicit release-deviation entries for broad Go code-quality/refactor review deferral and broad documentation review deferral beyond primary release/security docs.
 - `docs/documentation-review-status.md` for the current documentation-review findings, validation evidence, and remaining gate status.
 - `audit_metadata.go` for audit request metadata extraction and sanitization helpers.
 - `audit_risk.go` for audit action and mutation-risk classification helpers.
@@ -27,6 +30,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Updated `docs/documentation-review-status.md` to reflect that update-script modularization is closed for final `v0.1.0` readiness.
+- Updated `PATCH_NOTES.md` to record the final gate-disposition update and remaining validation/runtime evidence needs.
 - Updated README to state that `update.ps1` is validated for the current hardening slice.
 - Consolidated README admin-token setup guidance by pointing strict token instructions to `SECURITY.md`.
 - Linked `docs/documentation-review-status.md` from `docs/documentation-review-plan.md`.
@@ -41,15 +46,21 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Security
 
+- Final `v0.1.0` will not add Live Admin / RMQ execution, Player 360 mutations, Welcome Kits, or raw command publishing.
+- Broad Go code-quality/refactor review is explicitly deferred to avoid late unvalidated structural churn before final `v0.1.0`.
+- Broad documentation review beyond primary release/security docs is explicitly deferred; primary operator and release-control references remain the trusted final-release set.
+- Post-release verification remains pending until tag/artifact install or launch evidence exists.
 - Security guidance now uses active Arrakis Control Panel identity and current browser token-storage wording.
 - README now delegates strict token guidance to `SECURITY.md` to avoid conflicting token-generation instructions.
 - Backend Go test validation excludes third-party frontend dependency trees such as `web/node_modules`.
 - Allowed-origin validation rejects wildcard host values.
 - High/destructive mutation audit and blocked-mutation audit coverage remain tracked.
-- Final `v0.1.0` gates still include documentation review, update-script modularization or explicit deferral, and Go code-quality/refactor review or explicit deferral.
 
 ### Validation
 
+- Documentation-only gate-disposition update was prepared through the GitHub connector; local validation remains required before final tagging:
+  - `./update.sh`
+  - `./update.ps1 -SkipAutoPush` on Windows
 - Validation pending for README validation wording correction:
   - `./update.sh`
   - `.\update.ps1 -SkipAutoPush`
@@ -79,13 +90,14 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Known issues
 
-- Full documentation review is required before final `v0.1.0` or must be explicitly deferred in `docs/release-deviation-log.md`.
-- Update-script modularization remains required before final `v0.1.0` or must be explicitly deferred in `docs/release-deviation-log.md`.
-- Go code-quality/refactor review remains required before final `v0.1.0` or must be explicitly deferred in `docs/release-deviation-log.md`.
+- Local validation is required before final `v0.1.0` tagging because the latest gate-disposition update was made through the GitHub connector.
+- Broad Go code-quality/refactor review is deferred to `v0.1.1` or the next hardening slice.
+- Broad documentation review beyond primary release/security docs is deferred to `v0.1.1` or the next documentation-hardening slice.
 - `v0.1.0-rc.1` is approved to tag; post-release verification checks remain pending after tag/artifact install or launch.
 
 ## Detailed change records
 
+- `docs/final-v0.1.0-gate-status.md`
 - `docs/documentation-review-status.md`
 - `docs/releases/v0.1.0-rc.1.md`
 - `docs/roadmap.md`
