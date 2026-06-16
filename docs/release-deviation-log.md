@@ -22,6 +22,32 @@ Each entry must include:
 
 ## Entries
 
+### 2026-06-15 — Broad Go code-quality/refactor review deferred for final 0.1.0
+
+| Field | Value |
+|---|---|
+| Release or planned release | planned `v0.1.0` |
+| Deviation type | Code-quality/refactor review deferral |
+| Decision | Defer broad Go code-quality/refactor review beyond current validated secure-baseline slices. |
+| Rationale | Final `v0.1.0` should prioritize release stability and avoid late broad structural churn unless a critical issue is found. Existing AppSec, audit, auth-boundary, and blocked-mutation work remains the controlling safety posture. |
+| Risk impact | Medium. Deferring a broad review may leave maintainability issues for a later hardening slice, but it avoids introducing unvalidated code churn before final release. |
+| Mitigation | Require clean local `./update.sh` validation before tagging. Do not add new endpoints, Live Admin/RMQ execution, Player 360 mutations, or Welcome Kits in final `v0.1.0`. Schedule focused Go code-quality/refactor review for `v0.1.1` or the next hardening slice. |
+| Owner | Ron Yacketta |
+| Follow-up target | `v0.1.1` or next hardening slice. |
+
+### 2026-06-15 — Broad documentation review deferred beyond primary release/security docs
+
+| Field | Value |
+|---|---|
+| Release or planned release | planned `v0.1.0` |
+| Deviation type | Documentation review deferral |
+| Decision | Defer full repository-wide documentation review beyond the primary release, security, roadmap, changelog, patch-note, and deviation-log documents. |
+| Rationale | Primary release/security documentation has been reviewed and corrected for the active Arrakis Control Panel identity. A full doc sweep remains useful, but it does not materially change runtime safety for final `v0.1.0`. |
+| Risk impact | Low to medium. Some stale or less-used documentation may remain, but primary operator and release-control references are aligned. |
+| Mitigation | Keep primary release documents consistent before tagging. Preserve legitimate upstream `dune-admin` attribution. Avoid stale DA Manager wording in active operator guidance. Track full documentation review for `v0.1.1` or the next documentation-hardening slice. |
+| Owner | Ron Yacketta |
+| Follow-up target | `v0.1.1` or next documentation-hardening slice. |
+
 ### 2026-06-06 — Product rename before final 0.1.0
 
 | Field | Value |
