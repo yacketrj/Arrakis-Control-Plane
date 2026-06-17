@@ -22,6 +22,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Recorded clean build validation for the README prerequisites update.
 - Added `docs/final-v0.1.0-gate-status.md` to the README release-reference list.
 - Recorded clean local validation for the final gate-disposition update.
 - Kept the current README setup path pointed at `SECURITY.md` for strict token guidance.
@@ -29,14 +30,13 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Validation
 
-- README prerequisite update was made through the GitHub connector.
-- Run local validation before tagging or releasing:
+- Operator-reported clean build validation for the README prerequisites update:
 
 ```bash
 ./update.sh
 ```
 
-- On Windows, also run:
+- PowerShell validation path remains available on Windows:
 
 ```powershell
 .\update.ps1 -SkipAutoPush
