@@ -1,27 +1,28 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: Setup writes .env before SSH validation
+## Current update: Runtime-aware status handling
 
 ### Why this update was made
 
-The setup wizard was collecting configuration but only wrote `.env` after SSH succeeded. If SSH authentication failed, the exe exited before creating `.env`.
+A Docker deployment reached the web UI, but the Battlegroup status view was still parsing and labeling status as Kubernetes pods.
 
 ### What changed
 
-- `runSetup()` now writes a preliminary `.env` before the SSH dial.
-- If SSH fails, the operator can edit `.env` and rerun setup instead of re-entering every prompt.
-- Setup still rewrites `.env` after successful SSH/runtime/database discovery.
+- Docker database discovery now prefers the published Docker port mapping.
+- The Battlegroup tab now reads the backend runtime from status responses.
+- Docker status output renders as containers.
+- Kubernetes status output renders as pods.
+- Docker runtime keeps battlegroup script controls disabled until that command path is Docker-safe.
 - Durable detail is archived in:
 
 ```text
-docs/changelog/unreleased/2026-06-16-setup-env-before-ssh.md
+docs/changelog/unreleased/2026-06-16-runtime-aware-status.md
 ```
 
 ### Impact
 
-- Setup behavior changed.
-- Runtime server behavior outside setup did not change.
-- No endpoint or mutation behavior was added.
+- Runtime display behavior is clearer for both Docker and Kubernetes deployments.
+- Runtime server behavior outside status and discovery did not change.
 
 ### Validation
 
