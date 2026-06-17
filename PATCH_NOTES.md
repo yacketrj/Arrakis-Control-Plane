@@ -1,6 +1,47 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: README prerequisites and required tooling
+## Current update: Clean build validation recorded for README prerequisites update
+
+### Why this update was made
+
+The release owner reported clean builds after the README prerequisites and required tooling documentation update.
+
+### What changed
+
+- Recorded operator-reported clean build validation for the README prerequisites update.
+- Kept post-release verification pending because it requires actual tag/artifact install or launch evidence.
+
+### Security and operator impact
+
+- No route behavior changed.
+- No mutation behavior changed.
+- No endpoint was added.
+- No Live Admin / RMQ execution was added.
+- No Player 360 mutation behavior was added.
+- No Welcome Kits behavior was added.
+- README setup guidance remains documentation-only.
+
+### Validation
+
+Operator-reported clean build validation after the README prerequisites update:
+
+```bash
+./update.sh
+```
+
+PowerShell validation path remains available on Windows:
+
+```powershell
+.\update.ps1 -SkipAutoPush
+```
+
+### Remaining final-`v0.1.0` gates
+
+- Post-release verification after tag/artifact install or launch.
+
+---
+
+## Previous update: README prerequisites and required tooling
 
 ### Why this update was made
 
