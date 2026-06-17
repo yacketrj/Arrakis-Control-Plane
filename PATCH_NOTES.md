@@ -1,36 +1,37 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: Ledger cleanup after README prerequisites validation
+## Current update: Setup writes .env before SSH validation
 
 ### Why this update was made
 
-`./update.sh` failed because `PATCH_NOTES.md` had 250 lines. The ledger check allows a maximum of 220 lines and requires this file to stay focused on the current operator-facing update.
+The setup wizard was collecting configuration but only wrote `.env` after SSH succeeded. If SSH authentication failed, the exe exited before creating `.env`.
 
 ### What changed
 
-- Replaced the long historical patch notes with this compact current update.
-- Moved durable detail to:
+- `runSetup()` now writes a preliminary `.env` before the SSH dial.
+- If SSH fails, the operator can edit `.env` and rerun setup instead of re-entering every prompt.
+- Setup still rewrites `.env` after successful SSH/runtime/database discovery.
+- Durable detail is archived in:
 
 ```text
-docs/changelog/unreleased/2026-06-16-readme-prerequisites-clean-build.md
+docs/changelog/unreleased/2026-06-16-setup-env-before-ssh.md
 ```
-
-- Kept the README prerequisites and required tooling update intact.
-- Kept the clean build validation record in the detailed unreleased changelog file.
 
 ### Impact
 
-This is a documentation-only ledger cleanup.
+- Setup behavior changed.
+- Runtime server behavior outside setup did not change.
+- No endpoint or mutation behavior was added.
 
 ### Validation
 
-Run the canonical validation path again:
+Run:
 
 ```bash
 ./update.sh
 ```
 
-On Windows, also run:
+On Windows:
 
 ```powershell
 .\update.ps1 -SkipAutoPush
