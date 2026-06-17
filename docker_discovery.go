@@ -8,6 +8,21 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+func dockerDuneStackAvailable(client *ssh.Client) bool {
+	out, err := sshCombined(client, `docker ps --format '{{.Names}}' 2>/dev/null`)
+	if err != nil {
+		return false
+	}
+	value := strings.ToLower(out)
+	markers := []string{"dune-postgres", "dune-server-", "dune-director", "dune-orchestrator", "dune-server-gateway"}
+	for _, marker := range markers {
+		if strings.Contains(value, marker) {
+			return true
+		}
+	}
+	return false
+}
+
 func discoverDockerDBEndpoint(client *ssh.Client) (dbEndpointDiscovery, error) {
 	out, err := sshCombined(client, `docker ps --format '{{.ID}}|{{.Names}}|{{.Image}}' 2>/dev/null`)
 	if err != nil {
