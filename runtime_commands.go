@@ -92,8 +92,8 @@ func runtimeLogStreamCommand(ns, target string) string {
 func runtimeHealthSpecs(namespace string) []battlegroupHealthSpec {
 	if runtimeUsesDockerCommands() {
 		return []battlegroupHealthSpec{
-			{Name: "container_overview", Description: "Combined Docker container view: name, ID, image, status, and ports.", Command: dockerStatusCommand()},
-			{Name: "container_metrics", Description: "One-shot Docker resource snapshot per container: CPU, memory, network I/O, block I/O, and PID count.", Command: dockerStatsCommand()},
+			{Name: "container_overview", Description: "Combined container view with name, ID, image, status, and ports.", Command: dockerStatusCommand()},
+			{Name: "container_metrics", Description: "One-shot container resource snapshot with CPU, memory, network I/O, block I/O, and PID count.", Command: dockerStatsCommand()},
 		}
 	}
 	return []battlegroupHealthSpec{
