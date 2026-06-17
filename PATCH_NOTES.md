@@ -1,43 +1,30 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: Runtime-aware Docker and Kubernetes status handling
+## Current update: Frontend typecheck fix
 
 ### Why this update was made
 
-A Docker deployment reached the web UI, but the Battlegroup status view was still parsing and labeling status as Kubernetes pods.
+Frontend validation failed in the Battlegroup tab.
 
 ### What changed
 
-- Docker database discovery now prefers the published Docker port mapping.
-- The Battlegroup tab now reads the backend runtime from status responses.
-- Docker status output renders as containers.
-- Kubernetes status output renders as pods.
-- Docker runtime keeps battlegroup script controls disabled until that command path is Docker-safe.
+- Removed an unsupported UI prop from the server-control button.
+- Kept the visible runtime explanation text below the disabled controls.
 - Durable detail is archived in:
 
 ```text
-docs/changelog/unreleased/2026-06-16-runtime-aware-status.md
+docs/changelog/unreleased/2026-06-16-heroui-button-title-typecheck.md
 ```
 
 ### Impact
 
-- Runtime display behavior is clearer for both Docker and Kubernetes deployments.
-- Runtime server behavior outside status and discovery did not change.
+- Frontend typecheck should no longer fail on that button prop.
+- Runtime behavior did not change.
 
 ### Validation
 
-Run:
+Run the normal update script.
 
-```bash
-./update.sh
-```
-
-On Windows:
-
-```powershell
-.\update.ps1 -SkipAutoPush
-```
-
-### Remaining final-`v0.1.0` gate
+### Remaining final-v0.1.0 gate
 
 - Post-release verification after tag/artifact install or launch.
