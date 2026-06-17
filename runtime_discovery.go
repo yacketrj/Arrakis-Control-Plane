@@ -44,10 +44,15 @@ func discoverDatabaseEndpoint(client *ssh.Client) (dbEndpointDiscovery, error) {
 				return endpoint, nil
 			}
 		}
-		if endpoint, err := discoverKubernetesDBEndpoint(client); err == nil {
-			return endpoint, nil
+		if kubernetesDuneStackAvailable(client) {
+			if endpoint, err := discoverKubernetesDBEndpoint(client); err == nil {
+				return endpoint, nil
+			}
 		}
 		if endpoint, err := discoverDockerDBEndpoint(client); err == nil {
+			return endpoint, nil
+		}
+		if endpoint, err := discoverKubernetesDBEndpoint(client); err == nil {
 			return endpoint, nil
 		}
 		return dbEndpointDiscovery{}, fmt.Errorf("database endpoint not found through Kubernetes or Docker")
@@ -65,6 +70,21 @@ func applyDetectedRuntime(runtime runtimeKind) {
 			serverRuntime = runtimeModeDocker
 		}
 	}
+}
+
+func kubernetesDuneStackAvailable(client *ssh.Client) bool {
+	out, err := sshCombined(client, `sudo kubectl get pods -A -o custom-columns=NAME:.metadata.name --no-headers 2>/dev/null`)
+	if err != nil {
+		return false
+	}
+	value := strings.ToLower(out)
+	markers := []string{"db-dbdepl-sts", "server", "dune"}
+	for _, marker := range markers {
+		if strings.Contains(value, marker) {
+			return true
+		}
+	}
+	return false
 }
 
 func discoverKubernetesDBEndpoint(client *ssh.Client) (dbEndpointDiscovery, error) {
