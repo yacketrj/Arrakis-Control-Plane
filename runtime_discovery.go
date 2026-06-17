@@ -39,6 +39,11 @@ func discoverDatabaseEndpoint(client *ssh.Client) (dbEndpointDiscovery, error) {
 		}
 		return endpoint, nil
 	case runtimeModeAuto:
+		if dockerDuneStackAvailable(client) {
+			if endpoint, err := discoverDockerDBEndpoint(client); err == nil {
+				return endpoint, nil
+			}
+		}
 		if endpoint, err := discoverKubernetesDBEndpoint(client); err == nil {
 			return endpoint, nil
 		}
