@@ -48,22 +48,28 @@ func looksLikeDBContainer(name, image string) bool {
 }
 
 func inspectDockerDBEndpoint(client *ssh.Client, containerID, fallbackName string) (dbEndpointDiscovery, error) {
+	publishedPort := dockerDBPort(client, containerID)
+	if publishedPort > 0 {
+		return dbEndpointDiscovery{
+			Runtime:   runtimeDocker,
+			Namespace: string(runtimeDocker),
+			Name:      fallbackName,
+			Host:      "127.0.0.1",
+			Port:      publishedPort,
+		}, nil
+	}
+
 	host, _ := sshCombined(client, `docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' `+shellQuote(containerID)+` 2>/dev/null`)
 	host = strings.TrimSpace(host)
-	port := 5432
 	if host == "" {
 		host = "127.0.0.1"
-		port = dockerDBPort(client, containerID)
-	}
-	if port == 0 {
-		port = 5432
 	}
 	return dbEndpointDiscovery{
 		Runtime:   runtimeDocker,
 		Namespace: string(runtimeDocker),
 		Name:      fallbackName,
 		Host:      host,
-		Port:      port,
+		Port:      5432,
 	}, nil
 }
 
@@ -80,8 +86,5 @@ func dockerDBPort(client *ssh.Client, containerID string) int {
 			}
 		}
 	}
-	if dbPort > 0 {
-		return dbPort
-	}
-	return 5432
+	return 0
 }
