@@ -1,6 +1,6 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: Runtime-aware status handling
+## Current update: Runtime-aware Docker and Kubernetes status handling
 
 ### Why this update was made
 
