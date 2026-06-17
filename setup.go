@@ -120,16 +120,25 @@ func runSetup() {
 		os.Exit(1)
 	}
 
+	if err := writeSetupEnv(true); err != nil {
+		fail("Failed to write preliminary .env: " + err.Error())
+		os.Exit(1)
+	}
+	ok("Preliminary .env written before remote connectivity checks")
+	fmt.Println()
+
 	fmt.Printf("Connecting via SSH to %s...\n", sshHost)
 	client, err := dialSSH(keyPath)
 	if err != nil {
 		fail("SSH failed: " + err.Error())
 		fmt.Println()
+		fmt.Println("  .env was written so you can edit SSH_HOST, SSH_USER, SSH_KEY, or SSH_KNOWN_HOSTS and retry setup.")
+		fmt.Println()
 		fmt.Println("  Make sure:")
 		fmt.Println("    - The VM is reachable at the given host:port")
 		fmt.Println("    - The SSH key is Ed25519 and authorized on the VM for that user")
 		fmt.Println("    - SSH_KNOWN_HOSTS contains the remote Ed25519 host key")
-		fmt.Println("    - The SSH user has passwordless sudo for kubectl, or Docker is available")
+		fmt.Println("    - The SSH user has the required runtime permissions")
 		os.Exit(1)
 	}
 	ok("SSH connected with Ed25519 key and verified host identity")
