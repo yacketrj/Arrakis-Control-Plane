@@ -10,33 +10,33 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Current focus
 
-- README prerequisites and required tooling guidance.
+- Runtime-aware status handling.
+- Setup wizard `.env` generation before SSH validation.
+- Ledger-size compliance for current operator-facing notes.
 - Final `v0.1.0` release-readiness gate disposition.
-- Active Arrakis Control Panel product-identity cleanup.
 
 ### Added
 
-- README guidance for prerequisite local applications, command-line tools, server-side access, optional integrations, optional release evidence tools, and quick prerequisite checks.
-- `docs/final-v0.1.0-gate-status.md` for final release gate disposition.
-- Release-deviation entries for deferred broad Go refactor review and deferred broad documentation review.
+- `docs/changelog/unreleased/2026-06-16-runtime-aware-status.md` for runtime-aware status detail.
+- `docs/changelog/unreleased/2026-06-16-setup-env-before-ssh.md` for setup `.env` generation fix detail.
+- `docs/changelog/unreleased/2026-06-16-readme-prerequisites-clean-build.md` for README prerequisite and clean-build detail.
 
 ### Changed
 
-- Recorded clean build validation for the README prerequisites update.
-- Added `docs/final-v0.1.0-gate-status.md` to the README release-reference list.
-- Recorded clean local validation for the final gate-disposition update.
-- Kept the current README setup path pointed at `SECURITY.md` for strict token guidance.
-- Earlier active-identity, validation, audit-helper, allowed-origin, and update-script cleanup remains recorded in detailed change records and Git history.
+- Runtime status now renders the correct target type for the detected runtime.
+- Database discovery for container deployments now prefers the published service mapping.
+- Setup writes a preliminary `.env` before remote SSH validation.
+- `PATCH_NOTES.md` remains compact and focused on the current operator-facing update.
 
 ### Validation
 
-- Operator-reported clean build validation for the README prerequisites update:
+Run local validation:
 
 ```bash
 ./update.sh
 ```
 
-- PowerShell validation path remains available on Windows:
+On Windows:
 
 ```powershell
 .\update.ps1 -SkipAutoPush
@@ -44,21 +44,26 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Known issues
 
+- Container runtime server-control scripts remain disabled until that command path is safe.
 - Broad Go refactor review is deferred to `v0.1.1` or the next hardening slice.
 - Broad documentation review is deferred to `v0.1.1` or the next documentation-hardening slice.
 - Post-release verification remains pending after tag/artifact install or launch.
 
 ## Detailed change records
 
+- `docker_discovery.go`
+- `web/src/tabs/BattlegroupTab.tsx`
+- `setup.go`
 - `README.md`
 - `PATCH_NOTES.md`
+- `docs/changelog/unreleased/2026-06-16-runtime-aware-status.md`
+- `docs/changelog/unreleased/2026-06-16-setup-env-before-ssh.md`
+- `docs/changelog/unreleased/2026-06-16-readme-prerequisites-clean-build.md`
 - `docs/final-v0.1.0-gate-status.md`
 - `docs/documentation-review-status.md`
 - `docs/releases/v0.1.0-rc.1.md`
 - `docs/roadmap.md`
-- `docs/documentation-review-plan.md`
 - `docs/changelog/README.md`
-- `docs/changelog/unreleased/`
 - `docs/changelog/archive/`
 - `docs/release-deviation-log.md`
 
