@@ -10,6 +10,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Current focus
 
+- Frontend typecheck fix for runtime-aware Battlegroup UI.
 - Runtime-aware Docker and Kubernetes status handling.
 - Setup wizard `.env` generation before SSH validation.
 - Ledger-size compliance for current operator-facing notes.
@@ -17,12 +18,14 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Added
 
+- `docs/changelog/unreleased/2026-06-16-heroui-button-title-typecheck.md` for the frontend typecheck fix.
 - `docs/changelog/unreleased/2026-06-16-runtime-aware-status.md` for runtime-aware status detail.
 - `docs/changelog/unreleased/2026-06-16-setup-env-before-ssh.md` for setup `.env` generation fix detail.
 - `docs/changelog/unreleased/2026-06-16-readme-prerequisites-clean-build.md` for README prerequisite and clean-build detail.
 
 ### Changed
 
+- Removed an unsupported UI prop from the Battlegroup server-control button.
 - Docker database discovery now prefers the published Docker port mapping.
 - Battlegroup status UI now reads backend runtime and renders Docker as containers or Kubernetes as pods.
 - Setup writes a preliminary `.env` before remote SSH validation.
@@ -51,11 +54,12 @@ On Windows:
 
 ## Detailed change records
 
-- `docker_discovery.go`
 - `web/src/tabs/BattlegroupTab.tsx`
+- `docker_discovery.go`
 - `setup.go`
 - `README.md`
 - `PATCH_NOTES.md`
+- `docs/changelog/unreleased/2026-06-16-heroui-button-title-typecheck.md`
 - `docs/changelog/unreleased/2026-06-16-runtime-aware-status.md`
 - `docs/changelog/unreleased/2026-06-16-setup-env-before-ssh.md`
 - `docs/changelog/unreleased/2026-06-16-readme-prerequisites-clean-build.md`
