@@ -10,6 +10,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Current focus
 
+- Runtime evidence audit for Docker and Kubernetes detection.
 - Frontend typecheck fix for runtime-aware Battlegroup UI.
 - Runtime-aware Docker and Kubernetes status handling.
 - Setup wizard `.env` generation before SSH validation.
@@ -18,6 +19,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Added
 
+- `docs/changelog/unreleased/2026-06-16-runtime-evidence-audit.md` for runtime evidence audit detail.
 - `docs/changelog/unreleased/2026-06-16-heroui-button-title-typecheck.md` for the frontend typecheck fix.
 - `docs/changelog/unreleased/2026-06-16-runtime-aware-status.md` for runtime-aware status detail.
 - `docs/changelog/unreleased/2026-06-16-setup-env-before-ssh.md` for setup `.env` generation fix detail.
@@ -25,6 +27,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
+- Runtime auto-detection now checks active Dune workload evidence before selecting Docker or Kubernetes.
+- Status payload generation refreshes runtime from active workload evidence when SSH is connected.
 - Removed an unsupported UI prop from the Battlegroup server-control button.
 - Docker database discovery now prefers the published Docker port mapping.
 - Battlegroup status UI now reads backend runtime and renders Docker as containers or Kubernetes as pods.
@@ -54,11 +58,14 @@ On Windows:
 
 ## Detailed change records
 
-- `web/src/tabs/BattlegroupTab.tsx`
+- `runtime_discovery.go`
+- `status_payload.go`
 - `docker_discovery.go`
+- `web/src/tabs/BattlegroupTab.tsx`
 - `setup.go`
 - `README.md`
 - `PATCH_NOTES.md`
+- `docs/changelog/unreleased/2026-06-16-runtime-evidence-audit.md`
 - `docs/changelog/unreleased/2026-06-16-heroui-button-title-typecheck.md`
 - `docs/changelog/unreleased/2026-06-16-runtime-aware-status.md`
 - `docs/changelog/unreleased/2026-06-16-setup-env-before-ssh.md`
