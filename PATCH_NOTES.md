@@ -1,6 +1,67 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: Clean local validation recorded for final v0.1.0 gate disposition
+## Current update: README prerequisites and required tooling
+
+### Why this update was made
+
+The README needed a clear, operator-facing prerequisites section that lists the local applications, command-line tools, server-side access, and optional release/security tools required to build, validate, and operate Arrakis Control Panel.
+
+### What changed
+
+- Added `Final release-gate disposition` to the README release-reference list.
+- Added a new `Prerequisites and required tooling` section to `README.md`.
+- Documented required local applications:
+  - Git
+  - Go 1.26.3 or compatible newer Go toolchain
+  - Node.js with npm
+  - Bash
+  - PowerShell 7+
+  - OpenSSH client tools
+  - modern browser
+- Documented required server-side access:
+  - Dune: Awakening self-hosted server host
+  - SSH user and Ed25519 private key
+  - PostgreSQL-compatible game database access
+  - admin token
+  - allowed frontend origins
+- Documented optional integrations and release tools:
+  - Discord OAuth and bot credentials
+  - GitHub CLI
+  - optional release/security evidence tools such as `govulncheck`, `gosec`, `gitleaks`, `trivy`, and `syft`
+  - reverse proxy, VPN, and TLS tooling
+- Added quick prerequisite check commands for Git, Go, Node, npm, OpenSSH, and PowerShell.
+
+### Security and operator impact
+
+- No route behavior changed.
+- No mutation behavior changed.
+- No endpoint was added.
+- No Live Admin / RMQ execution was added.
+- No Player 360 mutation behavior was added.
+- No Welcome Kits behavior was added.
+- Operator setup expectations are clearer before running validation or connecting to a server.
+
+### Validation
+
+This was a documentation-only README update prepared through the GitHub connector. Local validation should be run before tagging or releasing:
+
+```bash
+./update.sh
+```
+
+On Windows, also run:
+
+```powershell
+.\update.ps1 -SkipAutoPush
+```
+
+### Remaining final-`v0.1.0` gates
+
+- Post-release verification after tag/artifact install or launch.
+
+---
+
+## Previous update: Clean local validation recorded for final v0.1.0 gate disposition
 
 ### Why this update was made
 
