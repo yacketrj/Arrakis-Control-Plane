@@ -317,7 +317,6 @@ export default function BattlegroupTab() {
                 onPress={() => runCmd(action)}
                 isDisabled={runningCmd !== null || runtime === 'docker'}
                 size="sm"
-                title={runtime === 'docker' ? 'Battlegroup script commands are currently Kubernetes-only.' : undefined}
               >
                 {action.label}
               </Button>
