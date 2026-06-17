@@ -1,25 +1,26 @@
 # Arrakis Control Panel Release Notes
 
-## Current update: Frontend typecheck fix
+## Current update: Runtime evidence audit
 
 ### Why this update was made
 
-Frontend validation failed in the Battlegroup tab.
+The web UI could still show Kubernetes status on a host where the active Dune workload was running in Docker.
 
 ### What changed
 
-- Removed an unsupported UI prop from the server-control button.
-- Kept the visible runtime explanation text below the disabled controls.
+- Runtime auto-detection now checks active Dune Docker workload evidence before Kubernetes discovery.
+- Kubernetes auto-detection now requires Kubernetes workload evidence before choosing that path.
+- Status payload generation refreshes runtime from active workload evidence when SSH is connected.
 - Durable detail is archived in:
 
 ```text
-docs/changelog/unreleased/2026-06-16-heroui-button-title-typecheck.md
+docs/changelog/unreleased/2026-06-16-runtime-evidence-audit.md
 ```
 
 ### Impact
 
-- Frontend typecheck should no longer fail on that button prop.
-- Runtime behavior did not change.
+- Runtime selection is now based on active Dune workloads instead of tool availability alone.
+- Battlegroup status should report Docker when Dune Docker containers are present.
 
 ### Validation
 
