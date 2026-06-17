@@ -10,7 +10,7 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Current focus
 
-- Runtime-aware status handling.
+- Runtime-aware Docker and Kubernetes status handling.
 - Setup wizard `.env` generation before SSH validation.
 - Ledger-size compliance for current operator-facing notes.
 - Final `v0.1.0` release-readiness gate disposition.
@@ -23,8 +23,8 @@ See `docs/changelog/README.md` for the changelog and ledger policy.
 
 ### Changed
 
-- Runtime status now renders the correct target type for the detected runtime.
-- Database discovery for container deployments now prefers the published service mapping.
+- Docker database discovery now prefers the published Docker port mapping.
+- Battlegroup status UI now reads backend runtime and renders Docker as containers or Kubernetes as pods.
 - Setup writes a preliminary `.env` before remote SSH validation.
 - `PATCH_NOTES.md` remains compact and focused on the current operator-facing update.
 
@@ -44,7 +44,7 @@ On Windows:
 
 ### Known issues
 
-- Container runtime server-control scripts remain disabled until that command path is safe.
+- Docker runtime keeps battlegroup script controls disabled until that command path is Docker-safe.
 - Broad Go refactor review is deferred to `v0.1.1` or the next hardening slice.
 - Broad documentation review is deferred to `v0.1.1` or the next documentation-hardening slice.
 - Post-release verification remains pending after tag/artifact install or launch.
