@@ -3,22 +3,53 @@ import { Button, Modal, Spinner, toast } from '@heroui/react'
 import { api, type BGHealthSection } from '../api/client'
 import { mutationConfirmationCancelledMessage, useMutationConfirmation } from '../hooks/useMutationConfirmation'
 
-type PodRow = { name: string; ready: string; status: string; restarts: string; age: string }
+type RuntimeMode = 'kubernetes' | 'docker' | string
+type StatusRow = { name: string; detail1: string; status: string; detail2: string; detail3: string }
 type BattlegroupView = 'pods' | 'health'
 
-function parseKubectlOutput(raw: string): PodRow[] {
+function splitRuntimeTableLine(line: string): string[] {
+  const tabParts = line.trim().split(/\t+/).map(p => p.trim()).filter(Boolean)
+  if (tabParts.length > 1) return tabParts
+  return line.trim().split(/\s{2,}/).map(p => p.trim()).filter(Boolean)
+}
+
+function parseKubernetesStatusOutput(raw: string): StatusRow[] {
   const lines = raw.trim().split('\n').filter(Boolean)
   if (lines.length < 2) return []
   return lines.slice(1).map(line => {
     const parts = line.trim().split(/\s+/)
     return {
       name: parts[0] ?? '',
-      ready: parts[1] ?? '',
+      detail1: parts[1] ?? '',
       status: parts[2] ?? '',
-      restarts: parts[3] ?? '',
-      age: parts[4] ?? '',
+      detail2: parts[3] ?? '',
+      detail3: parts[4] ?? '',
     }
   })
+}
+
+function parseDockerStatusOutput(raw: string): StatusRow[] {
+  const lines = raw.trim().split('\n').filter(Boolean)
+  if (lines.length < 2) return []
+  return lines.slice(1).map(line => {
+    const parts = splitRuntimeTableLine(line)
+    return {
+      name: parts[0] ?? '',
+      detail1: parts[1] ?? '',
+      status: parts[3] ?? parts[2] ?? '',
+      detail2: parts[2] ?? '',
+      detail3: parts.slice(4).join(' ') || '',
+    }
+  }).filter(row => row.name)
+}
+
+function parseRuntimeStatusOutput(runtime: RuntimeMode, raw: string): StatusRow[] {
+  if (runtime === 'docker') return parseDockerStatusOutput(raw)
+  return parseKubernetesStatusOutput(raw)
+}
+
+function runtimeNoun(runtime: RuntimeMode): string {
+  return runtime === 'docker' ? 'Containers' : 'Pods'
 }
 
 function safeFilenamePart(value: string): string {
@@ -75,9 +106,11 @@ function downloadTextFile(filename: string, content: string): void {
 
 const STATUS_COLOR: Record<string, string> = {
   Running: '#27ae60',
+  Up: '#27ae60',
   Pending: '#f0a830',
   CrashLoopBackOff: '#c0392b',
   Error: '#c0392b',
+  Exited: '#c0392b',
   Terminating: '#c0392b',
   Completed: '#8a7a60',
 }
@@ -116,7 +149,8 @@ function battlegroupActionDetails(action: ActionDef, namespace: string): string[
 
 export default function BattlegroupTab() {
   const [view, setView] = useState<BattlegroupView>('pods')
-  const [pods, setPods] = useState<PodRow[]>([])
+  const [rows, setRows] = useState<StatusRow[]>([])
+  const [runtime, setRuntime] = useState<RuntimeMode>('kubernetes')
   const [healthSections, setHealthSections] = useState<BGHealthSection[]>([])
   const [healthNamespace, setHealthNamespace] = useState('')
   const [healthCheckedAt, setHealthCheckedAt] = useState('')
@@ -131,7 +165,9 @@ export default function BattlegroupTab() {
     setStatusLoading(true)
     try {
       const res = await api.battlegroup.status()
-      setPods(parseKubectlOutput(res.output))
+      const detectedRuntime = ((res as { runtime?: RuntimeMode }).runtime || 'kubernetes')
+      setRuntime(detectedRuntime)
+      setRows(parseRuntimeStatusOutput(detectedRuntime, res.output))
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e)
       toast.danger(`Status failed: ${msg}`)
@@ -144,6 +180,8 @@ export default function BattlegroupTab() {
     setHealthLoading(true)
     try {
       const res = await api.battlegroup.health()
+      const detectedRuntime = ((res as { runtime?: RuntimeMode }).runtime || runtime)
+      setRuntime(detectedRuntime)
       setHealthSections(res.sections)
       setHealthNamespace(res.namespace)
       setHealthCheckedAt(res.checked_at)
@@ -153,7 +191,7 @@ export default function BattlegroupTab() {
     } finally {
       setHealthLoading(false)
     }
-  }, [])
+  }, [runtime])
 
   useEffect(() => { fetchStatus() }, [fetchStatus])
 
@@ -180,8 +218,8 @@ export default function BattlegroupTab() {
         path: '/api/v1/battlegroup/exec',
         title: `${action.label} battlegroup server`,
         summary: action.msg,
-        target: `battlegroup:${healthNamespace || 'current'}`,
-        details: battlegroupActionDetails(action, healthNamespace),
+        target: `battlegroup:${healthNamespace || runtime}`,
+        details: battlegroupActionDetails(action, healthNamespace || runtime),
         confirmLabel: `Confirm ${action.label}`,
         forceReason: true,
       })
@@ -217,6 +255,8 @@ export default function BattlegroupTab() {
     }
   }
 
+  const noun = runtimeNoun(runtime)
+
   return (
     <>
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '16px', gap: '0' }}>
@@ -225,7 +265,8 @@ export default function BattlegroupTab() {
             <h2 className="text-base font-semibold" style={{ color: 'var(--color-primary)' }}>
               Battlegroup Status
             </h2>
-            <Button size="sm" variant={view === 'pods' ? 'primary' : 'ghost'} onPress={() => setView('pods')}>Pods</Button>
+            <span className="text-xs" style={{ color: 'var(--color-text-dim)' }}>runtime: {runtime}</span>
+            <Button size="sm" variant={view === 'pods' ? 'primary' : 'ghost'} onPress={() => setView('pods')}>{noun}</Button>
             <Button size="sm" variant={view === 'health' ? 'primary' : 'ghost'} onPress={openHealth}>Health Diagnostics</Button>
             {view === 'pods' ? (
               <Button size="sm" variant="ghost" onPress={fetchStatus} isDisabled={statusLoading}>
@@ -246,14 +287,14 @@ export default function BattlegroupTab() {
             )}
             {view === 'health' && healthNamespace && (
               <span className="text-xs" style={{ color: 'var(--color-text-dim)' }}>
-                ns: {healthNamespace}{healthCheckedAt ? ` · ${healthCheckedAt}` : ''}
+                target: {healthNamespace}{healthCheckedAt ? ` · ${healthCheckedAt}` : ''}
               </span>
             )}
           </div>
 
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
             {view === 'pods' && (
-              <PodStatusTable pods={pods} loading={statusLoading} />
+              <RuntimeStatusTable runtime={runtime} rows={rows} loading={statusLoading} />
             )}
             {view === 'health' && (
               <HealthDiagnostics sections={healthSections} loading={healthLoading} />
@@ -274,13 +315,19 @@ export default function BattlegroupTab() {
                 key={action.cmd}
                 variant={action.danger ? 'danger-soft' : 'outline'}
                 onPress={() => runCmd(action)}
-                isDisabled={runningCmd !== null}
+                isDisabled={runningCmd !== null || runtime === 'docker'}
                 size="sm"
+                title={runtime === 'docker' ? 'Battlegroup script commands are currently Kubernetes-only.' : undefined}
               >
                 {action.label}
               </Button>
             ))}
           </div>
+          {runtime === 'docker' && (
+            <p className="text-xs mt-2" style={{ color: 'var(--color-text-dim)' }}>
+              Docker runtime detected. Read-only status and diagnostics are available; battlegroup script controls remain disabled.
+            </p>
+          )}
         </div>
 
         <Modal>
@@ -327,24 +374,29 @@ export default function BattlegroupTab() {
   )
 }
 
-function PodStatusTable({ pods, loading }: { pods: PodRow[]; loading: boolean }) {
-  if (loading && pods.length === 0) {
+function RuntimeStatusTable({ runtime, rows, loading }: { runtime: RuntimeMode; rows: StatusRow[]; loading: boolean }) {
+  const noun = runtimeNoun(runtime).toLowerCase()
+  const headers = runtime === 'docker'
+    ? ['Name', 'ID', 'Status', 'Image', 'Ports']
+    : ['Name', 'Ready', 'Status', 'Restarts', 'Age']
+
+  if (loading && rows.length === 0) {
     return (
       <div className="flex items-center gap-2 py-4" style={{ color: 'var(--color-text-dim)' }}>
         <Spinner size="sm" color="current" />
-        <span className="text-sm">Loading pod status...</span>
+        <span className="text-sm">Loading {noun} status...</span>
       </div>
     )
   }
-  if (pods.length === 0) {
-    return <p className="text-sm" style={{ color: 'var(--color-text-dim)' }}>No pods found. Click Refresh to try again.</p>
+  if (rows.length === 0) {
+    return <p className="text-sm" style={{ color: 'var(--color-text-dim)' }}>No {noun} found. Click Refresh to try again.</p>
   }
   return (
     <div className="overflow-auto rounded-lg" style={{ border: '1px solid #2a2418' }}>
       <table className="w-full text-sm">
         <thead>
           <tr style={{ background: '#1a1610', borderBottom: '1px solid #2a2418' }}>
-            {['Name', 'Ready', 'Status', 'Restarts', 'Age'].map(h => (
+            {headers.map(h => (
               <th key={h} className="text-left px-4 py-2 font-semibold text-xs uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>
                 {h}
               </th>
@@ -352,13 +404,13 @@ function PodStatusTable({ pods, loading }: { pods: PodRow[]; loading: boolean })
           </tr>
         </thead>
         <tbody>
-          {pods.map((pod, i) => (
-            <tr key={`${pod.name}-${i}`} style={{ borderBottom: '1px solid #1a1610', background: i % 2 === 0 ? '#0d0b07' : '#111009' }}>
-              <td className="px-4 py-2 font-mono text-xs" style={{ color: 'var(--color-text)' }}>{pod.name}</td>
-              <td className="px-4 py-2 text-xs" style={{ color: 'var(--color-text-dim)' }}>{pod.ready}</td>
-              <td className="px-4 py-2 text-xs font-semibold" style={{ color: STATUS_COLOR[pod.status] ?? 'var(--color-text)' }}>{pod.status}</td>
-              <td className="px-4 py-2 text-xs" style={{ color: 'var(--color-text-dim)' }}>{pod.restarts}</td>
-              <td className="px-4 py-2 text-xs" style={{ color: 'var(--color-text-dim)' }}>{pod.age}</td>
+          {rows.map((row, i) => (
+            <tr key={`${row.name}-${i}`} style={{ borderBottom: '1px solid #1a1610', background: i % 2 === 0 ? '#0d0b07' : '#111009' }}>
+              <td className="px-4 py-2 font-mono text-xs" style={{ color: 'var(--color-text)' }}>{row.name}</td>
+              <td className="px-4 py-2 text-xs" style={{ color: 'var(--color-text-dim)' }}>{row.detail1}</td>
+              <td className="px-4 py-2 text-xs font-semibold" style={{ color: STATUS_COLOR[row.status.split(/\s+/)[0]] ?? 'var(--color-text)' }}>{row.status}</td>
+              <td className="px-4 py-2 text-xs" style={{ color: 'var(--color-text-dim)' }}>{row.detail2}</td>
+              <td className="px-4 py-2 text-xs" style={{ color: 'var(--color-text-dim)' }}>{row.detail3}</td>
             </tr>
           ))}
         </tbody>
