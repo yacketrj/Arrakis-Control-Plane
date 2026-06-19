@@ -1,68 +1,51 @@
-# WSL-native Dune self-hosting runbook
+# WSL-native Dune self-hosting guide
 
 ## Purpose
 
-This runbook records the working Windows + WSL 2 topology for a Dune: Awakening self-hosted server after Docker Desktop networking could not reliably carry the public game UDP path.
+This guide describes a reusable Windows + WSL 2 topology for running a Dune: Awakening self-hosted server when operators need public game access from a Windows host.
 
-Validated target:
+Recommended topology:
 
 ```text
-Windows host + WSL 2 mirrored networking
+Windows host
+WSL 2 mirrored networking
 Ubuntu WSL Docker Engine
 Dune server containers launched from the WSL-native Docker daemon
-Router forwards targeting the Windows/WSL mirrored LAN IP
+Router forwards targeting the host LAN IP that WSL receives in mirrored mode
 ```
 
-This is an operator runbook for the tested WSL path. It does not claim Docker Desktop is unusable for all development tasks; it documents the known-good public self-hosting path for this host class.
+This guide is written for operators and upstream maintainers. Replace example IP addresses, public addresses, and port overrides with values appropriate for the target host.
 
-## Known-good evidence
+## When to use this topology
 
-Known-good diagnostic bundle:
+Use the WSL-native topology when the operator is hosting from Windows and needs the public game client path to reach the world server ports reliably.
 
-```text
-known-good-wsl-native-20260619T102922Z.tar.gz
-```
+Prefer a native Linux host or dedicated Linux VM when available. Use this WSL-native guide when Windows + WSL is the required host model.
 
-Known-good runtime evidence:
+This topology is useful when Docker Desktop networking presents one or more of these symptoms:
 
-```text
-Docker Engine: 29.6.0
-Operating system: Ubuntu 26.04 LTS
-Kernel: 6.6.114.1-microsoft-standard-WSL2
-Docker root: /var/lib/docker
-WSL mirrored LAN IP: 192.168.68.21
-```
-
-Known-good container shape:
-
-| Container | Network | Required exposure |
-|---|---|---|
-| `dune-server-survival-1` | `host` | UDP `7778`, UDP `7888` |
-| `dune-server-overmap` | `host` | UDP `7777`, UDP `7889` |
-| `dune-server-gateway` | `dune-net` | Advertises the public RMQ/game endpoints |
-| `dune-rmq-game` | `dune-net` | TCP `31992`, TCP `31983` |
-| `dune-rmq-admin` | `dune-net` | TCP `32673` bound to localhost |
-| `dune-postgres` | `dune-net` | TCP `15432` bound to localhost |
-
-Known-good DB state after a clean init included populated `dune.world_partition` rows. A prior empty `world_partition` state caused `LoadPartitionDefinition(... got 0 rows, expected exactly 1)` and was resolved by resetting to a clean default state.
-
-## Why this path uses WSL-native Docker
-
-Docker Desktop networking was tested and rejected for this host because the game client UDP path did not reliably reach the world server.
-
-Observed failures:
-
-| Attempt | Result |
+| Symptom | Likely meaning |
 |---|---|
-| Docker Desktop host networking | Windows received UDP for `7778` but reported port unreachable / no transport endpoint. |
-| Docker Desktop bridge with UDP `-p` publish | Docker metadata showed port bindings, but captures inside the container saw no UDP. |
-| Explicit Docker Desktop HostIp publish to `192.168.68.21` | Docker metadata showed bindings, but packets still did not reach the container. |
-| Windows relay direct to Docker bridge IP | Windows could not route to Docker bridge container addresses such as `172.18.x.x`. |
-| WSL relay to Docker Desktop bridge IP | Plain WSL could not deliver packets into Docker Desktop's bridge network. |
+| Server appears in the browser but character-to-world transition fails or hangs | Public discovery path works, but game/RMQ/world traffic is incomplete. |
+| Windows receives forwarded UDP but reports port unreachable / no transport endpoint | Docker Desktop did not expose a usable Windows-side UDP endpoint. |
+| Docker Desktop `-p .../udp` metadata exists but container captures see no UDP | Docker metadata and real packet delivery disagree. |
+| Windows cannot route to Docker bridge container IPs | A Windows-side relay cannot target Docker bridge addresses directly. |
+| Plain WSL cannot reach Docker Desktop bridge containers | A WSL-side relay cannot complete the Docker Desktop path. |
 
-The working solution moved the daemon into Ubuntu WSL and enabled WSL mirrored networking so the server sockets were reachable through the Windows/WSL LAN identity.
+## Address and variable placeholders
 
-## Windows WSL configuration
+Use placeholders instead of copying example addresses directly.
+
+| Placeholder | Meaning | Example |
+|---|---|---|
+| `<LAN_IP>` | Windows/WSL mirrored LAN IP receiving router forwards | `192.168.68.21` |
+| `<PUBLIC_IP>` | Public WAN IP or DNS name advertised to clients | `203.0.113.10` |
+| `<WSL_DISTRO>` | Ubuntu WSL distro name | `Ubuntu-26.04` |
+| `<RMQ_GAME_PORT>` | Public TCP AMQP port for game RMQ | default `31982`, example override `31992` |
+| `<RMQ_GAME_HTTP_PORT>` | Public TCP HTTP/management path used by game RMQ where applicable | `31983` |
+| `<RMQ_ADMIN_PORT>` | Localhost-only Admin RMQ AMQP port | default `32573`, example override `32673` |
+
+## Required Windows WSL configuration
 
 Create or update:
 
@@ -70,13 +53,18 @@ Create or update:
 %UserProfile%\.wslconfig
 ```
 
-Known-good shape:
+Recommended WSL 2 configuration:
 
 ```ini
 [wsl2]
 networkingMode=mirrored
 firewall=true
 localhostForwarding=true
+```
+
+Optional resource controls may be added for larger hosts:
+
+```ini
 memory=24GB
 processors=4
 swap=98GB
@@ -88,27 +76,27 @@ Restart WSL after changing this file:
 wsl --shutdown
 ```
 
-Verify from Ubuntu:
+Reopen the Ubuntu distro and verify that WSL has the LAN address:
 
 ```bash
 ip addr
 hostname -I
 ```
 
-Expected evidence:
+Expected shape:
 
 ```text
-eth0 has 192.168.68.21/22
-hostname -I includes 192.168.68.21
+eth0 has <LAN_IP>/<prefix>
+hostname -I includes <LAN_IP>
 ```
 
-If WSL only shows a `172.x.x.x` NAT address, mirrored networking is not active.
+If WSL only shows a private NAT address such as `172.x.x.x`, mirrored networking is not active. Check `wsl --version`, run `wsl --update`, verify `.wslconfig`, then restart WSL again.
 
-## Docker Engine requirements
+## Docker Engine requirement
 
-Use Docker Engine inside Ubuntu WSL, not Docker Desktop's daemon.
+Use Docker Engine inside Ubuntu WSL. Do not run the Dune server workload through Docker Desktop's daemon for this topology.
 
-Verify:
+Verify the active daemon:
 
 ```bash
 export DOCKER_HOST=unix:///var/run/docker.sock
@@ -116,15 +104,15 @@ export DOCKER_HOST=unix:///var/run/docker.sock
 docker info --format 'Name={{.Name}} OperatingSystem={{.OperatingSystem}} ServerVersion={{.ServerVersion}}'
 ```
 
-Expected:
+Expected shape:
 
 ```text
-Name=Tabr-Tau OperatingSystem=Ubuntu 26.04 LTS ServerVersion=29.6.0
+Name=<windows-hostname> OperatingSystem=Ubuntu <version> ServerVersion=<docker-engine-version>
 ```
 
 If the output says `Docker Desktop`, the shell is pointed at the wrong daemon or Docker Desktop WSL integration has taken over the socket.
 
-Authoritative daemon checks:
+Authoritative local daemon checks:
 
 ```bash
 ps -fp "$(cat /var/run/docker.pid)"
@@ -139,48 +127,76 @@ Expected daemon path:
 
 ### Docker Desktop UI warning
 
-Docker Desktop may still display containers even when the WSL-native daemon owns them. Trust `docker info`, `/var/run/docker.pid`, and `/usr/bin/dockerd`; do not use the Desktop UI as the source of truth.
+Docker Desktop may still show containers when WSL integration is enabled. Do not use the Desktop UI as proof of ownership. Trust `docker info`, `/var/run/docker.pid`, and the daemon executable path.
 
-### Remove the temporary TCP Docker API listener
+### Docker socket hygiene
 
-During troubleshooting, the daemon was observed with:
+The server stack does not require an unauthenticated Docker TCP API listener. If the local daemon was started with a listener such as:
 
 ```text
 -H tcp://127.0.0.1:2375
 ```
 
-That listener is not required for this stack and should be removed once the server is stable. The target listener is:
+remove it after the stack is stable. The desired listener is:
 
 ```text
 -H unix:///var/run/docker.sock
 ```
 
-Do not leave an unauthenticated Docker API listener enabled longer than necessary.
+## Port model
 
-## Port plan
+The public game ports should remain stable. Backend RMQ host ports may need to be overrideable because mirrored WSL shares more of the Windows localhost and LAN port surface.
 
-Mirrored WSL caused Windows-local port collisions with the upstream default RMQ host ports. The working setup moved only the backend RMQ host ports and preserved game UDP ports.
+| Purpose | Default | Recommended handling |
+|---|---:|---|
+| Game UDP range | `7777-7921/udp` | Keep default unless all game, gateway, router, and firewall settings are changed together. |
+| RMQ Game AMQP | `31982/tcp` | Use default when free; otherwise set an override such as `31992`. |
+| RMQ Game HTTP | `31983/tcp` | Keep default when free. |
+| RMQ Admin AMQP | `32573/tcp` | Bind to localhost only; override if Windows already owns the port, for example `32673`. |
+| Postgres | `15432/tcp` | Bind to localhost only. |
+| Director | `11717/tcp` | Bind to localhost only. |
 
-| Purpose | Original | Known-good | Exposure |
-|---|---:|---:|---|
-| Game UDP range | `7777-7921/udp` | `7777-7921/udp` | Router + firewall to `192.168.68.21` |
-| RMQ Game AMQP | `31982/tcp` | `31992/tcp` | Router + firewall to `192.168.68.21` |
-| RMQ Game HTTP | `31983/tcp` | `31983/tcp` | Router + firewall to `192.168.68.21` |
-| RMQ Admin AMQP | `32573/tcp` | `32673/tcp` | Localhost only |
-| Postgres | `15432/tcp` | `15432/tcp` | Localhost only |
-| Director | `11717/tcp` | `11717/tcp` | Localhost only |
+Upstream recommendation: expose RMQ host ports through centralized variables instead of hardcoded literals, for example:
 
-Do not remap the public game UDP ports unless the game server, gateway, router, and firewall configuration are changed together.
+```env
+RMQ_GAME_HOST_PORT=31982
+RMQ_GAME_HTTP_HOST_PORT=31983
+RMQ_ADMIN_HOST_PORT=32573
+```
+
+This lets WSL operators avoid Windows port collisions without editing multiple runtime files.
+
+## Detecting port collisions
+
+Before starting the stack, check whether Windows or WSL already owns required ports.
+
+From WSL:
+
+```bash
+ss -ltnup | grep -E ':31982|:31983|:32573|:7777|:7778|:7888|:7889' || true
+```
+
+From PowerShell:
+
+```powershell
+netstat -ano | findstr ":31982 :31983 :32573 :7777 :7778 :7888 :7889"
+```
+
+If Windows owns a backend RMQ port, prefer changing the RMQ host-port override. Do not kill generic Windows service host processes to free ports.
 
 ## Router forwarding
 
-Known-good target:
-
-```text
-192.168.68.21
-```
+Router forwards must target `<LAN_IP>`, the address assigned to the Windows host and visible inside WSL mirrored networking.
 
 Required forwards:
+
+```text
+UDP 7777-7921 -> <LAN_IP>
+TCP <RMQ_GAME_PORT> -> <LAN_IP>
+TCP <RMQ_GAME_HTTP_PORT> -> <LAN_IP>
+```
+
+Example with remapped RMQ Game:
 
 ```text
 UDP 7777-7921 -> 192.168.68.21
@@ -188,32 +204,28 @@ TCP 31992      -> 192.168.68.21
 TCP 31983      -> 192.168.68.21
 ```
 
-The old TCP rule was:
+Do not assume a TCP range that includes the default RMQ Game port still applies after remapping. For example, `31982-31983` does not include `31992`.
 
-```text
-TCP 31982-31983 -> 192.168.68.21
-```
+## Windows firewall and mirrored WSL firewall
 
-That is insufficient after moving RMQ Game to `31992`.
+Allow inbound traffic for the selected public ports.
 
-## Windows firewall / mirrored WSL firewall
-
-Allow inbound traffic for:
+PowerShell as Administrator:
 
 ```powershell
 New-NetFirewallRule `
-  -DisplayName "Dune WSL RMQ Game 31992 TCP" `
+  -DisplayName "Dune WSL RMQ Game TCP" `
   -Direction Inbound `
   -Action Allow `
   -Protocol TCP `
-  -LocalPort 31992
+  -LocalPort <RMQ_GAME_PORT>
 
 New-NetFirewallRule `
-  -DisplayName "Dune WSL RMQ HTTP 31983 TCP" `
+  -DisplayName "Dune WSL RMQ Game HTTP TCP" `
   -Direction Inbound `
   -Action Allow `
   -Protocol TCP `
-  -LocalPort 31983
+  -LocalPort <RMQ_GAME_HTTP_PORT>
 
 New-NetFirewallRule `
   -DisplayName "Dune WSL UDP 7777-7921" `
@@ -223,25 +235,25 @@ New-NetFirewallRule `
   -LocalPort 7777-7921
 ```
 
-If normal Windows firewall rules are insufficient, inspect WSL Hyper-V firewall policy. Keep this as a troubleshooting step; do not assume it is required on every host.
+If normal Windows firewall rules are insufficient, inspect the WSL Hyper-V firewall policy. Treat Hyper-V firewall work as a troubleshooting step, not a universal requirement.
 
-## Runtime verification
+## Startup validation
 
-Verify listeners:
+After startup, verify listeners:
 
 ```bash
-ss -ltnup | grep -E ':31983|:31992|:7777|:7778|:7888|:7889'
+ss -ltnup | grep -E ':31982|:31983|:31992|:7777|:7778|:7888|:7889'
 ```
 
-Known-good shape:
+Expected shape:
 
 ```text
 udp 0.0.0.0:7777
 udp 0.0.0.0:7778
-udp 192.168.68.21:7888
-udp 192.168.68.21:7889
-tcp 0.0.0.0:31992
-tcp 0.0.0.0:31983
+udp <LAN_IP>:7888
+udp <LAN_IP>:7889
+tcp 0.0.0.0:<RMQ_GAME_PORT>
+tcp 0.0.0.0:<RMQ_GAME_HTTP_PORT>
 ```
 
 Verify containers:
@@ -250,13 +262,13 @@ Verify containers:
 docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}\t{{.Networks}}'
 ```
 
-Known-good RMQ Game exposure:
+Expected RMQ Game exposure:
 
 ```text
-dune-rmq-game  0.0.0.0:31992->5672/tcp, 0.0.0.0:31983->15672/tcp
+dune-rmq-game  0.0.0.0:<RMQ_GAME_PORT>->5672/tcp, 0.0.0.0:<RMQ_GAME_HTTP_PORT>->15672/tcp
 ```
 
-Verify gateway advertised ports:
+Verify gateway-advertised ports:
 
 ```bash
 docker inspect dune-server-gateway \
@@ -264,50 +276,88 @@ docker inspect dune-server-gateway \
   | grep -E 'RMQGameHostname|RMQGamePort|RMQGameHttpPort'
 ```
 
-Known-good shape:
+Expected shape:
 
 ```text
---RMQGameHostname=<public-ip>
---RMQGamePort=31992
+--RMQGameHostname=<PUBLIC_IP-or-public-DNS>
+--RMQGamePort=<RMQ_GAME_PORT>
 ```
+
+## Database bootstrap validation
+
+After a clean initialization, verify the world partitions exist:
+
+```bash
+docker exec dune-postgres psql -U dune -d dune -c "
+select partition_id, server_id, map, dimension_index, blocked, label
+from dune.world_partition
+order by partition_id;
+"
+```
+
+Expected: rows exist for the configured world maps, including `Survival_1` and `Overmap` when those worlds are enabled.
+
+If world servers log this error:
+
+```text
+LoadPartitionDefinition(... got 0 rows, expected exactly 1)
+```
+
+then the database bootstrap state is incomplete. Prefer rerunning the supported initialization/reset workflow rather than manually inserting partition rows.
 
 ## Packet-capture validation
 
-For RMQ Game TCP:
+Use packet captures to distinguish routing failure from application/session failure.
+
+RMQ Game TCP:
 
 ```bash
-sudo tcpdump -nnvvv -tttt -i any 'tcp and port 31992'
+sudo tcpdump -nnvvv -tttt -i any 'tcp and port <RMQ_GAME_PORT>'
 ```
 
-Known-good external evidence included inbound public-source traffic to:
+Expected public-path evidence:
 
 ```text
-<public-source> > 192.168.68.21.31992
-192.168.68.21.31992 > <public-source>
+<client-or-router-source> > <LAN_IP>.<RMQ_GAME_PORT>
+<LAN_IP>.<RMQ_GAME_PORT> > <client-or-router-source>
 ```
 
-For world UDP:
+World UDP:
 
 ```bash
 sudo tcpdump -nnvvv -tttt -i any 'udp and (port 7777 or port 7778 or port 7888 or port 7889)'
 ```
 
-Game entry should show client/public UDP reaching the world server port, especially `7778` for `Survival_1`.
+Expected after successful handoff: client/public UDP reaches the world server port, especially `7778` for `Survival_1`.
 
-## Registry image note
+If RMQ TCP arrives but world UDP never follows, continue debugging gateway/session/RMQ handoff rather than router TCP reachability.
 
-During WSL-native migration, `registry.funcom.com` returned public DNS `NXDOMAIN`. If the images already exist in Docker Desktop, export them from Docker Desktop and load them into the WSL-native engine rather than repeatedly retrying public DNS.
+## Docker Desktop image cache note
 
-High-level flow:
+Some operators may already have required Funcom images cached in Docker Desktop while the WSL-native daemon cannot pull from the registry. If the registry host is not resolvable or not reachable, move images from Docker Desktop to WSL-native Docker:
 
 ```text
 Docker Desktop image cache -> docker save -> tar file -> WSL-native docker load
 ```
 
-## Known follow-up work
+Use this only for images the operator is authorized to run.
 
-- Centralize hardcoded RMQ host ports into variables, for example `RMQ_GAME_HOST_PORT` and `RMQ_ADMIN_HOST_PORT`.
-- Remove `tcp://127.0.0.1:2375` from `dockerd` startup.
-- Resolve host DNS behavior separately.
-- Avoid Docker Desktop WSL integration taking ownership of `/var/run/docker.sock` when WSL-native Docker is the target runtime.
-- Preserve a known-good diagnostic bundle after every major runtime change.
+## Upstream recommendations
+
+- Add a first-class WSL-native network profile that assumes WSL mirrored networking and Ubuntu WSL Docker Engine.
+- Centralize RMQ host ports into overrideable configuration variables.
+- Keep public game UDP ports stable by default.
+- Document router/firewall requirements using `<LAN_IP>`, `<PUBLIC_IP>`, and selected RMQ ports rather than host-specific values.
+- Add diagnostics that capture Docker daemon identity, WSL address mode, listener state, gateway-advertised ports, world partition rows, and short packet summaries.
+- Warn operators when Docker Desktop owns `/var/run/docker.sock` but the selected profile expects WSL-native Docker.
+
+## Troubleshooting matrix
+
+| Observation | Next check |
+|---|---|
+| `docker info` reports Docker Desktop | Fix Docker context/socket ownership before starting the stack. |
+| WSL has only `172.x.x.x` address | Mirrored networking is not active. |
+| Server appears but connection hangs | Check RMQ Game TCP reachability and gateway-advertised RMQ port. |
+| Character-to-world transition fails | Capture world UDP ports, especially `7778`. |
+| `world_partition` is empty | Rerun supported init/reset workflow. |
+| Backend RMQ port bind fails | Check Windows and WSL port ownership and choose an RMQ host-port override. |
